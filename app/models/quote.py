@@ -1,8 +1,5 @@
 """
-Modelo de Cotizaciones
-Cada celda puede ser:
-- Valor manual: "308.17"
-- Fórmula: "REF / 1.1"
+Modelo de Cotizaciones basado en USD
 """
 from datetime import datetime
 from app.models import db
@@ -17,14 +14,17 @@ class Quote(db.Model):
     # Tipo: 'manual' o 'formula'
     value_type = db.Column(db.String(20), default='manual', nullable=False)
     
-    # Valor manual (si aplica)
-    manual_value = db.Column(db.Numeric(10, 2), nullable=True)
+    # Valor en USD (manual)
+    usd_value = db.Column(db.Numeric(10, 6), nullable=True)
     
-    # Fórmula (si aplica): "REF / 1.1"
-    formula = db.Column(db.String(200), nullable=True)
+    # Fórmula en USD: "1 / 1.1"
+    usd_formula = db.Column(db.String(200), nullable=True)
     
-    # Valor calculado final
-    calculated_value = db.Column(db.Numeric(10, 2), nullable=True)
+    # Valor calculado en USD
+    calculated_usd = db.Column(db.Numeric(10, 6), nullable=True)
+    
+    # Valor final en la moneda local (USD × tasa de cambio)
+    final_value = db.Column(db.Numeric(12, 2), nullable=True)
     
     # Timestamp
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -36,13 +36,6 @@ class Quote(db.Model):
     def __repr__(self):
         return f'<Quote {self.payment_method.code}-{self.currency.code}>'
     
-    def get_value(self):
-        """Obtener el valor actual (manual o calculado)"""
-        if self.value_type == 'manual':
-            return float(self.manual_value) if self.manual_value else 0
-        else:
-            return float(self.calculated_value) if self.calculated_value else 0
-    
     def to_dict(self):
         return {
             'id': self.id,
@@ -50,9 +43,9 @@ class Quote(db.Model):
             'payment_method_code': self.payment_method.code,
             'currency': self.currency.code,
             'value_type': self.value_type,
-            'manual_value': float(self.manual_value) if self.manual_value else None,
-            'formula': self.formula,
-            'calculated_value': float(self.calculated_value) if self.calculated_value else None,
-            'display_value': self.get_value(),
+            'usd_value': float(self.usd_value) if self.usd_value else None,
+            'usd_formula': self.usd_formula,
+            'calculated_usd': float(self.calculated_usd) if self.calculated_usd else None,
+            'final_value': float(self.final_value) if self.final_value else None,
             'updated_at': self.updated_at.isoformat()
         }

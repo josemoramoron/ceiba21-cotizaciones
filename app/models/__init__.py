@@ -12,6 +12,7 @@ from app.models.currency import Currency
 from app.models.payment_method import PaymentMethod
 from app.models.quote import Quote
 from app.models.quote_history import QuoteHistory
+from app.models.exchange_rate import ExchangeRate
 
 # Exportar para facilitar importación
-__all__ = ['db', 'Currency', 'PaymentMethod', 'Quote', 'QuoteHistory']
+__all__ = ['db', 'Currency', 'PaymentMethod', 'Quote', 'QuoteHistory', 'ExchangeRate']
