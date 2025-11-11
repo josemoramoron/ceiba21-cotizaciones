@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Métodos de Pago{% endblock %}
+{% block content %}
+<div class="bg-white rounded-lg shadow-lg p-6">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">Métodos de Pago</h2>
+    <p class="text-gray-600">Próximamente: CRUD completo de métodos de pago</p>
+    
+    <div class="mt-6">
+        <h3 class="font-bold mb-3">Métodos actuales:</h3>
+        <ul class="space-y-2">
+            {% for pm in payment_methods %}
+            <li class="p-3 bg-gray-50 rounded-lg flex justify-between">
+                <span><strong>{{ pm.code }}</strong> - {{ pm.name }}</span>
+                <span class="text-gray-600">Orden: {{ pm.display_order }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

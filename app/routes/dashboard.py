@@ -10,12 +10,15 @@ dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 @dashboard_bp.route('/')
 def index():
     """Dashboard principal - Tabla de cotizaciones"""
+    from datetime import datetime
+    
     matrix = QuoteService.get_quotes_matrix()
     rates = ExchangeRateService.get_rates_dict()
     
     return render_template('dashboard/index.html', 
                          matrix=matrix, 
-                         rates=rates)
+                         rates=rates,
+                         now=datetime.now())
 
 @dashboard_bp.route('/rates', methods=['GET', 'POST'])
 def manage_rates():
