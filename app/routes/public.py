@@ -27,7 +27,6 @@ def cotizaciones():
                          rates=rates,
                          active_currencies=active_currencies,
                          now=datetime.now())
-
 @public_bp.route('/calculadora')
 def calculadora():
     """Calculadora de conversión"""

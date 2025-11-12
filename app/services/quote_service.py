@@ -28,17 +28,9 @@ class QuoteService:
     def get_quotes_matrix():
         """
         Obtener cotizaciones en formato matriz (como tu Google Sheets)
-        Retorna: {
-            'payment_methods': [...],
-            'currencies': [...],
-            'quotes': {
-                'PAYPAL': {'BS': 280.15, 'COP': 3382.75, ...},
-                'ZELLE': {...}
-            }
-        }
         """
         payment_methods = PaymentMethod.query.order_by(PaymentMethod.display_order).all()
-        currencies = Currency.query.order_by(Currency.code).all()
+        currencies = Currency.query.order_by(Currency.display_order, Currency.code).all()
         
         quotes_dict = {}
         for pm in payment_methods:

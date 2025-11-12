@@ -1,0 +1,186 @@
+{% extends "public_base.html" %}
+
+{% block title %}Ceiba21 - Cambio de Divisas Confiable{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="hero-gradient text-white py-20">
+    <div class="container mx-auto px-4">
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+                <h1 class="text-5xl font-bold mb-6">
+                    Cambia tus divisas de forma <span class="text-yellow-300">rápida y segura</span>
+                </h1>
+                <p class="text-xl mb-8 text-gray-200">
+                    Las mejores tasas del mercado para PayPal, Zelle, USDT y más. 
+                    Más de 5 años de experiencia respaldándonos.
+                </p>
+                <div class="flex space-x-4">
+                    <a href="{{ url_for('public.cotizaciones') }}" 
+                       class="bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold hover:bg-gray-100 transition shadow-lg">
+                        <i class="fas fa-chart-line mr-2"></i> Ver Cotizaciones
+                    </a>
+                    <a href="{{ url_for('public.calculadora') }}" 
+                       class="glass text-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:bg-opacity-20 transition">
+                        <i class="fas fa-calculator mr-2"></i> Calcular
+                    </a>
+                </div>
+            </div>
+            <div class="hidden md:block">
+                <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 border border-white border-opacity-20">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-coins text-6xl text-yellow-300 mb-4"></i>
+                        <h3 class="text-2xl font-bold">Cotizaciones en Tiempo Real</h3>
+                    </div>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between bg-white bg-opacity-10 p-3 rounded-lg">
+                            <span>💳 PayPal</span>
+                            <span class="font-bold">$0.909 USD</span>
+                        </div>
+                        <div class="flex justify-between bg-white bg-opacity-10 p-3 rounded-lg">
+                            <span>💵 Zelle</span>
+                            <span class="font-bold">$0.943 USD</span>
+                        </div>
+                        <div class="flex justify-between bg-white bg-opacity-10 p-3 rounded-lg">
+                            <span>₿ USDT</span>
+                            <span class="font-bold">$0.962 USD</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('public.cotizaciones') }}" class="block text-center mt-4 text-yellow-300 hover:text-yellow-400">
+                        Ver todas las tasas →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-20 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">¿Por qué elegir Ceiba21?</h2>
+            <p class="text-gray-600 text-lg">Confianza, rapidez y las mejores tasas del mercado</p>
+        </div>
+        
+        <div class="grid md:grid-cols-4 gap-8">
+            <!-- Feature 1 -->
+            <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-bolt text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Transacciones Rápidas</h3>
+                <p class="text-gray-600 text-sm">Procesamos tu cambio en minutos, no en días</p>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
+                <div class="bg-gradient-to-r from-green-500 to-teal-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-shield-alt text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">100% Seguro</h3>
+                <p class="text-gray-600 text-sm">Tus datos y transacciones están protegidos</p>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
+                <div class="bg-gradient-to-r from-yellow-500 to-orange-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-star text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Mejores Tasas</h3>
+                <p class="text-gray-600 text-sm">Tasas competitivas actualizadas en tiempo real</p>
+            </div>
+            
+            <!-- Feature 4 -->
+            <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
+                <div class="bg-gradient-to-r from-pink-500 to-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-headset text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Soporte 24/7</h3>
+                <p class="text-gray-600 text-sm">Estamos aquí para ayudarte cuando lo necesites</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Métodos de Pago -->
+<section class="py-20 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Métodos de Pago Aceptados</h2>
+            <p class="text-gray-600 text-lg">Trabajamos con las plataformas más populares</p>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                <i class="fab fa-paypal text-blue-600 text-4xl mb-2"></i>
+                <p class="font-semibold text-sm">PayPal</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                <i class="fas fa-dollar-sign text-green-600 text-4xl mb-2"></i>
+                <p class="font-semibold text-sm">Zelle</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                <i class="fab fa-bitcoin text-orange-500 text-4xl mb-2"></i>
+                <p class="font-semibold text-sm">USDT</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                <i class="fas fa-credit-card text-purple-600 text-4xl mb-2"></i>
+                <p class="font-semibold text-sm">Wise</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                <i class="fas fa-wallet text-indigo-600 text-4xl mb-2"></i>
+                <p class="font-semibold text-sm">Zinli</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                <i class="fas fa-money-check-alt text-teal-600 text-4xl mb-2"></i>
+                <p class="font-semibold text-sm">Venmo</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+    <div class="container mx-auto px-4 text-center">
+        <h2 class="text-4xl font-bold mb-6">¿Listo para empezar?</h2>
+        <p class="text-xl mb-8 text-gray-200">Únete a miles de clientes satisfechos</p>
+        <div class="flex justify-center space-x-4">
+            <a href="{{ url_for('public.calculadora') }}" 
+               class="bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold hover:bg-gray-100 transition shadow-lg">
+                <i class="fas fa-calculator mr-2"></i> Calcular Cambio
+            </a>
+            <a href="{{ url_for('public.contacto') }}" 
+               class="border-2 border-white text-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-indigo-600 transition">
+                <i class="fas fa-envelope mr-2"></i> Contáctanos
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="grid md:grid-cols-4 gap-8 text-center">
+            <div>
+                <div class="text-5xl font-bold text-indigo-600 mb-2">5+</div>
+                <p class="text-gray-600">Años de Experiencia</p>
+            </div>
+            <div>
+                <div class="text-5xl font-bold text-indigo-600 mb-2">10K+</div>
+                <p class="text-gray-600">Clientes Satisfechos</p>
+            </div>
+            <div>
+                <div class="text-5xl font-bold text-indigo-600 mb-2">20+</div>
+                <p class="text-gray-600">Métodos de Pago</p>
+            </div>
+            <div>
+                <div class="text-5xl font-bold text-indigo-600 mb-2">24/7</div>
+                <p class="text-gray-600">Soporte Disponible</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

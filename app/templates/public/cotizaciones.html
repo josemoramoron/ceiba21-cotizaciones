@@ -1,0 +1,91 @@
+{% extends "public_base.html" %}
+
+{% block title %}Cotizaciones en Tiempo Real - Ceiba21{% endblock %}
+
+{% block content %}
+
+<section class="py-12 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+    <div class="container mx-auto px-4 text-center">
+        <h1 class="text-4xl font-bold mb-4">
+            <i class="fas fa-chart-line mr-3"></i> Cotizaciones en Tiempo Real
+        </h1>
+        <p class="text-xl text-gray-200">Actualizado constantemente para ofrecerte las mejores tasas</p>
+    </div>
+</section>
+
+<section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+        
+        <!-- Tasas de Cambio -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-exchange-alt text-indigo-600"></i> Tasas de Cambio Base
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {% for currency_code, rate in rates.items() %}
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">1 USD =</p>
+                    <p class="text-2xl font-bold text-indigo-600">{{ "%.2f"|format(rate) }}</p>
+                    <p class="text-sm text-gray-700">{{ currency_code }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Tabla de Cotizaciones -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-table mr-2"></i> Tabla de Cotizaciones
+                </h2>
+                <p class="text-gray-200 mt-2">Todas las tasas en diferentes monedas</p>
+            </div>
+
+
+	<div class="overflow-x-auto">
+	    <table class="min-w-full">
+	        <thead>
+	            <!-- Header principal con fondo degradado -->
+	            <tr class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+	                <th class="px-6 py-4 text-left text-lg font-bold">Método de Pago</th>
+	                {% for currency in active_currencies %}
+	                <th class="px-6 py-4 text-right text-lg font-bold">{{ currency.code }}</th>
+	                {% endfor %}
+	            </tr>
+	        </thead>
+	        <tbody class="divide-y divide-gray-200 bg-white">
+	            {% for pm in matrix.payment_methods %}
+	            <tr class="hover:bg-gray-50 transition">
+	                <td class="px-6 py-4">
+	                    <span class="font-semibold text-gray-800 text-base">{{ pm.name }}</span>
+	                </td>
+	                {% for currency in active_currencies %}
+	                <td class="px-6 py-4 text-right">
+	                    <span class="font-bold text-gray-800 text-base">
+	                        {{ "{:,.2f}".format(matrix.quotes[pm.code][currency.code].value) }}
+	                    </span>
+	                </td>
+	                {% endfor %}
+	            </tr>
+	            {% endfor %}
+	        </tbody>
+	    </table>
+	</div>
+
+            <div class="p-4 bg-gray-50 text-sm text-gray-600 text-center">
+                <i class="fas fa-clock mr-2"></i> Última actualización: {{ now.strftime('%d/%m/%Y %H:%M:%S') }}
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="mt-8 text-center">
+            <a href="{{ url_for('public.calculadora') }}" 
+               class="inline-block bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-lg font-bold hover:from-indigo-700 hover:to-purple-700 transition shadow-lg">
+                <i class="fas fa-calculator mr-2"></i> Calcular tu Cambio Ahora
+            </a>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

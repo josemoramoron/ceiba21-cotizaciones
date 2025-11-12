@@ -3,10 +3,12 @@ Rutas del Dashboard CRUD
 """
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from app.services import QuoteService, ExchangeRateService, CurrencyService, PaymentMethodService
+from app.routes.auth import login_required  # ← AGREGAR ESTA LÍNEA
 
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
 @dashboard_bp.route('/')
+@login_required
 def index():
     """Dashboard principal - Tabla de cotizaciones"""
     from datetime import datetime
@@ -20,6 +22,7 @@ def index():
                          now=datetime.now())
 
 @dashboard_bp.route('/rates', methods=['GET', 'POST'])
+@login_required
 def manage_rates():
     """Gestionar tasas de cambio"""
     if request.method == 'POST':
@@ -43,12 +46,14 @@ def manage_rates():
 # ==================== CRUD MONEDAS ====================
 
 @dashboard_bp.route('/currencies')
+@login_required
 def manage_currencies():
     """Gestionar monedas (CRUD)"""
     currencies = CurrencyService.get_all()
     return render_template('dashboard/currencies.html', currencies=currencies)
 
 @dashboard_bp.route('/currencies/add', methods=['POST'])
+@login_required
 def add_currency():
     """Agregar nueva moneda"""
     code = request.form.get('code', '').strip()
@@ -76,6 +81,7 @@ def add_currency():
     return redirect(url_for('dashboard.manage_currencies'))
 
 @dashboard_bp.route('/currencies/<int:currency_id>/edit', methods=['POST'])
+@login_required
 def edit_currency(currency_id):
     """Editar moneda"""
     name = request.form.get('name', '').strip()
@@ -91,6 +97,7 @@ def edit_currency(currency_id):
     return redirect(url_for('dashboard.manage_currencies'))
 
 @dashboard_bp.route('/currencies/<int:currency_id>/toggle', methods=['POST'])
+@login_required
 def toggle_currency(currency_id):
     """Activar/Desactivar moneda"""
     currency, error = CurrencyService.toggle_active(currency_id)
@@ -104,6 +111,7 @@ def toggle_currency(currency_id):
     return redirect(url_for('dashboard.manage_currencies'))
 
 @dashboard_bp.route('/currencies/<int:currency_id>/delete', methods=['POST'])
+@login_required
 def delete_currency(currency_id):
     """Eliminar moneda"""
     success, error = CurrencyService.delete(currency_id)
@@ -115,15 +123,29 @@ def delete_currency(currency_id):
     
     return redirect(url_for('dashboard.manage_currencies'))
 
+@dashboard_bp.route('/currencies/reorder', methods=['POST'])
+@login_required
+def reorder_currencies():
+    """Reordenar monedas (drag & drop)"""
+    data = request.get_json()
+    order_list = data.get('order', [])
+    
+    CurrencyService.reorder(order_list)
+    
+    return jsonify({'success': True, 'message': 'Orden guardado exitosamente'})
+
+
 # ==================== CRUD MÉTODOS DE PAGO ====================
 
 @dashboard_bp.route('/payment-methods')
+@login_required
 def manage_payment_methods():
     """Gestionar métodos de pago (CRUD)"""
     payment_methods = PaymentMethodService.get_all()
     return render_template('dashboard/payment_methods.html', payment_methods=payment_methods)
 
 @dashboard_bp.route('/payment-methods/add', methods=['POST'])
+@login_required
 def add_payment_method():
     """Agregar nuevo método de pago"""
     code = request.form.get('code', '').strip()
@@ -159,6 +181,7 @@ def add_payment_method():
     return redirect(url_for('dashboard.manage_payment_methods'))
 
 @dashboard_bp.route('/payment-methods/<int:pm_id>/edit', methods=['POST'])
+@login_required
 def edit_payment_method(pm_id):
     """Editar método de pago"""
     name = request.form.get('name', '').strip()
@@ -205,6 +228,7 @@ def update_formula(pm_id):
     return redirect(url_for('dashboard.manage_payment_methods'))
 
 @dashboard_bp.route('/payment-methods/reorder', methods=['POST'])
+@login_required
 def reorder_payment_methods():
     """Reordenar métodos de pago (drag & drop)"""
     data = request.get_json()
@@ -215,6 +239,7 @@ def reorder_payment_methods():
     return jsonify({'success': True})
 
 @dashboard_bp.route('/payment-methods/<int:pm_id>/delete', methods=['POST'])
+@login_required
 def delete_payment_method(pm_id):
     """Eliminar método de pago"""
     success, error = PaymentMethodService.delete(pm_id)
@@ -229,6 +254,7 @@ def delete_payment_method(pm_id):
 # ==================== API ENDPOINTS ====================
 
 @dashboard_bp.route('/api/quote/<int:quote_id>', methods=['PUT'])
+@login_required
 def update_quote_api(quote_id):
     """API: Actualizar cotización"""
     data = request.get_json()
@@ -243,6 +269,7 @@ def update_quote_api(quote_id):
     return jsonify({'success': False, 'error': 'Quote not found'}), 404
 
 @dashboard_bp.route('/api/recalculate', methods=['POST'])
+@login_required
 def recalculate_all():
     """API: Recalcular todas las cotizaciones"""
     count = QuoteService.recalculate_all_quotes()
@@ -251,6 +278,7 @@ def recalculate_all():
 # ==================== API EXTERNA ====================
 
 @dashboard_bp.route('/api/fetch-rate/<currency_code>', methods=['POST'])
+@login_required
 def fetch_rate_from_api(currency_code):
     """Obtener tasa de cambio desde API externa"""
     from app.services import APIService
@@ -288,6 +316,7 @@ def fetch_rate_from_api(currency_code):
     }), 400
 
 @dashboard_bp.route('/api/test-providers')
+@login_required
 def test_api_providers():
     """Probar todos los proveedores de API"""
     from app.services import APIService

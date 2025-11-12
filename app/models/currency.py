@@ -12,6 +12,7 @@ class Currency(db.Model):
     name = db.Column(db.String(50), nullable=False)
     symbol = db.Column(db.String(10))
     active = db.Column(db.Boolean, default=True)
+    display_order = db.Column(db.Integer, default=0)  # ← NUEVO
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
@@ -24,5 +25,6 @@ class Currency(db.Model):
             'code': self.code,
             'name': self.name,
             'symbol': self.symbol,
-            'active': self.active
+            'active': self.active,
+            'display_order': self.display_order
         }

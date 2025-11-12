@@ -11,8 +11,8 @@
             <p class="text-gray-600 mt-1">Sistema basado en USD como moneda base</p>
         </div>
         <div class="flex space-x-3">
-            <button onclick="recalculateAll()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
-                <i class="fas fa-calculator"></i> Recalcular Todo
+            <button onclick="saveColumnOrder()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+                <i class="fas fa-save"></i> Guardar Orden de Monedas
             </button>
             <button class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition">
                 <i class="fab fa-telegram"></i> Publicar en Telegram
@@ -23,7 +23,7 @@
     <!-- Tasas de Cambio Actuales -->
     <div class="mb-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg">
         <h3 class="text-sm font-bold text-gray-700 mb-2">💱 Tasas de Cambio Actuales (USD → Moneda)</h3>
-        <div class="grid grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {% for currency_code, rate in rates.items() %}
             <div class="bg-white p-3 rounded-lg shadow-sm">
                 <span class="text-xs text-gray-600">1 USD =</span>
@@ -37,40 +37,41 @@
     </div>
 
     <!-- Tabla de Cotizaciones -->
-    <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-
-	<thead class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
-	    <tr>
-	        <th class="px-4 py-3 text-left">Método de Pago</th>
-	        <th class="px-4 py-3 text-left">Tipo</th>
-	        <th class="px-4 py-3 text-left">Fórmula USD</th>
-	        {% for currency in matrix.currencies %}
-	        <th class="px-4 py-3 text-right currency-header" data-currency="{{ currency.code }}">
-	            <div class="flex items-center justify-end space-x-2 cursor-move">
-	                <i class="fas fa-grip-vertical text-xs opacity-50"></i>
-	                <span>{{ currency.code }}</span>
-	            </div>
-	        </th>
-	        {% endfor %}
-	    </tr>
-	</thead>
-	
+    <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white sticky top-0">
+                <tr>
+                    <th class="px-4 py-3 text-left sticky left-0 bg-gradient-to-r from-indigo-500 to-purple-500 z-10">Método de Pago</th>
+                    <th class="px-4 py-3 text-left">Tipo</th>
+                    <th class="px-4 py-3 text-left">Fórmula USD</th>
+                    {% for currency in matrix.currencies %}
+                    <th class="px-4 py-3 text-right currency-header" 
+                        data-currency="{{ currency.code }}"
+                        data-currency-id="{{ currency.id }}">
+                        <div class="flex items-center justify-end space-x-2 cursor-move whitespace-nowrap">
+                            <i class="fas fa-grip-vertical text-xs opacity-50"></i>
+                            <span>{{ currency.code }}</span>
+                        </div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            
             <tbody>
                 {% for pm in matrix.payment_methods %}
                 <tr class="border-b hover:bg-gray-50 transition">
-                    <td class="px-4 py-3 font-semibold">
+                    <td class="px-4 py-3 font-semibold sticky left-0 bg-white z-10 whitespace-nowrap">
                         {{ pm.name }}
                     </td>
                     <td class="px-4 py-3">
                         {% set first_quote = matrix.quotes[pm.code][matrix.currencies[0].code] %}
                         {% if first_quote.type == 'manual' %}
-                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Manual</span>
+                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded whitespace-nowrap">Manual</span>
                         {% else %}
-                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Fórmula</span>
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded whitespace-nowrap">Fórmula</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600 font-mono">
+                    <td class="px-4 py-3 text-sm text-gray-600 font-mono whitespace-nowrap">
                         {% if first_quote.formula %}
                         {{ first_quote.formula }}
                         {% else %}
@@ -78,7 +79,7 @@
                         {% endif %}
                     </td>
                     {% for currency in matrix.currencies %}
-                    <td class="px-4 py-3 text-right font-semibold text-gray-800">
+                    <td class="px-4 py-3 text-right font-semibold text-gray-800 whitespace-nowrap">
                         {{ "{:,.2f}".format(matrix.quotes[pm.code][currency.code].value) }}
                     </td>
                     {% endfor %}
@@ -88,35 +89,18 @@
         </table>
     </div>
 
+    <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
+        <p class="text-sm text-blue-800">
+            <i class="fas fa-arrows-alt-h"></i> 
+            Puedes hacer <strong>scroll horizontal</strong> en la tabla para ver todas las monedas. La columna "Método de Pago" permanece fija.
+        </p>
+    </div>
+
     <!-- Última actualización -->
     <div class="mt-4 text-sm text-gray-600 text-right">
         <i class="fas fa-clock"></i> Última actualización: {{ now.strftime('%d/%m/%Y %H:%M:%S') }}
     </div>
 </div>
-
-<script>
-function recalculateAll() {
-    if (confirm('¿Recalcular todas las cotizaciones?')) {
-        fetch('/dashboard/api/recalculate', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'}
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(`✅ ${data.updated} cotizaciones actualizadas`);
-                location.reload();
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-}
-
-function now() {
-    const now = new Date();
-    return now.toLocaleString('es-ES');
-}
-</script>
 
 <style>
 .currency-header {
@@ -198,6 +182,31 @@ headers.forEach((header, index) => {
         return false;
     });
 });
+
+// Guardar orden de columnas
+function saveColumnOrder() {
+    const headers = Array.from(document.querySelectorAll('.currency-header'));
+    const order = headers.map(h => parseInt(h.dataset.currencyId));
+    
+    if (confirm('¿Guardar el orden actual de las monedas?\n\nEste orden se aplicará también en la página pública.')) {
+        fetch('/dashboard/currencies/reorder', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ order: order })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('❌ Error al guardar el orden');
+            console.error(error);
+        });
+    }
+}
 </script>
 
 {% endblock %}

@@ -94,3 +94,17 @@ class CurrencyService:
         db.session.delete(currency)
         db.session.commit()
         return True, None
+    
+    @staticmethod
+    def reorder(order_list):
+        """
+        Reordenar monedas
+        order_list: lista de IDs en el nuevo orden [3, 1, 2, 4...]
+        """
+        for index, currency_id in enumerate(order_list, start=1):
+            currency = CurrencyService.get_by_id(currency_id)
+            if currency:
+                currency.display_order = index
+        
+        db.session.commit()
+        return True

@@ -1,0 +1,284 @@
+{% extends "public_base.html" %}
+
+{% block title %}Calculadora de PayPal - Ceiba21{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calculator-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="py-10 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+    <div class="container mx-auto px-4 text-center">
+        <h1 class="text-3xl font-bold mb-3">
+            <i class="fas fa-calculator mr-2"></i> Calculadora de Comisiones PayPal
+        </h1>
+        <p class="text-lg text-gray-200">Calcula cuánto recibirás o cuánto debes enviar</p>
+    </div>
+</section>
+
+<section class="py-10 bg-gray-50">
+    <div class="container mx-auto px-4">
+        
+        <div class="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+            
+            <!-- Calculadora 1: Recibir -->
+            <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+                <div class="calculator-card p-5 text-white">
+                    <h2 class="text-xl font-bold mb-1">
+                        <i class="fas fa-arrow-down mr-2"></i> Recibir Pago
+                    </h2>
+                    <p class="text-gray-200 text-sm">¿Cuánto me llega después de comisiones?</p>
+                </div>
+                
+                <div class="p-5 space-y-3">
+                    <!-- Input -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Cantidad que te envían
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-500 text-lg font-bold">$</span>
+                            <input type="number" 
+                                   id="receiveInput" 
+                                   oninput="calculateReceive()" 
+                                   placeholder="106.03" 
+                                   step="0.01"
+                                   value="106.03"
+                                   class="w-full pl-9 pr-4 py-3 text-xl font-semibold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    
+                    <!-- Resultados -->
+                    <div class="space-y-2 bg-gradient-to-br from-gray-50 to-indigo-50 p-4 rounded-lg border border-gray-200">
+                        <div class="flex justify-between items-center py-1">
+                            <span class="text-sm text-gray-600">Monto enviado:</span>
+                            <span class="text-lg font-bold" id="receiveSent">$106.03</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1">
+                            <span class="text-sm text-gray-600">Comisión PayPal:</span>
+                            <span class="text-lg font-bold text-red-600" id="receiveCommission">$6.03</span>
+                        </div>
+                        <div class="border-t border-gray-300 my-1"></div>
+                        <div class="flex justify-between items-center py-2 bg-green-50 -mx-4 px-4 rounded">
+                            <span class="text-gray-800 font-semibold">
+                                <i class="fas fa-money-bill-wave text-green-600 mr-1"></i>
+                                Recibes neto:
+                            </span>
+                            <span class="text-2xl font-bold text-green-600" id="receiveNet">$100.00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Selector -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Moneda</label>
+                        <select id="receiveSelect" onchange="calculateReceive()" 
+                                class="w-full px-3 py-2 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <option value="USD">USD - Dólar</option>
+                            {% for currency in matrix.currencies %}
+                            <option value="{{ currency.code }}">{{ currency.code }} - {{ currency.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Conversión -->
+                    <div id="receiveConvertedBox" class="hidden p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-blue-700 mb-1">
+                                    <i class="fas fa-info-circle mr-1"></i> Monto en <span id="receiveCurrencyName">VES</span>:
+                                </p>
+                                <p class="text-xs text-blue-600">
+                                    Cotización PayPal: <span id="receiveQuoteRate">287.07</span>
+                                </p>
+                            </div>
+                            <span class="text-xl font-bold text-blue-700" id="receiveConverted">28,707.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Calculadora 2: Enviar -->
+            <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+                <div class="calculator-card p-5 text-white">
+                    <h2 class="text-xl font-bold mb-1">
+                        <i class="fas fa-arrow-up mr-2"></i> Enviar Pago
+                    </h2>
+                    <p class="text-gray-200 text-sm">¿Cuánto debo enviar para que llegue X cantidad?</p>
+                </div>
+                
+                <div class="p-5 space-y-3">
+                    <!-- Input -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Para que llegue (neto)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-500 text-lg font-bold">$</span>
+                            <input type="number" 
+                                   id="sendInput" 
+                                   oninput="calculateSend()" 
+                                   placeholder="100.00" 
+                                   step="0.01"
+                                   value="100.00"
+                                   class="w-full pl-9 pr-4 py-3 text-xl font-semibold border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                    </div>
+                    
+                    <!-- Resultados -->
+                    <div class="space-y-2 bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                        <div class="flex justify-between items-center py-2 bg-purple-100 -mx-4 px-4 rounded">
+                            <span class="text-gray-800 font-semibold">
+                                <i class="fas fa-paper-plane text-purple-600 mr-1"></i>
+                                Hay que enviar:
+                            </span>
+                            <span class="text-2xl font-bold text-purple-600" id="sendTotal">$106.03</span>
+                        </div>
+                        <div class="border-t border-purple-300 my-1"></div>
+                        <div class="flex justify-between items-center py-1">
+                            <span class="text-sm text-gray-600">La comisión es de:</span>
+                            <span class="text-lg font-bold text-red-600" id="sendCommission">$6.03</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Selector -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Moneda</label>
+                        <select id="sendSelect" onchange="calculateSend()" 
+                                class="w-full px-3 py-2 text-base border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="USD">USD - Dólar</option>
+                            {% for currency in matrix.currencies %}
+                            <option value="{{ currency.code }}">{{ currency.code }} - {{ currency.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Conversión -->
+                    <div id="sendConvertedBox" class="hidden p-3 bg-purple-50 border-l-4 border-purple-500 rounded">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-purple-700 mb-1">
+                                    <i class="fas fa-info-circle mr-1"></i> Monto en <span id="sendCurrencyName">VES</span>:
+                                </p>
+                                <p class="text-xs text-purple-600">
+                                    Cotización PayPal: <span id="sendQuoteRate">287.07</span>
+                                </p>
+                            </div>
+                            <span class="text-xl font-bold text-purple-700" id="sendConverted">30,445.59</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Información -->
+        <div class="mt-10 max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-3">
+                    <i class="fas fa-question-circle text-indigo-600 mr-2"></i> ¿Cómo usar la calculadora de Comisiones PayPal?
+                </h3>
+                <p class="text-sm text-gray-700 mb-3">
+                    Usar esta calculadora es muy sencillo. Llena el cuadro de texto dependiendo si quieres saber el cálculo para enviar o recibir dinero. Los bloques solo podrán ser llenados con números. Si deseas agregar un decimal (por ejemplo 10.89) debes hacerlo colocando un punto de esta forma: <strong>10.89</strong>
+                </p>
+                <p class="text-sm text-gray-700 mb-4">
+                    Por defecto colocamos los valores estándar de las comisiones de PayPal que son <strong>5,4% + un fijo de 0,3 USD</strong> por transacción.
+                </p>
+                
+                <h4 class="text-base font-bold text-gray-800 mb-2">¿Monto Bruto y Monto Neto?</h4>
+                <p class="text-sm text-gray-700 mb-2">
+                    <strong>El monto bruto</strong> es el dinero enviado o recibido sin contar ningún tipo de comisión. En pocas palabras, es lo que el pagador envía desde su cuenta sin aplicar descuentos. Por ejemplo: Si te envían 10 USD brutos, te llegarán solamente 9,16 USD netos.
+                </p>
+                <p class="text-sm text-gray-700 mb-4">
+                    <strong>El monto neto</strong> es el dinero enviado descontado todo tipo de comisiones. Es decir, lo que llega a destino luego de todos los "recortes". Por ejemplo: Si te envían 10 USD netos, realmente el que paga te estará enviando 10,89 USD brutos. La diferencia de los 0,89 son las comisiones de PayPal.
+                </p>
+                
+                <div class="p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                    <p class="text-xs text-yellow-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>(*) Importante:</strong> Esta calculadora no incluye ningún tipo de comisión relacionada a nuestro servicio. Es solo una herramienta de ayuda para el usuario que desea enviar o recibir dinero sin intermediarios. Los cálculos son referenciales.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</section>
+<script>
+const quotesData = {{ matrix.quotes|tojson }};
+
+function calculateReceive() {
+    const bruto = parseFloat(document.getElementById('receiveInput').value) || 0;
+    const currency = document.getElementById('receiveSelect').value;
+    
+    // Fórmula oficial de PayPal
+    const commission = (bruto * 0.054) + 0.30;
+    const neto = bruto - commission;
+    
+    // Redondear neto a 2 decimales para evitar errores de precisión
+    const netoRedondeado = Math.round(neto * 100) / 100;
+    
+    document.getElementById('receiveSent').textContent = '$' + bruto.toFixed(2);
+    document.getElementById('receiveCommission').textContent = '$' + commission.toFixed(2);
+    document.getElementById('receiveNet').textContent = '$' + netoRedondeado.toFixed(2);
+    
+    if (currency !== 'USD') {
+        const paypalQuote = quotesData['PAYPAL'][currency];
+        // Usar el neto redondeado para la conversión
+        const convertedAmount = netoRedondeado * paypalQuote.value;
+        
+        document.getElementById('receiveConvertedBox').classList.remove('hidden');
+        document.getElementById('receiveCurrencyName').textContent = currency;
+        document.getElementById('receiveQuoteRate').textContent = paypalQuote.value.toFixed(2);
+        document.getElementById('receiveConverted').textContent = formatNumber(convertedAmount);
+    } else {
+        document.getElementById('receiveConvertedBox').classList.add('hidden');
+    }
+}
+
+function calculateSend() {
+    const neto = parseFloat(document.getElementById('sendInput').value) || 0;
+    const currency = document.getElementById('sendSelect').value;
+    
+    // Fórmula oficial inversa de PayPal
+    const bruto = (neto + 0.30) / 0.946;
+    const commission = bruto - neto;
+    
+    document.getElementById('sendTotal').textContent = '$' + bruto.toFixed(2);
+    document.getElementById('sendCommission').textContent = '$' + commission.toFixed(2);
+    
+    if (currency !== 'USD') {
+        const paypalQuote = quotesData['PAYPAL'][currency];
+        // El neto ya está redondeado porque viene del input
+        const convertedAmount = neto * paypalQuote.value;
+        
+        document.getElementById('sendConvertedBox').classList.remove('hidden');
+        document.getElementById('sendCurrencyName').textContent = currency;
+        document.getElementById('sendQuoteRate').textContent = paypalQuote.value.toFixed(2);
+        document.getElementById('sendConverted').textContent = formatNumber(convertedAmount);
+    } else {
+        document.getElementById('sendConvertedBox').classList.add('hidden');
+    }
+}
+
+function formatNumber(num) {
+    return new Intl.NumberFormat('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(num);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    calculateReceive();
+    calculateSend();
+});
+</script>
+{% endblock %}
