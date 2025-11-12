@@ -247,3 +247,67 @@ def recalculate_all():
     """API: Recalcular todas las cotizaciones"""
     count = QuoteService.recalculate_all_quotes()
     return jsonify({'success': True, 'updated': count})
+
+# ==================== API EXTERNA ====================
+
+@dashboard_bp.route('/api/fetch-rate/<currency_code>', methods=['POST'])
+def fetch_rate_from_api(currency_code):
+    """Obtener tasa de cambio desde API externa"""
+    from app.services import APIService
+    
+    # Siempre obtenemos tasas en base USD
+    rate, provider, error = APIService.fetch_rate_with_fallback('USD', currency_code)
+    
+    if error:
+        return jsonify({
+            'success': False,
+            'error': error
+        }), 400
+    
+    # Actualizar la tasa en la base de datos
+    from app.services import ExchangeRateService
+    exchange_rate = ExchangeRateService.update_rate(currency_code, rate)
+    
+    if exchange_rate:
+        # Cambiar tipo a 'api'
+        exchange_rate.source_type = 'api'
+        from app.models import db
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'rate': float(rate),
+            'currency': currency_code,
+            'provider': provider,
+            'message': f'✅ Tasa actualizada desde {provider}'
+        })
+    
+    return jsonify({
+        'success': False,
+        'error': 'No se pudo actualizar la tasa'
+    }), 400
+
+@dashboard_bp.route('/api/test-providers')
+def test_api_providers():
+    """Probar todos los proveedores de API"""
+    from app.services import APIService
+    
+    providers = APIService.get_available_providers()
+    results = []
+    
+    for provider_name in providers:
+        rate, provider_used, error = APIService.fetch_rate(
+            'USD', 'EUR', provider_name
+        )
+        
+        results.append({
+            'provider': provider_name,
+            'rate': rate,
+            'error': error,
+            'status': 'success' if rate else 'error'
+        })
+    
+    return jsonify({
+        'providers': results,
+        'total': len(providers)
+    })
