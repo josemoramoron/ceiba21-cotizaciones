@@ -39,16 +39,23 @@
     <!-- Tabla de Cotizaciones -->
     <div class="overflow-x-auto">
         <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-            <thead class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
-                <tr>
-                    <th class="px-4 py-3 text-left">Método de Pago</th>
-                    <th class="px-4 py-3 text-left">Tipo</th>
-                    <th class="px-4 py-3 text-left">Fórmula USD</th>
-                    {% for currency in matrix.currencies %}
-                    <th class="px-4 py-3 text-right">{{ currency.code }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
+
+	<thead class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+	    <tr>
+	        <th class="px-4 py-3 text-left">Método de Pago</th>
+	        <th class="px-4 py-3 text-left">Tipo</th>
+	        <th class="px-4 py-3 text-left">Fórmula USD</th>
+	        {% for currency in matrix.currencies %}
+	        <th class="px-4 py-3 text-right currency-header" data-currency="{{ currency.code }}">
+	            <div class="flex items-center justify-end space-x-2 cursor-move">
+	                <i class="fas fa-grip-vertical text-xs opacity-50"></i>
+	                <span>{{ currency.code }}</span>
+	            </div>
+	        </th>
+	        {% endfor %}
+	    </tr>
+	</thead>
+	
             <tbody>
                 {% for pm in matrix.payment_methods %}
                 <tr class="border-b hover:bg-gray-50 transition">
@@ -110,4 +117,87 @@ function now() {
     return now.toLocaleString('es-ES');
 }
 </script>
+
+<style>
+.currency-header {
+    cursor: move;
+}
+.dragging-column {
+    opacity: 0.5;
+    background-color: rgba(99, 102, 241, 0.2);
+}
+</style>
+
+<script>
+// Drag & Drop para reordenar columnas de monedas
+let draggedColumn = null;
+let draggedIndex = null;
+
+const headers = document.querySelectorAll('.currency-header');
+const rows = document.querySelectorAll('tbody tr');
+
+headers.forEach((header, index) => {
+    header.draggable = true;
+    
+    header.addEventListener('dragstart', function(e) {
+        draggedColumn = this;
+        draggedIndex = Array.from(headers).indexOf(this);
+        this.classList.add('dragging-column');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    
+    header.addEventListener('dragend', function(e) {
+        this.classList.remove('dragging-column');
+        headers.forEach(h => h.classList.remove('drag-over'));
+    });
+    
+    header.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    });
+    
+    header.addEventListener('dragenter', function(e) {
+        this.classList.add('drag-over');
+    });
+    
+    header.addEventListener('dragleave', function(e) {
+        this.classList.remove('drag-over');
+    });
+    
+    header.addEventListener('drop', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        const dropIndex = Array.from(headers).indexOf(this);
+        
+        if (draggedIndex !== dropIndex) {
+            // Reordenar headers
+            if (draggedIndex < dropIndex) {
+                this.parentNode.insertBefore(draggedColumn, this.nextSibling);
+            } else {
+                this.parentNode.insertBefore(draggedColumn, this);
+            }
+            
+            // Reordenar celdas de cada fila
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td'));
+                // Las primeras 3 columnas son: método, tipo, fórmula
+                const currencyCells = cells.slice(3);
+                const draggedCell = currencyCells[draggedIndex];
+                const targetCell = currencyCells[dropIndex];
+                
+                if (draggedIndex < dropIndex) {
+                    targetCell.parentNode.insertBefore(draggedCell, targetCell.nextSibling);
+                } else {
+                    targetCell.parentNode.insertBefore(draggedCell, targetCell);
+                }
+            });
+        }
+        
+        return false;
+    });
+});
+</script>
+
 {% endblock %}

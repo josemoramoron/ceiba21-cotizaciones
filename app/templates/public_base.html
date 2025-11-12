@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ceiba21 - Cambio de Divisas{% endblock %}</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <a href="{{ url_for('public.home') }}" class="flex items-center space-x-3">
+                    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 w-12 h-12 rounded-full flex items-center justify-center">
+                        <i class="fas fa-coins text-white text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-bold text-gray-800">Ceiba21</span>
+                </a>
+                
+
+	<!-- Menu Desktop -->
+	<div class="hidden md:flex items-center space-x-6">
+	    <a href="{{ url_for('public.home') }}" class="text-gray-700 hover:text-indigo-600 transition">Inicio</a>
+	    <a href="{{ url_for('public.cotizaciones') }}" class="text-gray-700 hover:text-indigo-600 transition">Cotizaciones</a>
+	    <a href="{{ url_for('public.calculadora') }}" class="text-gray-700 hover:text-indigo-600 transition">Calculadora</a>
+	    <a href="{{ url_for('public.servicios') }}" class="text-gray-700 hover:text-indigo-600 transition">Servicios</a>
+	    <a href="{{ url_for('public.tienda') }}" class="text-gray-700 hover:text-indigo-600 transition">Tienda</a>
+	    <a href="{{ url_for('public.contacto') }}" class="text-gray-700 hover:text-indigo-600 transition">Contacto</a>
+	    
+	    <!-- Botón Login o Usuario -->
+	    {% if session.get('logged_in') %}
+	    <div class="flex items-center space-x-3">
+	        <a href="{{ url_for('dashboard.index') }}" class="text-indigo-600 hover:text-indigo-800 flex items-center space-x-2">
+	            <i class="fas fa-user-circle text-xl"></i>
+	            <span class="font-medium">{{ session.get('username', 'Admin') }}</span>
+	        </a>
+	        <a href="{{ url_for('auth.logout') }}" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+	            <i class="fas fa-sign-out-alt mr-2"></i> Salir
+	        </a>
+	    </div>
+	    {% else %}
+	    <a href="{{ url_for('auth.login') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+	        <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
+	    </a>
+	    {% endif %}
+	</div>
+                
+                <!-- Menu Mobile (hamburger) -->
+                <button id="mobile-menu-btn" class="md:hidden text-gray-700">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+		            
+		<!-- Menu Mobile (desplegable) -->
+		<div id="mobile-menu" class="hidden md:hidden mt-4 space-y-3">
+		    <a href="{{ url_for('public.home') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Inicio</a>
+		    <a href="{{ url_for('public.cotizaciones') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Cotizaciones</a>
+		    <a href="{{ url_for('public.calculadora') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Calculadora</a>
+		    <a href="{{ url_for('public.servicios') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Servicios</a>
+		    <a href="{{ url_for('public.tienda') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Tienda</a>
+		    <a href="{{ url_for('public.contacto') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Contacto</a>
+		    
+		    {% if session.get('logged_in') %}
+		    <a href="{{ url_for('dashboard.index') }}" class="block text-indigo-600 py-2">
+		        <i class="fas fa-user-circle mr-2"></i>{{ session.get('username', 'Admin') }}
+		    </a>
+		    <a href="{{ url_for('auth.logout') }}" class="block bg-red-500 text-white px-4 py-2 rounded-lg text-center">Salir</a>
+		    {% else %}
+		    <a href="{{ url_for('auth.login') }}" class="block bg-indigo-600 text-white px-4 py-2 rounded-lg text-center">Iniciar Sesión</a>
+		    {% endif %}
+		</div>
+
+        </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white mt-20">
+        <div class="container mx-auto px-4 py-12">
+            <div class="grid md:grid-cols-4 gap-8">
+                <!-- Columna 1: About -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Ceiba21</h3>
+                    <p class="text-gray-400 text-sm">
+                        Tu aliado confiable para el cambio de divisas y servicios financieros internacionales.
+                    </p>
+                </div>
+                
+                <!-- Columna 2: Enlaces -->
+                <div>
+                    <h4 class="font-bold mb-4">Enlaces Rápidos</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="{{ url_for('public.servicios') }}" class="hover:text-white">Servicios</a></li>
+                        <li><a href="{{ url_for('public.cotizaciones') }}" class="hover:text-white">Cotizaciones</a></li>
+                        <li><a href="{{ url_for('public.calculadora') }}" class="hover:text-white">Calculadora</a></li>
+                        <li><a href="{{ url_for('public.condiciones') }}" class="hover:text-white">Términos y Condiciones</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Columna 3: Contacto -->
+                <div>
+                    <h4 class="font-bold mb-4">Contacto</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><i class="fas fa-envelope mr-2"></i> info@ceiba21.com</li>
+                        <li><i class="fab fa-telegram mr-2"></i> @ceiba21</li>
+                        <li><i class="fab fa-whatsapp mr-2"></i> +58 XXX XXX XXXX</li>
+                    </ul>
+                </div>
+                
+                <!-- Columna 4: Redes Sociales -->
+                <div>
+                    <h4 class="font-bold mb-4">Síguenos</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-700">
+                            <i class="fab fa-telegram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
+                <p>&copy; 2025 Ceiba21. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Botón flotante de WhatsApp/Telegram -->
+    <div class="fixed bottom-6 right-6 flex flex-col space-y-3 z-50">
+        <a href="https://t.me/ceiba21" target="_blank" 
+           class="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition">
+            <i class="fab fa-telegram text-white text-2xl"></i>
+        </a>
+        <a href="https://wa.me/58XXXXXXXXX" target="_blank" 
+           class="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition">
+            <i class="fab fa-whatsapp text-white text-2xl"></i>
+        </a>
+    </div>
+
+    <script>
+        // Toggle mobile menu
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

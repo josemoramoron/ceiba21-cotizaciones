@@ -21,30 +21,14 @@
         </div>
     </div>
 
-    <!-- Controles de selección -->
+    <!-- Controles de selección simplificados -->
     <div class="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg flex justify-between items-center">
-        <div class="flex items-center space-x-4">
-            <label class="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" 
-                       class="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500">
-                <span class="font-medium text-gray-700">Seleccionar todas</span>
-            </label>
-            <span id="selectedCount" class="text-sm text-gray-600">0 seleccionadas</span>
-        </div>
-        <div class="flex space-x-2">
-            <button onclick="selectManual()" 
-                    class="text-sm bg-white text-gray-700 px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
-                <i class="fas fa-hand-paper"></i> Seleccionar Manuales
-            </button>
-            <button onclick="selectAPI()" 
-                    class="text-sm bg-white text-gray-700 px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
-                <i class="fas fa-cloud"></i> Seleccionar API
-            </button>
-            <button onclick="deselectAll()" 
-                    class="text-sm bg-white text-gray-700 px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">
-                <i class="fas fa-times"></i> Limpiar
-            </button>
-        </div>
+        <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" 
+                   class="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500">
+            <span class="font-medium text-gray-700">Seleccionar todas</span>
+        </label>
+        <span id="selectedCount" class="text-sm text-gray-600">0 seleccionadas</span>
     </div>
 
     <form method="POST" id="ratesForm">
@@ -56,7 +40,6 @@
                     <input type="checkbox" 
                            class="rate-checkbox w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500" 
                            data-currency="{{ rate.currency.code }}"
-                           data-type="{{ rate.source_type }}"
                            onchange="updateSelectedCount()">
                 </div>
 
@@ -78,6 +61,13 @@
                         >
                         <button 
                             type="button"
+                            onclick="updateManually('{{ rate.currency.code }}')"
+                            class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition flex items-center space-x-2">
+                            <i class="fas fa-save"></i>
+                            <span>Manual</span>
+                        </button>
+                        <button 
+                            type="button"
                             onclick="fetchSingleRate('{{ rate.currency.code }}')"
                             class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition flex items-center space-x-2">
                             <i class="fas fa-sync-alt"></i>
@@ -90,38 +80,25 @@
                 <div class="text-right flex-shrink-0">
                     <p class="text-xs text-gray-600">
                         Tipo: 
-                        {% if rate.source_type == 'api' %}
-                        <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
-                            <i class="fas fa-cloud"></i> API
+                        <span id="type_{{ rate.currency.code }}" class="{% if rate.source_type == 'api' %}bg-purple-100 text-purple-800{% else %}bg-green-100 text-green-800{% endif %} px-2 py-1 rounded text-xs">
+                            <i class="fas fa-{% if rate.source_type == 'api' %}cloud{% else %}hand-paper{% endif %}"></i> 
+                            {{ rate.source_type|upper }}
                         </span>
-                        {% else %}
-                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                            <i class="fas fa-hand-paper"></i> Manual
-                        </span>
-                        {% endif %}
                     </p>
                     <p class="text-xs text-gray-600 mt-1">
-                        Actualizado: {{ rate.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                        Actualizado: <span id="time_{{ rate.currency.code }}">{{ rate.updated_at.strftime('%d/%m/%Y %H:%M') }}</span>
                     </p>
                 </div>
             </div>
         </div>
         {% endfor %}
-
-        <div class="flex justify-end space-x-3 mt-6">
-            <a href="{{ url_for('dashboard.index') }}" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition">
-                Cancelar
-            </a>
-            <button type="submit" class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-3 rounded-lg hover:from-indigo-600 hover:to-purple-600 transition">
-                <i class="fas fa-save"></i> Guardar Cambios Manuales
-            </button>
-        </div>
     </form>
 
-    <div class="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
-        <p class="text-sm text-yellow-800">
+    <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
+        <p class="text-sm text-blue-800">
             <i class="fas fa-info-circle"></i> 
-            <strong>Actualización desde API:</strong> Selecciona las monedas que deseas actualizar y haz clic en "Actualizar Seleccionadas desde API". Las tasas se obtendrán automáticamente.
+            <strong>Actualización Manual:</strong> Edita el valor y haz clic en "Manual" para guardar. 
+            <strong>Actualización API:</strong> Haz clic en "API" para obtener la tasa automáticamente.
         </p>
     </div>
 </div>
@@ -153,47 +130,101 @@
     </div>
 </div>
 
+<!-- Notificación Toast -->
+<div id="toast" class="hidden fixed top-20 right-4 bg-white rounded-lg shadow-2xl p-4 z-50 border-l-4 min-w-80">
+    <div class="flex items-center space-x-3">
+        <i id="toastIcon" class="text-2xl"></i>
+        <div class="flex-1">
+            <p id="toastMessage" class="font-semibold"></p>
+            <p id="toastDetail" class="text-sm text-gray-600"></p>
+        </div>
+        <button onclick="hideToast()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+</div>
+
 <script>
-// Selección de checkboxes
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.rate-checkbox');
-    checkboxes.forEach(cb => cb.checked = selectAll.checked);
-    updateSelectedCount();
-}
-
-function deselectAll() {
-    const checkboxes = document.querySelectorAll('.rate-checkbox');
-    checkboxes.forEach(cb => cb.checked = false);
-    document.getElementById('selectAll').checked = false;
-    updateSelectedCount();
-}
-
-function selectManual() {
-    deselectAll();
-    const checkboxes = document.querySelectorAll('.rate-checkbox[data-type="manual"]');
-    checkboxes.forEach(cb => cb.checked = true);
-    updateSelectedCount();
-}
-
-function selectAPI() {
-    deselectAll();
-    const checkboxes = document.querySelectorAll('.rate-checkbox[data-type="api"]');
-    checkboxes.forEach(cb => cb.checked = true);
-    updateSelectedCount();
-}
-
-function updateSelectedCount() {
-    const checkboxes = document.querySelectorAll('.rate-checkbox:checked');
-    const count = checkboxes.length;
-    document.getElementById('selectedCount').textContent = `${count} seleccionada${count !== 1 ? 's' : ''}`;
+// Toast notification
+function showToast(message, detail, type = 'success') {
+    const toast = document.getElementById('toast');
+    const icon = document.getElementById('toastIcon');
+    const messageEl = document.getElementById('toastMessage');
+    const detailEl = document.getElementById('toastDetail');
     
-    // Actualizar estado de "Seleccionar todas"
-    const allCheckboxes = document.querySelectorAll('.rate-checkbox');
-    document.getElementById('selectAll').checked = count === allCheckboxes.length;
+    // Configurar colores según tipo
+    if (type === 'success') {
+        toast.className = 'fixed top-20 right-4 bg-white rounded-lg shadow-2xl p-4 z-50 border-l-4 border-green-500 min-w-80';
+        icon.className = 'fas fa-check-circle text-2xl text-green-500';
+    } else if (type === 'error') {
+        toast.className = 'fixed top-20 right-4 bg-white rounded-lg shadow-2xl p-4 z-50 border-l-4 border-red-500 min-w-80';
+        icon.className = 'fas fa-exclamation-circle text-2xl text-red-500';
+    }
+    
+    messageEl.textContent = message;
+    detailEl.textContent = detail;
+    
+    toast.classList.remove('hidden');
+    
+    // Auto-ocultar después de 5 segundos
+    setTimeout(hideToast, 5000);
 }
 
-// Actualizar una sola tasa
+function hideToast() {
+    document.getElementById('toast').classList.add('hidden');
+}
+
+// Actualización manual
+function updateManually(currencyCode) {
+    const input = document.getElementById(`rate_${currencyCode}`);
+    const newRate = input.value;
+    
+    if (!newRate || parseFloat(newRate) <= 0) {
+        showToast('Error', 'Ingresa una tasa válida', 'error');
+        return;
+    }
+    
+    // Crear formulario para enviar
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/dashboard/rates';
+    
+    const rateInput = document.createElement('input');
+    rateInput.type = 'hidden';
+    rateInput.name = `rate_${currencyCode}`;
+    rateInput.value = newRate;
+    
+    form.appendChild(rateInput);
+    document.body.appendChild(form);
+    
+    // Enviar
+    fetch('/dashboard/rates', {
+        method: 'POST',
+        body: new FormData(form)
+    })
+    .then(response => {
+        if (response.ok) {
+            showToast('✅ Tasa actualizada', `1 USD = ${parseFloat(newRate).toFixed(4)} ${currencyCode}`, 'success');
+            
+            // Actualizar badge a MANUAL
+            const badge = document.getElementById(`type_${currencyCode}`);
+            badge.className = 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs';
+            badge.innerHTML = '<i class="fas fa-hand-paper"></i> MANUAL';
+            
+            // Actualizar timestamp
+            const now = new Date();
+            document.getElementById(`time_${currencyCode}`).textContent = 
+                now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+        } else {
+            showToast('Error', 'No se pudo actualizar la tasa', 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Error', 'Error de conexión', 'error');
+    });
+}
+
+// Actualizar desde API (individual)
 function fetchSingleRate(currencyCode) {
     const button = event.target.closest('button');
     const originalHTML = button.innerHTML;
@@ -209,27 +240,56 @@ function fetchSingleRate(currencyCode) {
     .then(data => {
         if (data.success) {
             document.getElementById(`rate_${currencyCode}`).value = data.rate.toFixed(4);
-            alert(`${data.message}\n\n1 USD = ${data.rate.toFixed(4)} ${currencyCode}`);
-            location.reload();
+            showToast('✅ Tasa desde API', `1 USD = ${data.rate.toFixed(4)} ${currencyCode} (${data.provider})`, 'success');
+            
+            // Actualizar badge a API
+            const badge = document.getElementById(`type_${currencyCode}`);
+            badge.className = 'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs';
+            badge.innerHTML = '<i class="fas fa-cloud"></i> API';
+            
+            // Actualizar timestamp
+            const now = new Date();
+            document.getElementById(`time_${currencyCode}`).textContent = 
+                now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+            
+            button.disabled = false;
+            button.innerHTML = originalHTML;
         } else {
-            alert(`❌ Error: ${data.error}`);
+            showToast('Error API', data.error, 'error');
             button.disabled = false;
             button.innerHTML = originalHTML;
         }
     })
     .catch(error => {
-        alert('❌ Error de conexión');
+        showToast('Error', 'Error de conexión', 'error');
         button.disabled = false;
         button.innerHTML = originalHTML;
     });
 }
 
-// Actualizar múltiples tasas seleccionadas
+// Selección de checkboxes
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.rate-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.rate-checkbox:checked');
+    const count = checkboxes.length;
+    document.getElementById('selectedCount').textContent = `${count} seleccionada${count !== 1 ? 's' : ''}`;
+    
+    const allCheckboxes = document.querySelectorAll('.rate-checkbox');
+    document.getElementById('selectAll').checked = count === allCheckboxes.length;
+}
+
+// Actualizar múltiples desde API
 async function updateSelectedFromAPI() {
     const checkboxes = document.querySelectorAll('.rate-checkbox:checked');
     
     if (checkboxes.length === 0) {
-        alert('⚠️ Selecciona al menos una moneda para actualizar');
+        showToast('Aviso', 'Selecciona al menos una moneda', 'error');
         return;
     }
     
@@ -239,7 +299,6 @@ async function updateSelectedFromAPI() {
         return;
     }
     
-    // Mostrar modal de progreso
     showProgressModal();
     
     let successful = 0;
@@ -247,7 +306,6 @@ async function updateSelectedFromAPI() {
     
     for (let i = 0; i < currencies.length; i++) {
         const currency = currencies[i];
-        
         updateProgress(i + 1, currencies.length, `Actualizando ${currency}...`);
         
         try {
@@ -261,6 +319,12 @@ async function updateSelectedFromAPI() {
             if (data.success) {
                 addProgressLog(`✅ ${currency}: ${data.rate.toFixed(4)} (${data.provider})`, 'success');
                 document.getElementById(`rate_${currency}`).value = data.rate.toFixed(4);
+                
+                // Actualizar badge
+                const badge = document.getElementById(`type_${currency}`);
+                badge.className = 'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs';
+                badge.innerHTML = '<i class="fas fa-cloud"></i> API';
+                
                 successful++;
             } else {
                 addProgressLog(`❌ ${currency}: ${data.error}`, 'error');
@@ -271,28 +335,18 @@ async function updateSelectedFromAPI() {
             failed++;
         }
         
-        // Pequeña pausa para no saturar la API
         if (i < currencies.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 500));
         }
     }
     
     updateProgress(currencies.length, currencies.length, '✅ Proceso completado');
-    
     addProgressLog(`\n📊 Resumen: ${successful} exitosas, ${failed} fallidas`, 'info');
     
-    // Habilitar botón de cerrar
     document.getElementById('closeProgressBtn').disabled = false;
-    
-    // Auto-recargar después de 3 segundos si todo fue exitoso
-    if (failed === 0) {
-        setTimeout(() => {
-            location.reload();
-        }, 3000);
-    }
 }
 
-// Funciones del modal de progreso
+// Modal de progreso
 function showProgressModal() {
     document.getElementById('progressModal').classList.remove('hidden');
     document.getElementById('progressLog').innerHTML = '';
@@ -301,7 +355,6 @@ function showProgressModal() {
 
 function closeProgressModal() {
     document.getElementById('progressModal').classList.add('hidden');
-    location.reload();
 }
 
 function updateProgress(current, total, text) {
@@ -327,7 +380,6 @@ function addProgressLog(message, type = 'info') {
     log.scrollTop = log.scrollHeight;
 }
 
-// Inicializar contador al cargar
 document.addEventListener('DOMContentLoaded', updateSelectedCount);
 </script>
 {% endblock %}

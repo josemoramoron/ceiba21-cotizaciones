@@ -10,18 +10,22 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    # Secret key para flash messages
+    # Secret key para sesiones
     app.secret_key = app.config['SECRET_KEY']
     
     # Inicializar extensiones
     db.init_app(app)
     
     # Registrar blueprints
+    from app.routes.public import public_bp
+    from app.routes.auth import auth_bp
     from app.routes.main import main_bp
-    from app.routes.dashboard import dashboard_bp  # ← NUEVO
+    from app.routes.dashboard import dashboard_bp
     
+    app.register_blueprint(public_bp)
+    app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
-    app.register_blueprint(dashboard_bp)  # ← NUEVO
+    app.register_blueprint(dashboard_bp)
     
     # Crear tablas si no existen
     with app.app_context():

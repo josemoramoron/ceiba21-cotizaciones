@@ -87,16 +87,40 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex justify-center space-x-2">
-                            <button onclick="showFormulaModal({{ pm.id }}, '{{ pm.code }}', '{{ pm.name }}')" 
-                                    class="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition text-sm">
+                            <!-- Botón Fórmula -->
+                            <button type="button"
+                                    data-pm-id="{{ pm.id }}" 
+                                    data-pm-code="{{ pm.code }}" 
+                                    data-pm-name="{{ pm.name }}"
+                                    {% set first_quote = pm.quotes[0] if pm.quotes else None %}
+                                    {% if first_quote %}
+                                    data-value-type="{{ first_quote.value_type }}"
+                                    data-usd-value="{{ first_quote.usd_value if first_quote.usd_value else '' }}"
+                                    data-usd-formula="{{ first_quote.usd_formula if first_quote.usd_formula else '' }}"
+                                    {% else %}
+                                    data-value-type="manual"
+                                    data-usd-value="1.0"
+                                    data-usd-formula=""
+                                    {% endif %}
+                                    class="btn-formula bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition text-sm">
                                 <i class="fas fa-calculator"></i> Fórmula
                             </button>
-                            <button onclick="showEditModal({{ pm.id }}, '{{ pm.code }}', '{{ pm.name }}', {{ pm.display_order }})" 
-                                    class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm">
+                            
+                            <!-- Botón Editar -->
+                            <button type="button"
+                                    data-pm-id="{{ pm.id }}"
+                                    data-pm-code="{{ pm.code }}"
+                                    data-pm-name="{{ pm.name }}"
+                                    data-pm-order="{{ pm.display_order }}"
+                                    class="btn-edit bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="deletePaymentMethod({{ pm.id }}, '{{ pm.code }}')" 
-                                    class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition text-sm">
+                            
+                            <!-- Botón Eliminar -->
+                            <button type="button"
+                                    data-pm-id="{{ pm.id }}"
+                                    data-pm-code="{{ pm.code }}"
+                                    class="btn-delete bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition text-sm">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -197,7 +221,7 @@
                     <input type="text" name="usd_formula" id="formulaUsdFormula"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono"
                            placeholder="1 / 1.1">
-                    <p class="text-xs text-gray-500 mt-1">Operaciones: +, -, *, /</p>
+                    <p class="text-xs text-gray-500 mt-1">Operaciones: +, -, *, /, ( )</p>
                 </div>
                 
                 <div class="p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
@@ -264,7 +288,9 @@
 
 {% block extra_js %}
 <script>
-// Drag & Drop
+// ============================================
+// DRAG & DROP PARA REORDENAR
+// ============================================
 let draggedElement = null;
 
 const tbody = document.getElementById('sortable-tbody');
@@ -324,35 +350,15 @@ function saveNewOrder() {
     });
 }
 
-// Modals
+// ============================================
+// MODAL AGREGAR
+// ============================================
 function showAddModal() {
     document.getElementById('addModal').classList.remove('hidden');
 }
 
 function hideAddModal() {
     document.getElementById('addModal').classList.add('hidden');
-}
-
-function showEditModal(id, code, name, order) {
-    document.getElementById('editCode').value = code;
-    document.getElementById('editName').value = name;
-    document.getElementById('editOrder').value = order;
-    document.getElementById('editForm').action = `/dashboard/payment-methods/${id}/edit`;
-    document.getElementById('editModal').classList.remove('hidden');
-}
-
-function hideEditModal() {
-    document.getElementById('editModal').classList.add('hidden');
-}
-
-function showFormulaModal(id, code, name) {
-    document.getElementById('formulaMethodName').textContent = name;
-    document.getElementById('formulaForm').action = `/dashboard/payment-methods/${id}/formula`;
-    document.getElementById('formulaModal').classList.remove('hidden');
-}
-
-function hideFormulaModal() {
-    document.getElementById('formulaModal').classList.add('hidden');
 }
 
 function toggleFormulaFields(prefix) {
@@ -369,17 +375,86 @@ function toggleFormulaFields(prefix) {
     }
 }
 
-function deletePaymentMethod(id, code) {
-    if (confirm(`¿Eliminar ${code}?\n\nSe eliminarán todas sus cotizaciones.`)) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/dashboard/payment-methods/${id}/delete`;
-        document.body.appendChild(form);
-        form.submit();
-    }
+// ============================================
+// MODAL EDITAR (Nombre y Orden)
+// ============================================
+document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.pmId;
+        const code = this.dataset.pmCode;
+        const name = this.dataset.pmName;
+        const order = this.dataset.pmOrder;
+        
+        document.getElementById('editCode').value = code;
+        document.getElementById('editName').value = name;
+        document.getElementById('editOrder').value = order;
+        document.getElementById('editForm').action = `/dashboard/payment-methods/${id}/edit`;
+        document.getElementById('editModal').classList.remove('hidden');
+    });
+});
+
+function hideEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
 }
 
-// ESC para cerrar modals
+// ============================================
+// MODAL FÓRMULA
+// ============================================
+document.querySelectorAll('.btn-formula').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.pmId;
+        const name = this.dataset.pmName;
+        const valueType = this.dataset.valueType;
+        const usdValue = this.dataset.usdValue;
+        const usdFormula = this.dataset.usdFormula;
+        
+        document.getElementById('formulaMethodName').textContent = name;
+        document.getElementById('formulaForm').action = `/dashboard/payment-methods/${id}/formula`;
+        
+        // Configurar tipo
+        const valueTypeSelect = document.getElementById('formulaValueType');
+        valueTypeSelect.value = valueType;
+        
+        // Mostrar campos según tipo
+        if (valueType === 'manual') {
+            document.getElementById('formulaManualField').classList.remove('hidden');
+            document.getElementById('formulaFormulaField').classList.add('hidden');
+            document.getElementById('formulaUsdValue').value = usdValue || '1.0';
+        } else {
+            document.getElementById('formulaManualField').classList.add('hidden');
+            document.getElementById('formulaFormulaField').classList.remove('hidden');
+            document.getElementById('formulaUsdFormula').value = usdFormula || '';
+        }
+        
+        document.getElementById('formulaModal').classList.remove('hidden');
+    });
+});
+
+function hideFormulaModal() {
+    document.getElementById('formulaModal').classList.add('hidden');
+}
+
+// ============================================
+// ELIMINAR
+// ============================================
+document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.pmId;
+        const code = this.dataset.pmCode;
+        
+        if (confirm(`¿Eliminar ${code}?\n\nSe eliminarán todas sus cotizaciones.`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/dashboard/payment-methods/${id}/delete`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+});
+
+// ============================================
+// CERRAR MODALES CON ESC
+// ============================================
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         hideAddModal();

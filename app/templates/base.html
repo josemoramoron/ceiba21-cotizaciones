@@ -34,12 +34,23 @@
                 <i class="fas fa-coins text-2xl"></i>
                 <h1 class="text-2xl font-bold">Ceiba21</h1>
             </div>
-            <div class="flex items-center space-x-4">
-                <span class="text-sm">Sistema de Cotizaciones</span>
-                <a href="/" class="bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition">
-                    <i class="fas fa-home"></i> Inicio
-                </a>
-            </div>
+
+		<div class="flex items-center space-x-4">
+		    <span class="text-sm">Sistema de Cotizaciones</span>
+		    <div class="flex items-center space-x-3">
+		        <span class="text-sm">
+		            <i class="fas fa-user-circle mr-1"></i>
+		            {{ session.get('username', 'Admin') }}
+		        </span>
+		        <a href="{{ url_for('auth.logout') }}" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm">
+		            <i class="fas fa-sign-out-alt"></i> Salir
+		        </a>
+		    </div>
+		    <a href="/" class="bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition">
+		        <i class="fas fa-home"></i> Inicio
+		    </a>
+		</div>
+
         </div>
     </nav>
 
