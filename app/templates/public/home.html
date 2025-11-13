@@ -4,53 +4,56 @@
 
 {% block content %}
 
-<!-- Hero Section -->
-<section class="hero-gradient text-white py-20">
-    <div class="container mx-auto px-4">
+<!-- Hero Section con NEGRO -->
+<section class="relative overflow-hidden" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%); min-height: 600px;">
+    <div class="container mx-auto px-4 py-20 relative z-10">
         <div class="grid md:grid-cols-2 gap-12 items-center">
             <div>
-                <h1 class="text-5xl font-bold mb-6">
-                    Cambia tus divisas de forma <span class="text-yellow-300">rápida y segura</span>
+                <h1 class="text-5xl font-bold mb-6" style="color: white;">
+                    Cambia tus divisas de forma<br>
+                    <span style="color: #F7D917;">rápida y segura</span>
                 </h1>
-                <p class="text-xl mb-8 text-gray-200">
-                    Las mejores tasas del mercado para PayPal, Zelle, USDT y más. 
-                    Más de 5 años de experiencia respaldándonos.
+                <p class="text-xl mb-8" style="color: #E6EDF3;">
+                    Las mejores tasas del mercado para PayPal, Zelle, USDT y más. Más de 5 años de experiencia respaldándonos.
                 </p>
                 <div class="flex space-x-4">
-                    <a href="{{ url_for('public.cotizaciones') }}" 
-                       class="bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold hover:bg-gray-100 transition shadow-lg">
+                    <a href="{{ url_for('public.cotizaciones') }}" style="background-color: #F7D917; color: #1A1A1A;" class="px-8 py-4 rounded-lg hover:opacity-90 transition font-bold text-lg">
                         <i class="fas fa-chart-line mr-2"></i> Ver Cotizaciones
                     </a>
-                    <a href="{{ url_for('public.calculadora') }}" 
-                       class="glass text-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:bg-opacity-20 transition">
+                    <a href="{{ url_for('public.calculadora') }}" style="background-color: transparent; border: 2px solid #F7D917; color: #F7D917;" class="px-8 py-4 rounded-lg hover:bg-opacity-10 transition font-bold text-lg">
                         <i class="fas fa-calculator mr-2"></i> Calcular
                     </a>
                 </div>
             </div>
+
             <div class="hidden md:block">
-                <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 border border-white border-opacity-20">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-coins text-6xl text-yellow-300 mb-4"></i>
-                        <h3 class="text-2xl font-bold">Cotizaciones en Tiempo Real</h3>
-                    </div>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex justify-between bg-white bg-opacity-10 p-3 rounded-lg">
-                            <span>💳 PayPal</span>
-                            <span class="font-bold">$0.909 USD</span>
-                        </div>
-                        <div class="flex justify-between bg-white bg-opacity-10 p-3 rounded-lg">
-                            <span>💵 Zelle</span>
-                            <span class="font-bold">$0.943 USD</span>
-                        </div>
-                        <div class="flex justify-between bg-white bg-opacity-10 p-3 rounded-lg">
-                            <span>₿ USDT</span>
-                            <span class="font-bold">$0.962 USD</span>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('public.cotizaciones') }}" class="block text-center mt-4 text-yellow-300 hover:text-yellow-400">
-                        Ver todas las tasas →
-                    </a>
-                </div>
+
+		<!-- Card de Cotizaciones -->
+		<div class="bg-gray-800 rounded-xl p-6" style="border: 1px solid rgba(247, 217, 23, 0.2);">
+		    <div class="flex items-center justify-between mb-4">
+		        <h3 class="text-xl font-bold" style="color: white;">Cotizaciones en Tiempo Real</h3>
+		        <i class="fas fa-coins text-3xl" style="color: #F7D917;"></i>
+		    </div>
+		    
+		    <div class="space-y-3">
+		        <div class="flex justify-between items-center p-3 rounded-lg" style="background-color: rgba(255,255,255,0.05);">
+		            <span style="color: #B4BCC5;">💰 PayPal</span>
+		            <span class="font-bold text-lg" style="color: white;">$0.909 USD</span>
+		        </div>
+		        <div class="flex justify-between items-center p-3 rounded-lg" style="background-color: rgba(255,255,255,0.05);">
+		            <span style="color: #B4BCC5;">💵 Zelle</span>
+		            <span class="font-bold text-lg" style="color: white;">$0.943 USD</span>
+		        </div>
+		        <div class="flex justify-between items-center p-3 rounded-lg" style="background-color: rgba(255,255,255,0.05);">
+		            <span style="color: #B4BCC5;">₿ USDT</span>
+		            <span class="font-bold text-lg" style="color: white;">$0.962 USD</span>
+		        </div>
+		    </div>
+		    
+		    <a href="{{ url_for('public.cotizaciones') }}" class="block mt-4 text-center" style="color: #F7D917;">
+		        Ver todas las tasas →
+		    </a>
+		</div>
             </div>
         </div>
     </div>

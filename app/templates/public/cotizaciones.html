@@ -15,60 +15,58 @@
 
 <section class="py-12 bg-gray-50">
     <div class="container mx-auto px-4">
-        
-        <!-- Tasas de Cambio -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                <i class="fas fa-exchange-alt text-indigo-600"></i> Tasas de Cambio Base
-            </h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {% for currency_code, rate in rates.items() %}
-                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
-                    <p class="text-sm text-gray-600">1 USD =</p>
-                    <p class="text-2xl font-bold text-indigo-600">{{ "%.2f"|format(rate) }}</p>
-                    <p class="text-sm text-gray-700">{{ currency_code }}</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
 
-        <!-- Tabla de Cotizaciones -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-                <h2 class="text-2xl font-bold">
-                    <i class="fas fa-table mr-2"></i> Tabla de Cotizaciones
-                </h2>
-                <p class="text-gray-200 mt-2">Todas las tasas en diferentes monedas</p>
-            </div>
+      <!-- Tasas de Cambio Base -->  
+      <div class="mb-8">
+	    <div class="flex items-center justify-between mb-4">
+	        <h2 class="text-xl font-bold flex items-center" style="color: var(--ceiba-text);">
+	            <i class="fas fa-sync-alt mr-2" style="color: #F7D917;"></i> Tasas de Cambio Base
+	        </h2>
+	        <p class="text-sm" style="color: var(--ceiba-text-secondary);">
+	            <i class="fas fa-clock mr-1"></i> Última actualización: {{ now.strftime('%d/%m/%Y %H:%M') }}
+	        </p>
+	    </div>
+	    
+	    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+	        {% for rate in rates_list %}
+	        <div class="p-4 rounded-lg text-center" style="background-color: var(--ceiba-surface); border: 1px solid var(--ceiba-border);">
+	            <p class="text-xs mb-1" style="color: var(--ceiba-text-secondary);">1 USD =</p>
+	            <p class="text-2xl font-bold mb-1" style="color: #F7D917;">{{ "%.2f"|format(rate.rate) }}</p>
+	            <p class="text-sm" style="color: var(--ceiba-text-secondary);">{{ rate.code }}</p>
+	        </div>
+	        {% endfor %}
+	    </div>
+	</div>
 
-
-	<div class="overflow-x-auto">
+	<!-- Tabla de Cotizaciones (SIN header redundante) -->
+	<div class="overflow-x-auto rounded-lg" style="background-color: var(--ceiba-surface); border: 1px solid var(--ceiba-border);">
 	    <table class="min-w-full">
-	        <thead>
-	            <!-- Header principal con fondo degradado -->
-	            <tr class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-	                <th class="px-6 py-4 text-left text-lg font-bold">Método de Pago</th>
+	        <thead style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
+	            <tr>
+	                <th class="px-6 py-4 text-left text-base font-bold" style="color: white;">Método de Pago</th>
 	                {% for currency in active_currencies %}
-	                <th class="px-6 py-4 text-right text-lg font-bold">{{ currency.code }}</th>
+	                <th class="px-6 py-4 text-right text-base font-bold" style="color: white;">{{ currency.code }}</th>
 	                {% endfor %}
 	            </tr>
 	        </thead>
-	        <tbody class="divide-y divide-gray-200 bg-white">
-	            {% for pm in matrix.payment_methods %}
-	            <tr class="hover:bg-gray-50 transition">
-	                <td class="px-6 py-4">
-	                    <span class="font-semibold text-gray-800 text-base">{{ pm.name }}</span>
-	                </td>
-	                {% for currency in active_currencies %}
-	                <td class="px-6 py-4 text-right">
-	                    <span class="font-bold text-gray-800 text-base">
-	                        {{ "{:,.2f}".format(matrix.quotes[pm.code][currency.code].value) }}
-	                    </span>
-	                </td>
-	                {% endfor %}
-	            </tr>
-	            {% endfor %}
-	        </tbody>
+
+	<tbody class="divide-y" style="background-color: var(--ceiba-surface);">
+            {% for pm in matrix.payment_methods %}
+            <tr class="hover-row" style="border-color: var(--ceiba-border); transition: all 0.2s;">
+                <td class="px-6 py-4">
+                    <span class="font-semibold text-base" style="color: var(--ceiba-text);">{{ pm.name }}</span>
+                </td>
+                {% for currency in active_currencies %}
+                <td class="px-6 py-4 text-right">
+                    <span class="font-bold text-base" style="color: var(--ceiba-text);">
+                        {{ "{:,.2f}".format(matrix.quotes[pm.code][currency.code].value) }}
+                    </span>
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+
 	    </table>
 	</div>
 

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fondo degradado (más moderno para bot) -->
+  <defs>
+    <linearGradient id="botGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD60A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F7D917;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Sombra suave -->
+    <filter id="shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <circle cx="256" cy="256" r="256" fill="url(#botGradient)"/>
+  
+  <!-- Árbol Ceiba simplificado (más geométrico para bot) -->
+  <g transform="translate(256, 200)" filter="url(#shadow)">
+    <!-- Tronco minimalista -->
+    <rect x="-12" y="0" width="24" height="100" rx="4" fill="#1A1A1A"/>
+    
+    <!-- Copa estilizada (3 círculos) -->
+    <circle cx="-40" cy="-20" r="35" fill="#1A1A1A"/>
+    <circle cx="40" cy="-20" r="35" fill="#1A1A1A"/>
+    <circle cx="0" cy="-40" r="45" fill="#1A1A1A"/>
+    
+    <!-- Raíces geométricas -->
+    <path d="M-8 100 L-25 130 M8 100 L25 130 M0 100 L0 120" 
+          stroke="#1A1A1A" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Texto con mejor espaciado -->
+  <text x="256" y="360" font-family="'Inter', 'SF Pro Display', sans-serif" 
+        font-size="72" font-weight="900" text-anchor="middle" fill="#1A1A1A" 
+        letter-spacing="2">
+    Ceiba21
+  </text>
+  
+  <!-- Badge "BOT" -->
+  <g transform="translate(256, 405)">
+    <rect x="-35" y="-15" width="70" height="30" rx="15" fill="#1A1A1A"/>
+    <text x="0" y="7" font-family="'Inter', sans-serif" 
+          font-size="18" font-weight="700" text-anchor="middle" fill="#F7D917">
+      BOT
+    </text>
+  </g>
+</svg>

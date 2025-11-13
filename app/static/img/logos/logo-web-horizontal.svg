@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200">
+  <defs>
+    <!-- Sombra para profundidad -->
+    <filter id="webShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Árbol Ceiba (izquierda) -->
+  <g transform="translate(100, 100)" filter="url(#webShadow)">
+    <!-- Tronco -->
+    <rect x="-8" y="0" width="16" height="70" rx="3" fill="#1A1A1A"/>
+    
+    <!-- Copa del árbol (versión horizontal) -->
+    <ellipse cx="0" cy="-25" rx="50" ry="35" fill="#1A1A1A"/>
+    <ellipse cx="-30" cy="-15" rx="35" ry="28" fill="#1A1A1A"/>
+    <ellipse cx="30" cy="-15" rx="35" ry="28" fill="#1A1A1A"/>
+    
+    <!-- Raíces -->
+    <path d="M-6 70 L-18 90 M6 70 L18 90 M0 70 L0 85" 
+          stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Texto "Ceiba21" -->
+  <text x="220" y="125" font-family="'Inter', 'Helvetica Neue', sans-serif" 
+        font-size="90" font-weight="900" fill="#1A1A1A" 
+        letter-spacing="-2">
+    Ceiba21
+  </text>
+  
+  <!-- Tagline debajo -->
+  <text x="220" y="155" font-family="'Inter', sans-serif" 
+        font-size="22" font-weight="500" fill="#6C757D">
+    Cotizaciones · Cambio · Confianza
+  </text>
+  
+  <!-- Icono decorativo (opcional) -->
+  <circle cx="750" cy="100" r="40" fill="#F7D917" opacity="0.3"/>
+</svg>

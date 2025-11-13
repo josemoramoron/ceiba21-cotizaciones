@@ -1,0 +1,177 @@
+/* ============================================
+   CEIBA21 - SISTEMA DE DISEÑO
+   ============================================ */
+
+:root {
+  /* Colores Primarios */
+  --color-primary: #F7D917;
+  --color-primary-dark: #E5C500;
+  --color-primary-light: #FFF4CC;
+  
+  /* Colores Secundarios */
+  --color-secondary: #1A1A1A;
+  --color-secondary-light: #2D2D2D;
+  
+  /* Colores de Acento */
+  --color-accent: #00B4D8;
+  --color-accent-hover: #0096C7;
+  
+  /* Colores de Estado */
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+  
+  /* Neutros Claro */
+  --color-bg: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-text: #212529;
+  --color-text-secondary: #6C757D;
+  --color-border: #DEE2E6;
+  
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Modo Oscuro */
+[data-theme="dark"] {
+  --color-primary: #FFD60A;
+  --color-primary-dark: #FFC700;
+  --color-primary-light: #FFE566;
+  
+  --color-secondary: #E6EDF3;
+  --color-secondary-light: #B4BCC5;
+  
+  --color-accent: #58A6FF;
+  --color-accent-hover: #79B8FF;
+  
+  --color-bg: #0D1117;
+  --color-surface: #161B22;
+  --color-text: #E6EDF3;
+  --color-text-secondary: #8B949E;
+  --color-border: #30363D;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.8);
+}
+
+/* Aplicar tema al body */
+body {
+  background-color: var(--color-bg) !important;
+  color: var(--color-text) !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Reemplazar morado por amarillo en gradientes */
+.bg-gradient-to-r.from-indigo-600.to-purple-600,
+.bg-gradient-to-r.from-indigo-500.to-purple-500,
+.bg-gradient-to-r.from-purple-50.to-pink-50 {
+  background: linear-gradient(to right, #F7D917, #FFD60A) !important;
+  color: #1A1A1A !important;
+}
+
+[data-theme="dark"] .bg-gradient-to-r.from-indigo-600.to-purple-600,
+[data-theme="dark"] .bg-gradient-to-r.from-indigo-500.to-purple-500 {
+  background: linear-gradient(to right, #1A1A1A, #2D2D2D) !important;
+  color: #FFD60A !important;
+}
+
+/* Botones morados → amarillos */
+.bg-indigo-600, .bg-indigo-500, .bg-purple-600, .bg-purple-500 {
+  background-color: var(--color-primary) !important;
+  color: var(--color-secondary) !important;
+}
+
+.hover\:bg-indigo-700:hover, .hover\:bg-purple-600:hover {
+  background-color: var(--color-primary-dark) !important;
+}
+
+/* Textos morados → amarillos */
+.text-indigo-600, .text-purple-600 {
+  color: var(--color-primary) !important;
+}
+
+[data-theme="dark"] .text-indigo-600,
+[data-theme="dark"] .text-purple-600 {
+  color: var(--color-primary) !important;
+}
+
+/* Backgrounds de superficie */
+.bg-white {
+  background-color: var(--color-surface) !important;
+}
+
+.bg-gray-50, .bg-gray-100 {
+  background-color: var(--color-bg) !important;
+}
+
+/* Textos */
+.text-gray-800, .text-gray-900 {
+  color: var(--color-text) !important;
+}
+
+.text-gray-600, .text-gray-700 {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Bordes */
+.border-gray-200, .border-gray-300 {
+  border-color: var(--color-border) !important;
+}
+
+/* Cards y superficies */
+.rounded-lg, .rounded-xl, .rounded-2xl {
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+/* Toggle de modo oscuro */
+.theme-toggle {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  background-color: var(--color-surface) !important;
+  border: 2px solid var(--color-border) !important;
+  border-radius: 50%;
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-xl);
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1) rotate(15deg);
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-dark);
+}
+
+/* Hero sections con amarillo */
+[data-theme="dark"] section.bg-gradient-to-r {
+  background: linear-gradient(to right, #1A1A1A, #2D2D2D) !important;
+}

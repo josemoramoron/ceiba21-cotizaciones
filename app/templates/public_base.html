@@ -3,94 +3,368 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Ceiba21 - Cambio de Divisas{% endblock %}</title>
+    <title>{% block title %}Ceiba21 - Cotizaciones{% endblock %}</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32.png') }}">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+<!-- TEMA CEIBA21 v2 - MEJOR CONTRASTE -->
     <style>
-        .hero-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        :root {
+            --ceiba-yellow: #F7D917;
+            --ceiba-yellow-dark: #E5C500;
+            --ceiba-black: #1A1A1A;
+            --ceiba-gray-dark: #2D2D2D;
+            --ceiba-gray-light: #F8F9FA;
+            --ceiba-white: #FFFFFF;
         }
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+
+        [data-theme="dark"] {
+            --ceiba-yellow: #FFD60A;
+            --ceiba-bg: #0D1117;
+            --ceiba-surface: #161B22;
+            --ceiba-text: #E6EDF3;
+            --ceiba-text-secondary: #8B949E;
+            --ceiba-border: #30363D;
         }
-    </style>
-    
+
+        /* MODO CLARO */
+        body {
+            background-color: white !important;
+            color: #1A1A1A !important;
+            transition: all 0.3s ease;
+        }
+
+        /* MODO OSCURO */
+        [data-theme="dark"] body {
+            background-color: #0D1117 !important;
+            color: #E6EDF3 !important;
+        }
+
+        [data-theme="dark"] .bg-white {
+            background-color: #161B22 !important;
+        }
+
+        [data-theme="dark"] .bg-gray-50,
+        [data-theme="dark"] .bg-gray-100 {
+            background-color: #0D1117 !important;
+        }
+
+        [data-theme="dark"] .text-gray-800,
+        [data-theme="dark"] .text-gray-900,
+        [data-theme="dark"] .text-black {
+            color: #E6EDF3 !important;
+        }
+
+        [data-theme="dark"] .text-gray-600,
+        [data-theme="dark"] .text-gray-700 {
+            color: #8B949E !important;
+        }
+
+        [data-theme="dark"] .border-gray-200,
+        [data-theme="dark"] .border-gray-300 {
+            border-color: #30363D !important;
+        }
+
+        /* REEMPLAZAR GRADIENTES MORADOS POR NEGRO+AMARILLO */
+        .bg-gradient-to-r.from-indigo-600.to-purple-600,
+        .bg-gradient-to-r.from-indigo-500.to-purple-500 {
+            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%) !important;
+            color: white !important;
+        }
+
+        [data-theme="dark"] .bg-gradient-to-r.from-indigo-600.to-purple-600 {
+            background: linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 100%) !important;
+            color: #FFD60A !important;
+        }
+
+        /* Hero amarillo → Negro con acento amarillo */
+        section.bg-gradient-to-r.from-indigo-600.to-purple-600 {
+            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%) !important;
+            color: white !important;
+        }
+
+        section.bg-gradient-to-r.from-indigo-600.to-purple-600 h1,
+        section.bg-gradient-to-r.from-indigo-600.to-purple-600 p {
+            color: white !important;
+        }
+
+        /* Badges y elementos pequeños con amarillo */
+        .bg-indigo-50, .bg-purple-50, .bg-indigo-100, .bg-purple-100 {
+            background-color: #FFF4CC !important;
+            color: #1A1A1A !important;
+        }
+
+        [data-theme="dark"] .bg-indigo-50,
+        [data-theme="dark"] .bg-purple-50 {
+            background-color: rgba(255, 214, 10, 0.1) !important;
+            color: #FFD60A !important;
+        }
+
+        /* Botones principales con amarillo */
+        .bg-indigo-600, .bg-purple-600 {
+            background-color: #F7D917 !important;
+            color: #1A1A1A !important;
+            font-weight: 600 !important;
+        }
+
+        .bg-indigo-600:hover, .bg-purple-600:hover {
+            background-color: #E5C500 !important;
+        }
+
+        /* Texto de acento */
+        .text-indigo-600, .text-purple-600 {
+            color: #1A1A1A !important;
+            font-weight: 600 !important;
+        }
+
+        [data-theme="dark"] .text-indigo-600,
+        [data-theme="dark"] .text-purple-600 {
+            color: #FFD60A !important;
+        }
+
+        /* Cards de calculadora con contraste */
+        .calculator-card {
+            background: linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 100%) !important;
+            color: white !important;
+        }
+
+        [data-theme="dark"] .calculator-card {
+            background: linear-gradient(135deg, #1A1A1A 0%, #000000 100%) !important;
+        }
+
+        /* Navbar siempre legible */
+        nav {
+            background-color: white !important;
+            border-bottom: 1px solid #DEE2E6 !important;
+        }
+
+        [data-theme="dark"] nav {
+            background-color: #1A1A1A !important;
+            border-bottom: 1px solid #30363D !important;
+        }
+
+        nav a {
+            color: #1A1A1A !important;
+        }
+
+        [data-theme="dark"] nav a {
+            color: #E6EDF3 !important;
+        }
+
+        nav a:hover {
+            color: #F7D917 !important;
+        }
+
+	/* Hover de filas de tabla */
+        .hover-row:hover {
+            background-color: rgba(247, 217, 23, 0.1) !important;
+        }
+
+        [data-theme="dark"] .hover-row:hover {
+            background-color: rgba(255, 214, 10, 0.08) !important;
+        }	
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--ceiba-gray-light);
+        }
+
+        [data-theme="dark"] ::-webkit-scrollbar-track {
+            background: #0D1117;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #F7D917;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #E5C500;
+        }
+
+	/* CALCULADORA - Inputs en modo oscuro */
+        [data-theme="dark"] input[type="number"],
+        [data-theme="dark"] input[type="text"],
+        [data-theme="dark"] select {
+            background-color: #0D1117 !important;
+            color: #E6EDF3 !important;
+            border-color: #30363D !important;
+        }
+
+        [data-theme="dark"] input::placeholder {
+            color: #8B949E !important;
+        }
+
+        /* Monto amarillo en modo oscuro - mejor contraste */
+        [data-theme="dark"] #sendTotal {
+            color: #1A1A1A !important;
+            background-color: #F7D917;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+        }
+
+	/* Hover de filas de tabla */
+        .hover-row:hover {
+            background-color: rgba(247, 217, 23, 0.1) !important;
+        }
+
+        [data-theme="dark"] .hover-row:hover {
+            background-color: rgba(255, 214, 10, 0.1) !important;
+        }
+
+	/* Botón Iniciar Sesión - hover correcto */
+        .btn-login {
+            background-color: #F7D917 !important;
+            color: #1A1A1A !important;
+            transition: all 0.2s !important;
+            text-decoration: none !important;
+        }
+
+        .btn-login:hover {
+            background-color: #E5C500 !important;
+            color: #1A1A1A !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(247, 217, 23, 0.4) !important;
+        }
+
+        [data-theme="dark"] .btn-login {
+            background-color: #FFD60A !important;
+            color: #1A1A1A !important;
+        }
+
+        [data-theme="dark"] .btn-login:hover {
+            background-color: #FFC700 !important;
+            color: #1A1A1A !important;
+            box-shadow: 0 4px 12px rgba(255, 214, 10, 0.4) !important;
+        }	
+
+	/* Inputs con bordes visibles */
+        input[type="number"],
+        input[type="text"],
+        select {
+            border: 2px solid #DEE2E6 !important;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #F7D917 !important;
+            box-shadow: 0 0 0 3px rgba(247, 217, 23, 0.1) !important;
+        }
+
+        [data-theme="dark"] input[type="number"],
+        [data-theme="dark"] input[type="text"],
+        [data-theme="dark"] select {
+            border-color: #30363D !important;
+        }
+
+        [data-theme="dark"] input:focus,
+        [data-theme="dark"] select:focus {
+            border-color: #FFD60A !important;
+            box-shadow: 0 0 0 3px rgba(255, 214, 10, 0.15) !important;
+        }
+
+    </style>   
+
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-50">
     
-    <!-- Navbar -->
-    <nav class="bg-white shadow-lg sticky top-0 z-50">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex justify-between items-center">
-                <!-- Logo -->
-                <a href="{{ url_for('public.home') }}" class="flex items-center space-x-3">
-                    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 w-12 h-12 rounded-full flex items-center justify-center">
-                        <i class="fas fa-coins text-white text-xl"></i>
-                    </div>
-                    <span class="text-2xl font-bold text-gray-800">Ceiba21</span>
-                </a>
-                
+<nav style="background-color: white; border-bottom: 1px solid #DEE2E6;">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center py-3">
+            <!-- Logo -->
+            <a href="{{ url_for('public.home') }}" class="flex items-center space-x-2">
+                <div style="background-color: #F7D917; border-radius: 0.5rem; padding: 0.5rem;">
+                    <img src="{{ url_for('static', filename='img/favicon.svg') }}" 
+                         alt="Ceiba21" 
+                         class="h-8 w-8">
+                </div>
+                <span class="text-2xl font-bold" style="color: #1A1A1A;">Ceiba21</span>
+            </a>
+            
+            <!-- Menu Desktop -->
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="{{ url_for('public.home') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Inicio</a>
+                <a href="{{ url_for('public.cotizaciones') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Cotizaciones</a>
+                <a href="{{ url_for('public.calculadora') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Calculadora</a>
+                <a href="{{ url_for('public.servicios') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Servicios</a>
+                <a href="{{ url_for('public.tienda') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Tienda</a>
+                <a href="{{ url_for('public.contacto') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Contacto</a>
+            </div>
 
-	<!-- Menu Desktop -->
-	<div class="hidden md:flex items-center space-x-6">
-	    <a href="{{ url_for('public.home') }}" class="text-gray-700 hover:text-indigo-600 transition">Inicio</a>
-	    <a href="{{ url_for('public.cotizaciones') }}" class="text-gray-700 hover:text-indigo-600 transition">Cotizaciones</a>
-	    <a href="{{ url_for('public.calculadora') }}" class="text-gray-700 hover:text-indigo-600 transition">Calculadora</a>
-	    <a href="{{ url_for('public.servicios') }}" class="text-gray-700 hover:text-indigo-600 transition">Servicios</a>
-	    <a href="{{ url_for('public.tienda') }}" class="text-gray-700 hover:text-indigo-600 transition">Tienda</a>
-	    <a href="{{ url_for('public.contacto') }}" class="text-gray-700 hover:text-indigo-600 transition">Contacto</a>
-	    
-	    <!-- Botón Login o Usuario -->
-	    {% if session.get('logged_in') %}
-	    <div class="flex items-center space-x-3">
-	        <a href="{{ url_for('dashboard.index') }}" class="text-indigo-600 hover:text-indigo-800 flex items-center space-x-2">
-	            <i class="fas fa-user-circle text-xl"></i>
-	            <span class="font-medium">{{ session.get('username', 'Admin') }}</span>
-	        </a>
-	        <a href="{{ url_for('auth.logout') }}" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
-	            <i class="fas fa-sign-out-alt mr-2"></i> Salir
-	        </a>
-	    </div>
-	    {% else %}
-	    <a href="{{ url_for('auth.login') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-	        <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
-	    </a>
-	    {% endif %}
-	</div>
+            <!-- Botones derecha -->
+            <div class="hidden md:flex items-center space-x-3">
+                <!-- Toggle de tema en navbar -->
+                <button id="themeToggleNav" class="p-2 rounded-lg hover:bg-gray-100 transition" aria-label="Cambiar tema">
+                    <i class="fas fa-moon text-xl" id="themeIconNav" style="color: #1A1A1A;"></i>
+                </button>
                 
-                <!-- Menu Mobile (hamburger) -->
-                <button id="mobile-menu-btn" class="md:hidden text-gray-700">
-                    <i class="fas fa-bars text-2xl"></i>
+                {% if session.get('logged_in') %}
+                <a href="{{ url_for('dashboard.index') }}" style="color: #F7D917;" class="flex items-center space-x-2 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 transition">
+                    <i class="fas fa-user-circle text-xl"></i>
+                    <span>{{ session.get('username', 'Admin') }}</span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Salir
+                </a>
+                {% else %}
+              <a href="{{ url_for('auth.login') }}" 
+		   style="background-color: #F7D917; color: #1A1A1A;" 
+		   class="btn-login px-6 py-2 rounded-lg font-semibold inline-block">
+		    <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
+		</a>
+                {% endif %}
+            </div>
+
+            <!-- Hamburger Mobile -->
+            <button id="menuToggle" class="md:hidden text-2xl" style="color: #1A1A1A;">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- Menu Mobile (desplegable) -->
+        <div id="mobile-menu" class="hidden md:hidden pb-4 space-y-3">
+            <!-- Toggle en mobile -->
+            <div class="flex justify-center py-2">
+                <button id="themeToggleMobile" class="p-3 rounded-lg hover:bg-gray-100 transition" aria-label="Cambiar tema">
+                    <i class="fas fa-moon text-xl" id="themeIconMobile" style="color: #1A1A1A;"></i>
                 </button>
             </div>
-		            
-		<!-- Menu Mobile (desplegable) -->
-		<div id="mobile-menu" class="hidden md:hidden mt-4 space-y-3">
-		    <a href="{{ url_for('public.home') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Inicio</a>
-		    <a href="{{ url_for('public.cotizaciones') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Cotizaciones</a>
-		    <a href="{{ url_for('public.calculadora') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Calculadora</a>
-		    <a href="{{ url_for('public.servicios') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Servicios</a>
-		    <a href="{{ url_for('public.tienda') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Tienda</a>
-		    <a href="{{ url_for('public.contacto') }}" class="block text-gray-700 hover:text-indigo-600 py-2">Contacto</a>
-		    
-		    {% if session.get('logged_in') %}
-		    <a href="{{ url_for('dashboard.index') }}" class="block text-indigo-600 py-2">
-		        <i class="fas fa-user-circle mr-2"></i>{{ session.get('username', 'Admin') }}
-		    </a>
-		    <a href="{{ url_for('auth.logout') }}" class="block bg-red-500 text-white px-4 py-2 rounded-lg text-center">Salir</a>
-		    {% else %}
-		    <a href="{{ url_for('auth.login') }}" class="block bg-indigo-600 text-white px-4 py-2 rounded-lg text-center">Iniciar Sesión</a>
-		    {% endif %}
-		</div>
-
+            
+            <a href="{{ url_for('public.home') }}" class="block py-2" style="color: #1A1A1A;">Inicio</a>
+            <a href="{{ url_for('public.cotizaciones') }}" class="block py-2" style="color: #1A1A1A;">Cotizaciones</a>
+            <a href="{{ url_for('public.calculadora') }}" class="block py-2" style="color: #1A1A1A;">Calculadora</a>
+            <a href="{{ url_for('public.servicios') }}" class="block py-2" style="color: #1A1A1A;">Servicios</a>
+            <a href="{{ url_for('public.tienda') }}" class="block py-2" style="color: #1A1A1A;">Tienda</a>
+            <a href="{{ url_for('public.contacto') }}" class="block py-2" style="color: #1A1A1A;">Contacto</a>
+            
+            {% if session.get('logged_in') %}
+            <a href="{{ url_for('dashboard.index') }}" class="block py-2" style="color: #F7D917;">
+                <i class="fas fa-user-circle mr-2"></i>{{ session.get('username', 'Admin') }}
+            </a>
+            <a href="{{ url_for('auth.logout') }}" class="block bg-red-500 text-white px-4 py-2 rounded-lg text-center">Salir</a>
+            {% else %}
+           <a href="{{ url_for('auth.login') }}" class="btn-login px-6 py-2 rounded-lg font-semibold">
+	    <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
+	   </a>
+            {% endif %}
         </div>
-    </nav>
-
+    </div>
+</nav>
     <!-- Contenido principal -->
     <main>
         {% block content %}{% endblock %}
@@ -170,6 +444,66 @@
     <script>
         // Toggle mobile menu
         document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+    </script>
+
+   <!-- Script de Modo Oscuro ACTUALIZADO -->
+    <script>
+        // Función para aplicar el tema
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            document.body.setAttribute('data-theme', theme);
+            
+            // Actualizar todos los iconos
+            const icons = ['themeIconNav', 'themeIconMobile'];
+            icons.forEach(iconId => {
+                const icon = document.getElementById(iconId);
+                if (icon) {
+                    if (theme === 'dark') {
+                        icon.className = 'fas fa-sun text-xl';
+                        icon.style.color = '#FFD60A';
+                    } else {
+                        icon.className = 'fas fa-moon text-xl';
+                        icon.style.color = '#1A1A1A';
+                    }
+                }
+            });
+            
+            // Actualizar navbar en modo oscuro
+            const nav = document.querySelector('nav');
+            if (nav) {
+                if (theme === 'dark') {
+                    nav.style.backgroundColor = '#1A1A1A';
+                    nav.style.borderBottom = '1px solid #30363D';
+                } else {
+                    nav.style.backgroundColor = 'white';
+                    nav.style.borderBottom = '1px solid #DEE2E6';
+                }
+            }
+        }
+        
+        // Detectar preferencia inicial
+        const savedTheme = localStorage.getItem('ceiba21-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+        
+        applyTheme(initialTheme);
+        
+        // Funcionalidad toggle
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('ceiba21-theme', newTheme);
+        }
+        
+        // Agregar listeners
+        document.getElementById('themeToggleNav')?.addEventListener('click', toggleTheme);
+        document.getElementById('themeToggleMobile')?.addEventListener('click', toggleTheme);
+        
+        // Mobile menu toggle
+        document.getElementById('menuToggle')?.addEventListener('click', function() {
             document.getElementById('mobile-menu').classList.toggle('hidden');
         });
     </script>

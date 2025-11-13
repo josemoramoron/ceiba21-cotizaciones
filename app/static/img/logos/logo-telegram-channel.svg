@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fondo circular amarillo dorado -->
+  <circle cx="256" cy="256" r="256" fill="#F7D917"/>
+  
+  <!-- Árbol Ceiba estilizado -->
+  <g transform="translate(256, 180)">
+    <!-- Tronco y raíces -->
+    <path d="M-8 0 L-12 80 L-20 95 M8 0 L12 80 L20 95 M-6 0 L-6 85 M6 0 L6 85 M0 0 L0 90" 
+          stroke="#1A1A1A" stroke-width="4" fill="none"/>
+    
+    <!-- Copa del árbol (forma orgánica) -->
+    <ellipse cx="0" cy="-40" rx="70" ry="45" fill="#1A1A1A"/>
+    <ellipse cx="-35" cy="-30" rx="45" ry="35" fill="#1A1A1A"/>
+    <ellipse cx="35" cy="-30" rx="45" ry="35" fill="#1A1A1A"/>
+    <ellipse cx="0" cy="-60" rx="50" ry="30" fill="#1A1A1A"/>
+  </g>
+  
+  <!-- Texto Ceiba21 -->
+  <text x="256" y="340" font-family="'Inter', 'Helvetica Neue', sans-serif" 
+        font-size="68" font-weight="800" text-anchor="middle" fill="#1A1A1A">
+    Ceiba21
+  </text>
+  
+  <!-- Tagline opcional -->
+  <text x="256" y="380" font-family="'Inter', sans-serif" 
+        font-size="20" font-weight="500" text-anchor="middle" fill="#1A1A1A">
+    Cotizaciones en Tiempo Real
+  </text>
+</svg>
