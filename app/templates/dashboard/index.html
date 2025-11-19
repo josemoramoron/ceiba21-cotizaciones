@@ -14,9 +14,9 @@
             <button onclick="saveColumnOrder()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
                 <i class="fas fa-save"></i> Guardar Orden de Monedas
             </button>
-            <button class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition">
-                <i class="fab fa-telegram"></i> Publicar en Telegram
-            </button>
+	<a href="{{ url_for('dashboard.telegram_publisher') }}" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition inline-flex items-center">
+	    <i class="fab fa-telegram mr-2"></i> Publicar en Telegram
+	</a>
         </div>
     </div>
 

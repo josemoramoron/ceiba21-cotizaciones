@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Publicar en Telegram - Dashboard{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+                <i class="fab fa-telegram text-blue-500 mr-3"></i>
+                Publicar en Telegram
+            </h1>
+            <p class="text-gray-600 mt-2">Publica las cotizaciones actuales en tu canal de Telegram</p>
+        </div>
+
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="mb-6 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800 border-l-4 border-green-500{% else %}bg-red-100 text-red-800 border-l-4 border-red-500{% endif %}">
+                    <p class="font-medium">{{ message }}</p>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formulario -->
+        <form method="POST" enctype="multipart/form-data" class="bg-white shadow-lg rounded-lg p-8">
+            
+            <!-- Sección 1: Imagen Publicitaria -->
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-image text-yellow-500 mr-2"></i>
+                    1. Imagen Publicitaria (Opcional)
+                </h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Si no subes una imagen, se generará automáticamente con tu logo y las cotizaciones.
+                </p>
+                
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-yellow-500 transition">
+                    <input type="file" 
+                           name="custom_image" 
+                           id="custom_image"
+                           accept="image/*"
+                           class="block w-full text-sm text-gray-600
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-lg file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-yellow-500 file:text-white
+                                  hover:file:bg-yellow-600
+                                  cursor-pointer">
+                    <p class="mt-2 text-xs text-gray-500">
+                        PNG, JPG o GIF (máx. 5MB). Recomendado: 1080x1080px
+                    </p>
+                </div>
+
+                <!-- Vista previa de imagen subida -->
+                <div id="imagePreview" class="mt-4 hidden">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
+                    <img id="previewImg" src="" alt="Vista previa" class="max-w-sm rounded-lg shadow-md">
+                </div>
+            </div>
+
+            <!-- Sección 2: Mensaje Personalizado -->
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-comment-dots text-blue-500 mr-2"></i>
+                    2. Mensaje Personalizado (Opcional)
+                </h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Deja vacío para usar el mensaje predeterminado.
+                </p>
+                
+                <textarea name="custom_message" 
+                          id="custom_message"
+                          rows="6"
+                          placeholder="Ejemplo: ⚡ ¡Nuevas tasas actualizadas! Aprovecha las mejores cotizaciones del mercado."
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 resize-none"></textarea>
+                
+                <p class="mt-2 text-xs text-gray-500">
+                    Puedes usar emojis y markdown (*negrita*, _cursiva_)
+                </p>
+            </div>
+
+	<!-- Sección 3: Tipo de Publicación -->
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-list-check text-purple-500 mr-2"></i>
+                    3. Tipo de Publicación
+                </h2>
+                
+                <div class="space-y-3">
+                    <!-- Opción 1: Completa VES -->
+                    <label class="flex items-start p-4 border-2 border-yellow-400 bg-yellow-50 rounded-lg cursor-pointer hover:bg-yellow-100 transition">
+                        <input type="radio" name="publication_type" value="full_ves" checked class="mt-1 mr-3 w-5 h-5 text-yellow-600">
+                        <div>
+                            <span class="font-bold text-gray-800 flex items-center">
+                                📊 Completa VES (Bolívares) 🇻🇪
+                                <span class="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">Recomendada</span>
+                            </span>
+                            <p class="text-sm text-gray-600 mt-1">
+                                Todos los métodos de pago disponibles en Bolívares
+                            </p>
+                        </div>
+                    </label>
+                    
+                    <!-- Opción 2: Completa COP -->
+                    <label class="flex items-start p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
+                        <input type="radio" name="publication_type" value="full_cop" class="mt-1 mr-3 w-5 h-5 text-blue-600">
+                        <div>
+                            <span class="font-bold text-gray-800">📊 Completa COP (Pesos Colombianos) 🇨🇴</span>
+                            <p class="text-sm text-gray-600 mt-1">
+                                Todos los métodos de pago disponibles en Pesos COP
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <!-- Sección 4: Vista Previa DINÁMICA -->
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-eye text-green-500 mr-2"></i>
+                    4. Vista Previa (se generará automáticamente)
+                </h2>
+                
+                <div id="previewBox" class="bg-gray-800 rounded-lg p-6 text-white font-mono text-sm">
+                    <!-- El contenido se actualizará dinámicamente con JavaScript -->
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flex gap-4">
+                <button type="submit" 
+                        class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition shadow-lg flex items-center justify-center">
+                    <i class="fab fa-telegram mr-2 text-xl"></i>
+                    Publicar en Telegram
+                </button>
+                
+                <a href="{{ url_for('dashboard.index') }}" 
+                   class="px-8 py-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition flex items-center justify-center">
+                    <i class="fas fa-times mr-2"></i>
+                    Cancelar
+                </a>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                <p class="text-sm text-blue-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Nota:</strong> La publicación incluirá botones automáticos para tu sitio web, Instagram, Twitter, Facebook y WhatsApp.
+                </p>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- Scripts -->
+<script>
+// Vista previa de imagen subida
+document.getElementById('custom_image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').classList.remove('hidden');
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// Datos de cotizaciones REALES desde la base de datos
+const quotesData = {
+    full_ves: {{ quotes_ves | tojson | safe }},
+    full_cop: {{ quotes_cop | tojson | safe }}
+};
+
+console.log('Quotes VES:', quotesData.full_ves);
+console.log('Quotes COP:', quotesData.full_cop);
+
+function updatePreview(type) {
+    const previewBox = document.getElementById('previewBox');
+    const now = new Date().toLocaleString('es-VE', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    let html = '';
+    
+    if (type === 'full_ves') {
+        html = `
+            <p class="text-yellow-400 font-bold mb-3">🌳 CEIBA21 - COTIZACIONES Bs 🇻🇪</p>
+            <p class="text-gray-400 text-xs mb-4">📊 ${now}</p>
+            
+            <div class="space-y-1 text-xs">
+                ${quotesData.full_ves.map(q => 
+                    `<p>${q.icon} ${q.name.padEnd(14)} <span class="text-yellow-400">${q.rate} Bs</span></p>`
+                ).join('')}
+            </div>
+            
+            <p class="text-gray-400 text-xs mt-4">━━━━━━━━━━━━━━━━</p>
+            <p class="text-yellow-400 text-xs mt-2">⚡ La mejor tasa del mercado</p>
+            <p class="text-gray-400 text-xs">📞 ceiba21.com</p>
+        `;
+    }
+    else if (type === 'full_cop') {
+        html = `
+            <p class="text-yellow-400 font-bold mb-3">🌳 CEIBA21 - COTIZACIONES COP 🇨🇴</p>
+            <p class="text-gray-400 text-xs mb-4">📊 ${now}</p>
+            
+            <div class="space-y-1 text-xs">
+                ${quotesData.full_cop.map(q => 
+                    `<p>${q.icon} ${q.name.padEnd(14)} <span class="text-yellow-400">${q.rate} $COP</span></p>`
+                ).join('')}
+            </div>
+            
+            <p class="text-gray-400 text-xs mt-4">━━━━━━━━━━━━━━━━</p>
+            <p class="text-yellow-400 text-xs mt-2">⚡ Las mejores tasas para Colombia</p>
+            <p class="text-gray-400 text-xs">📞 ceiba21.com</p>
+        `;
+    }
+    
+    previewBox.innerHTML = html;
+}
+
+// Inicializar con VES al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    updatePreview('full_ves');
+});
+
+// Escuchar cambios en radio buttons
+document.querySelectorAll('input[name="publication_type"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        updatePreview(e.target.value);
+    });
+});
+</script>
+{% endblock %}

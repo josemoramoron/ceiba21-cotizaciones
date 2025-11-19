@@ -3,7 +3,12 @@ Rutas del Dashboard CRUD
 """
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from app.services import QuoteService, ExchangeRateService, CurrencyService, PaymentMethodService
-from app.routes.auth import login_required  # ← AGREGAR ESTA LÍNEA
+from app.routes.auth import login_required
+from app.models import db  # ← AGREGAR ESTA LÍNEA
+import os
+from werkzeug.utils import secure_filename
+from app.telegram.bot import TelegramPublisher
+from app.telegram.image_generator import TelegramImageGenerator
 
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
@@ -335,8 +340,171 @@ def test_api_providers():
             'error': error,
             'status': 'success' if rate else 'error'
         })
-    
     return jsonify({
-        'providers': results,
-        'total': len(providers)
+    	'providers': results,
+    	'total': len(providers)
     })
+    
+@dashboard_bp.route('/telegram', methods=['GET', 'POST'])
+@login_required
+def telegram_publisher():
+    """Publicar cotizaciones en Telegram"""
+    from app.models import PaymentMethod, Quote, Currency
+    
+    if request.method == 'POST':
+        try:
+            # Obtener configuración
+            token = os.getenv('TELEGRAM_BOT_TOKEN')
+            channel_id = os.getenv('TELEGRAM_CHANNEL_ID')
+            
+            if not token or not channel_id:
+                flash('Error: Configuración de Telegram incompleta en .env', 'error')
+                return redirect(url_for('dashboard.telegram_publisher'))
+            
+            # Obtener tipo de publicación
+            publication_type = request.form.get('publication_type', 'full_ves')
+            
+            # Iconos
+            icons = {
+                'PayPal': '💳', 'Zelle': '💵', 'USDT': '₿', 
+                'Wise': '🏦', 'Zinli': '💸', 'Binance': '🔶',
+                'Venmo': '💰', 'Airtm': '🔷', 'Payoneer': '🎯',
+                'Skrill': '⚡', 'Epay china': '🏮', 'Euro €': '💶',
+                'REF': '📊'
+            }
+            
+            # Determinar moneda
+            currency_code = 'VES' if publication_type == 'full_ves' else 'COP'
+            currency_symbol = 'Bs' if publication_type == 'full_ves' else '$COP'
+            
+            # Obtener cotizaciones ordenadas y limitadas a 6
+            quotes_data = []
+            payment_methods = PaymentMethod.query.filter_by(active=True).order_by(
+                PaymentMethod.display_order.asc()
+            ).limit(6).all()
+            
+            # Obtener currency por código
+            currency = Currency.query.filter_by(code=currency_code).first()
+            if not currency:
+                flash(f'❌ Moneda {currency_code} no encontrada', 'error')
+                return redirect(url_for('dashboard.telegram_publisher'))
+            
+            for pm in payment_methods:
+                quote = Quote.query.filter_by(
+                    payment_method_id=pm.id,
+                    currency_id=currency.id
+                ).first()
+                
+                if quote:
+                    quotes_data.append({
+                        'name': pm.name,
+                        'icon': icons.get(pm.name, '💱'),
+                        'rate': round(quote.final_value, 2),  # Redondear a 2 decimales
+                        'currency': currency_code  # VES o COP, no USD
+                    })
+            
+            if not quotes_data:
+                flash('❌ No hay cotizaciones disponibles', 'error')
+                return redirect(url_for('dashboard.telegram_publisher'))
+            
+            # Manejar imagen personalizada
+            custom_image_path = None
+            if 'custom_image' in request.files:
+                file = request.files['custom_image']
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join('app/static/img/telegram_posts', filename)
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    file.save(filepath)
+                    custom_image_path = filepath
+            
+            # Generar imagen
+            generator = TelegramImageGenerator()
+            image_path = generator.generate_quotes_image(quotes_data, custom_image_path)
+            
+            # Mensaje personalizado
+            custom_message = request.form.get('custom_message', '').strip()
+            
+            # Publicar en Telegram
+            publisher = TelegramPublisher(token, channel_id)
+            result = publisher.publish_quotes_sync(image_path, custom_message or None)
+            
+            if result['success']:
+                flash(f'✅ Publicado exitosamente en Telegram!', 'success')
+                return redirect(result['url'])
+            else:
+                flash(f'❌ Error al publicar: {result["error"]}', 'error')
+                
+        except Exception as e:
+            flash(f'❌ Error: {str(e)}', 'error')
+    
+    # GET: Mostrar formulario con datos de vista previa
+    quotes_ves = []
+    quotes_cop = []
+    
+    try:
+        # Iconos
+        icons = {
+            'PayPal': '💳', 'Zelle': '💵', 'USDT': '₿', 
+            'Wise': '🏦', 'Zinli': '💸', 'Binance': '🔶',
+            'Venmo': '💰', 'Airtm': '🔷', 'Payoneer': '🎯',
+            'Skrill': '⚡', 'Epay china': '🏮', 'Euro €': '💶',
+            'REF': '📊'
+        }
+        
+        # Obtener métodos activos ordenados (primeros 6)
+        payment_methods = PaymentMethod.query.filter_by(active=True).order_by(
+            PaymentMethod.display_order.asc()
+        ).limit(6).all()
+        
+        # Obtener monedas
+        currency_ves = Currency.query.filter_by(code='VES').first()
+        currency_cop = Currency.query.filter_by(code='COP').first()
+        
+        print(f"DEBUG: VES ID = {currency_ves.id if currency_ves else 'None'}")
+        print(f"DEBUG: COP ID = {currency_cop.id if currency_cop else 'None'}")
+        print(f"DEBUG: Payment methods: {len(payment_methods)}")
+        
+        # Cotizaciones VES
+        if currency_ves:
+            for pm in payment_methods:
+                quote = Quote.query.filter_by(
+                    payment_method_id=pm.id,
+                    currency_id=currency_ves.id
+                ).first()
+                
+                print(f"DEBUG: {pm.name} - Quote VES: {quote.final_value if quote else 'None'}")
+                
+                if quote:
+                    quotes_ves.append({
+                        'name': pm.name,
+                        'icon': icons.get(pm.name, '💱'),
+                        'rate': f"{quote.final_value:.2f}"
+                    })
+        
+        # Cotizaciones COP
+        if currency_cop:
+            for pm in payment_methods:
+                quote = Quote.query.filter_by(
+                    payment_method_id=pm.id,
+                    currency_id=currency_cop.id
+                ).first()
+                
+                if quote:
+                    quotes_cop.append({
+                        'name': pm.name,
+                        'icon': icons.get(pm.name, '💱'),
+                        'rate': f"{quote.final_value:,.2f}"
+                    })
+        
+        print(f"DEBUG: quotes_ves length: {len(quotes_ves)}")
+        print(f"DEBUG: quotes_cop length: {len(quotes_cop)}")
+    
+    except Exception as e:
+        flash(f'⚠️ Error al cargar vista previa: {str(e)}', 'warning')
+        import traceback
+        print(f"Error completo: {traceback.format_exc()}")
+    
+    return render_template('dashboard/telegram.html', 
+                         quotes_ves=quotes_ves, 
+                         quotes_cop=quotes_cop)

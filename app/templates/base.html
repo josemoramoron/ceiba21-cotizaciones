@@ -80,11 +80,10 @@
                         <span>Métodos de Pago</span>
                     </a>
                     <hr class="my-4">
-                    <a href="#" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition text-gray-400 cursor-not-allowed">
-                        <i class="fab fa-telegram"></i>
-                        <span>Telegram Bot</span>
-                        <span class="text-xs bg-gray-200 px-2 py-1 rounded">Próximamente</span>
-                    </a>
+			<a href="{{ url_for('dashboard.telegram_publisher') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'dashboard.telegram_publisher' %}active{% endif %}">
+			    <i class="fab fa-telegram"></i>
+			    <span>Publicar en Telegram</span>
+			</a>
                 </nav>
             </div>
         </aside>
