@@ -37,3 +37,9 @@ app/config.py
 
 # Cloudflare
 /root/.cloudflared/
+
+# Imágenes generadas de Telegram (se limpian automáticamente)
+app/static/img/telegram_posts/*.png
+!app/static/img/telegram_posts/.gitkeep# Imágenes generadas de Telegram (se limpian automáticamente)
+app/static/img/telegram_posts/*.png
+!app/static/img/telegram_posts/.gitkeep
