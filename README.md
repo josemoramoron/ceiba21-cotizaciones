@@ -397,14 +397,34 @@ ls -lh ~/*.sh
 ~/backup_database.sh
 ~/rotar_logs.sh
 ~/limpiar_imagenes_telegram.sh
+
+# Sistema de alertas
+~/enviar_alerta.sh
+~/monitor_servicios.sh
+~/alerta_temperatura.sh
+~/alerta_disco.sh
+~/ver_alertas.sh
 ```
 
 ### Tareas Programadas (Cron)
 ```
-02:00 diario   → Backup de base de datos
-03:00 diario   → Rotación de logs
-04:00 diario   → Limpieza de imágenes antiguas
-00:00 cada hora → Monitor de temperatura
+# Logs automáticos
+00:00 cada hora   → Monitor de temperatura
+00:00 cada 6h     → Estado del sistema
+00:00 diario      → Dashboard completo
+00:00 domingos    → Verificación de red
+
+# Mantenimiento
+02:00 diario      → Backup de base de datos
+03:00 diario      → Rotación de logs
+04:00 diario      → Limpieza de imágenes antiguas
+02:00 día 1 mes   → Limpieza de logs muy antiguos
+
+# Alertas automáticas
+*/15 * * * *      → Monitor de servicios críticos
+*/30 * * * *      → Monitor de temperatura CPU
+06:00 diario      → Monitor de espacio en disco
+08:00 lunes       → Reporte semanal de estado
 ```
 
 ### Backups
@@ -414,7 +434,131 @@ ls -lh ~/*.sh
 
 # Restaurar backup
 zcat backup.sql.gz | psql -U webmaster -d cotizaciones_db
+
+# Ver últimos backups
+ls -lht /var/backups/ceiba21/database/ | head -5
 ```
+
+---
+
+## 📧 Sistema de Correo y Alertas
+
+### Configuración de Email
+
+**Recepción** (Cloudflare Email Routing):
+- `info@ceiba21.com` → `ceiba21.oficial@gmail.com`
+- `webmaster@ceiba21.com` → `ceiba21.oficial@gmail.com`
+
+**Envío** (Postfix + Gmail SMTP):
+- Servidor: `smtp.gmail.com:587`
+- Remitente: `webmaster@ceiba21.com`
+- Autenticación: `ceiba21.oficial@gmail.com`
+- TLS: Habilitado
+
+### Alertas Automáticas
+
+El sistema envía alertas por email cuando detecta problemas:
+
+#### **Monitor de Servicios Críticos** (cada 15 minutos)
+Verifica el estado de:
+- ceiba21 (Flask app)
+- postgresql
+- nginx
+- cloudflared
+- netdata
+
+Si algún servicio está caído, envía alerta inmediata.
+
+#### **Monitor de Temperatura** (cada 30 minutos)
+- Umbral: 75°C
+- Sensor: CPU Thermal
+- Alerta si temperatura excede el umbral
+
+#### **Monitor de Espacio en Disco** (diario 06:00)
+- Umbral: 80% de uso
+- Partición: `/` (root)
+- Incluye estadísticas de espacio usado/disponible
+
+#### **Alerta de Backup Fallido** (cuando ocurre)
+- Se activa si el backup de PostgreSQL falla
+- Incluye logs del error
+- Permite respuesta rápida a problemas
+
+#### **Reporte Semanal** (Lunes 08:00)
+- Resumen del estado de todos los servicios
+- Confirmación de que todo funciona correctamente
+- Enlaces rápidos a dashboards
+
+### Uso del Sistema de Alertas
+
+#### Enviar alerta manual:
+```bash
+~/enviar_alerta.sh "Asunto" "Mensaje del cuerpo"
+```
+
+#### Ver historial de alertas:
+```bash
+~/ver_alertas.sh
+```
+
+#### Probar monitores manualmente:
+```bash
+# Servicios
+~/monitor_servicios.sh
+
+# Temperatura
+~/alerta_temperatura.sh
+
+# Disco
+~/alerta_disco.sh
+```
+
+#### Ver logs:
+```bash
+# Historial de alertas enviadas
+cat ~/logs/alertas.log
+
+# Logs de Postfix
+sudo tail -f /var/log/mail.log
+
+# Verificar cola de correo
+mailq
+```
+
+### Contenido de las Alertas
+
+Cada alerta incluye:
+- 🚨 Descripción del problema
+- 📊 Estado actual del sistema:
+  - Temperatura CPU
+  - Uso de CPU (%)
+  - Load average
+  - Uso de RAM (%)
+  - Uso de disco (%)
+  - Uptime
+- 🔗 Enlaces rápidos a dashboards
+- ⏰ Timestamp de la alerta
+
+### Configuración Avanzada
+
+#### Cambiar umbrales:
+```bash
+# Editar scripts
+nano ~/alerta_temperatura.sh  # Cambiar THRESHOLD=75
+nano ~/alerta_disco.sh        # Cambiar THRESHOLD=80
+```
+
+#### Cambiar destinatarios:
+```bash
+nano ~/enviar_alerta.sh
+# Modificar: DESTINATARIO="otro@email.com"
+```
+
+#### Agregar más servicios al monitor:
+```bash
+nano ~/monitor_servicios.sh
+# Agregar a SERVICIOS=("servicio1" "servicio2" ...)
+``````
 
 ---
 
@@ -523,6 +667,53 @@ Ctrl + Shift + Delete
 
 ---
 
+## 🗺️ Roadmap - Próximas Funcionalidades
+
+### En Desarrollo
+
+- ⬜ **Dashboard web para ver alertas**
+  - Interfaz web para visualizar historial de alertas
+  - Filtros por tipo, fecha y severidad
+  - Estadísticas de alertas por periodo
+  
+- ⬜ **Integrar alertas con Telegram**
+  - Bot que envía alertas críticas por Telegram
+  - Comandos para consultar estado del sistema
+  - Notificaciones push instantáneas
+  
+- ⬜ **API para consultar estado del sistema**
+  - Endpoints REST para métricas en tiempo real
+  - Autenticación con API keys
+  - Documentación con Swagger/OpenAPI
+  - Integración con herramientas de monitoreo externas
+  
+- ⬜ **Gráficos de histórico de alertas**
+  - Visualización de tendencias de temperatura
+  - Gráficos de uso de CPU/RAM/Disco
+  - Reportes mensuales automatizados
+  - Dashboard con Chart.js o Plotly
+
+### Backlog
+
+- ⬜ Multi-idioma (inglés, portugués)
+- ⬜ App móvil con React Native
+- ⬜ Integración con más exchanges (Binance, Kraken)
+- ⬜ Sistema de notificaciones cuando tasas cambian >X%
+- ⬜ Histórico de cotizaciones con análisis de tendencias
+- ⬜ Panel de analytics con estadísticas de uso
+- ⬜ Sistema de cache con Redis
+- ⬜ CDN para imágenes de Telegram
+
+### Ideas Futuras
+
+- Modo oscuro en el dashboard
+- Exportar cotizaciones a PDF/Excel
+- Webhooks para integración con sistemas externos
+- Panel de administración multi-usuario con roles
+- Marketplace de plugins para extensiones
+
+---
+
 ## 📄 Licencia
 
 © 2025 Ceiba21. Todos los derechos reservados.
@@ -534,7 +725,7 @@ Este software es propietario y confidencial. No está permitida su distribución
 ## 📞 Soporte
 
 - **Web**: https://ceiba21.com
-- **Email**: contacto@ceiba21.com
+- **Email**: info@ceiba21.com
 - **Telegram**: @ceiba21_oficial
 
 ---
