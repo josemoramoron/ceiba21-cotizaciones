@@ -53,23 +53,26 @@ class PaymentMethodService:
     
     @staticmethod
     def _create_quotes_for_all_currencies(pm, value_type, usd_value, usd_formula):
-        """Crear cotizaciones para todas las monedas"""
+        """
+        Crear cotizaciones para todas las monedas con los valores del método de pago.
+        Este método se usa cuando se crea un nuevo método de pago.
+        """
         from app.models import ExchangeRate
         
         currencies = Currency.query.filter_by(active=True).all()
         
-        for currency in currencies:
-            # Calcular valor en USD
-            if value_type == 'manual':
-                calc_usd = usd_value
-            elif value_type == 'formula' and usd_formula:
-                try:
-                    calc_usd = eval(usd_formula)
-                except:
-                    calc_usd = 1.0
-            else:
+        # Calcular valor en USD una sola vez (es igual para todas las monedas)
+        if value_type == 'manual':
+            calc_usd = usd_value
+        elif value_type == 'formula' and usd_formula:
+            try:
+                calc_usd = eval(usd_formula)
+            except:
                 calc_usd = 1.0
-            
+        else:
+            calc_usd = 1.0
+        
+        for currency in currencies:
             # Obtener tasa de cambio
             exchange_rate = ExchangeRate.query.filter_by(currency_id=currency.id).first()
             final_val = calc_usd * float(exchange_rate.rate) if exchange_rate else 0
