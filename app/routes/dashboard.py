@@ -43,7 +43,11 @@ def manage_rates():
                     continue
         
         ExchangeRateService.update_multiple_rates(rates_dict)
-        flash('✅ Tasas de cambio actualizadas exitosamente', 'success')
+        
+        # Recalcular todas las cotizaciones con las nuevas tasas
+        QuoteService.recalculate_all_quotes()
+        
+        flash('✅ Tasas de cambio actualizadas y cotizaciones recalculadas', 'success')
         return redirect(url_for('dashboard.index'))
     
     rates = ExchangeRateService.get_all_rates()
@@ -307,12 +311,15 @@ def fetch_rate_from_api(currency_code):
         from app.models import db
         db.session.commit()
         
+        # Recalcular todas las cotizaciones con la nueva tasa
+        QuoteService.recalculate_all_quotes()
+        
         return jsonify({
             'success': True,
             'rate': float(rate),
             'currency': currency_code,
             'provider': provider,
-            'message': f'✅ Tasa actualizada desde {provider}'
+            'message': f'✅ Tasa actualizada desde {provider} y cotizaciones recalculadas'
         })
     
     return jsonify({
@@ -431,7 +438,7 @@ def telegram_publisher():
             
             if result['success']:
                 flash(f'✅ Publicado exitosamente en Telegram!', 'success')
-                return redirect(result['url'])
+                return redirect(url_for('dashboard.telegram_publisher'))
             else:
                 flash(f'❌ Error al publicar: {result["error"]}', 'error')
                 
