@@ -89,7 +89,7 @@
             color: #F7D917;
         }
 
-	input {
+        input[type="text"], input[type="password"] {
             border: 2px solid #E5E7EB;
             padding: 0.75rem 1rem;
             padding-left: 2.75rem;
@@ -109,7 +109,6 @@
             border-color: #F7D917;
             box-shadow: 0 0 0 3px rgba(247, 217, 23, 0.1);
         }
-
 
         label {
             display: block;
@@ -131,6 +130,14 @@
             border-radius: 0.5rem;
             margin-bottom: 1rem;
         }
+
+        .alert-success {
+            background-color: #D1FAE5;
+            border-left: 4px solid #10B981;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -141,66 +148,79 @@
                 <img src="{{ url_for('static', filename='img/favicon.svg') }}" alt="Ceiba21">
             </div>
             <h1 class="text-2xl font-bold" style="color: #1A1A1A;">Ceiba21</h1>
-            <p class="text-sm mt-1" style="color: #2D2D2D;">Dashboard de Administración</p>
+            <p class="text-sm mt-1" style="color: #2D2D2D;">Dashboard de Operadores</p>
         </div>
 
         <!-- Formulario -->
         <div class="p-8">
+            <!-- Mensajes flash -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert-error">
-                            <p class="text-sm text-red-800">
-                                <i class="fas fa-exclamation-circle mr-2"></i>{{ message }}
+                        <div class="{% if category == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                            <p class="text-sm {% if category == 'error' %}text-red-800{% else %}text-green-800{% endif %}">
+                                <i class="fas {% if category == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %} mr-2"></i>{{ message }}
                             </p>
                         </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
-		<form method="POST" action="{{ url_for('auth.login') }}">
 
-		<!-- Usuario -->
-		<div style="margin-bottom: 1.25rem;">
-		    <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #1A1A1A;">
-		        <i class="fas fa-user" style="color: #F7D917; margin-right: 0.25rem;"></i> Usuario
-		    </label>
-		    <div style="position: relative;">
-		        <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #9CA3AF; pointer-events: none;">
-		            <i class="fas fa-user"></i>
-		        </span>
-		        <input type="text" 
-		               name="username" 
-		               placeholder="Escribe tu usuario" 
-		               required 
-		               autocomplete="username"
-		               value="{{ request.form.get('username', '') }}"
-		               style="border: 2px solid #E5E7EB; padding: 0.75rem 1rem; padding-left: 2.75rem; border-radius: 0.5rem; width: 100%; font-size: 0.9375rem;">
-		    </div>
-		</div>
+            <form method="POST" action="{{ url_for('auth.login') }}" autocomplete="on">
+                <!-- Usuario -->
+                <div style="margin-bottom: 1.25rem;">
+                    <label for="username">
+                        <i class="fas fa-user"></i> Usuario
+                    </label>
+                    <div style="position: relative;">
+                        <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #9CA3AF; pointer-events: none;">
+                            <i class="fas fa-user"></i>
+                        </span>
+                        <input type="text" 
+                               id="username"
+                               name="username" 
+                               placeholder="Escribe tu usuario" 
+                               required 
+                               autocomplete="username"
+                               autofocus
+                               value="{{ request.form.get('username', '') }}">
+                    </div>
+                </div>
 
-		<!-- Contraseña -->
-		<div style="margin-bottom: 1.25rem;">
-		    <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #1A1A1A;">
-		        <i class="fas fa-lock" style="color: #F7D917; margin-right: 0.25rem;"></i> Contraseña
-		    </label>
-		    <div style="position: relative;">
-		        <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #9CA3AF; pointer-events: none;">
-		            <i class="fas fa-lock"></i>
-		        </span>
-		        <input type="password" 
-		               name="password" 
-		               placeholder="Escribe tu contraseña" 
-		               required 
-		               autocomplete="current-password"
-		               style="border: 2px solid #E5E7EB; padding: 0.75rem 1rem; padding-left: 2.75rem; border-radius: 0.5rem; width: 100%; font-size: 0.9375rem;">
-		    </div>
-		</div>
+                <!-- Contraseña -->
+                <div style="margin-bottom: 1.25rem;">
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Contraseña
+                    </label>
+                    <div style="position: relative;">
+                        <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #9CA3AF; pointer-events: none;">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" 
+                               id="password"
+                               name="password" 
+                               placeholder="Escribe tu contraseña" 
+                               required 
+                               autocomplete="current-password">
+                    </div>
+                </div>
 
-		    <!-- Botón -->
-		    <button type="submit" class="btn-login">
-		        <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
-		    </button>
-		</form>
+                <!-- Remember me -->
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer;">
+                        <input type="checkbox" 
+                               name="remember" 
+                               value="1"
+                               style="width: auto; margin-right: 0.5rem; cursor: pointer;">
+                        <span style="font-size: 0.875rem; color: #6B7280;">Mantener sesión iniciada</span>
+                    </label>
+                </div>
+
+                <!-- Botón -->
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
+                </button>
+            </form>
 
             <!-- Link volver -->
             <div class="text-center mt-6">

@@ -6,12 +6,14 @@ from app.config import Config
 from app.models import db
 from flask_caching import Cache
 from flask_session import Session
+from flask_login import LoginManager
 from redis import Redis
 
 # Instancias globales
 cache = Cache()
 redis_client = None
 sess = Session()
+login_manager = LoginManager()
 
 def create_app(config_class=Config):
     """Factory para crear la aplicación"""
@@ -52,10 +54,42 @@ def create_app(config_class=Config):
         decode_responses=True  # Retorna strings en vez de bytes
     )
     
+    # ✨ Configuración de Flask-Login
+    app.config['REMEMBER_COOKIE_DURATION'] = 2592000  # 30 días
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    
     # Inicializar extensiones
     cache.init_app(app)
     sess.init_app(app)
     db.init_app(app)
+    login_manager.init_app(app)
+    
+    # Configurar Flask-Login
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = '⚠️ Debes iniciar sesión para acceder a esta página'
+    login_manager.login_message_category = 'error'
+    login_manager.session_protection = 'strong'  # Protección contra session hijacking
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        """
+        Callback para cargar usuario desde sesión.
+        Flask-Login llama esta función en cada request.
+        """
+        from app.models.operator import Operator
+        return Operator.query.get(int(user_id))
+    
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        """
+        Callback cuando usuario no autorizado intenta acceder.
+        """
+        from flask import flash, redirect, url_for, request
+        flash('⚠️ Debes iniciar sesión para acceder a esta página', 'error')
+        # Guardar URL solicitada para redirigir después del login
+        return redirect(url_for('auth.login', next=request.path))
     
     # Registrar blueprints
     from app.routes.public import public_bp

@@ -4,6 +4,7 @@ Operadores con roles y permisos para gestionar órdenes.
 """
 from app.models import db
 from app.models.base import BaseModel
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from enum import Enum
@@ -23,9 +24,15 @@ class OperatorRole(Enum):
     VIEWER = 'viewer'
 
 
-class Operator(BaseModel):
+class Operator(BaseModel, UserMixin):
     """
     Operador que procesa órdenes en el dashboard.
+    
+    Hereda UserMixin para Flask-Login:
+    - is_authenticated: Siempre True si está en sesión
+    - is_active: Retorna self.is_active (campo de BD)
+    - is_anonymous: Siempre False
+    - get_id(): Retorna str(self.id)
     
     Sistema de permisos granular con JSON para flexibilidad.
     
@@ -229,6 +236,17 @@ class Operator(BaseModel):
             bool: True si se actualizó exitosamente
         """
         self.is_online = False
+        return self.save()
+    
+    def update_last_login(self) -> bool:
+        """
+        Actualizar fecha y hora del último login.
+        Llamado automáticamente al hacer login exitoso.
+        
+        Returns:
+            bool: True si se actualizó exitosamente
+        """
+        self.last_login_at = datetime.utcnow()
         return self.save()
     
     def update_stats(self, processing_time: Optional[int] = None) -> bool:
