@@ -13,6 +13,57 @@
             <p class="text-gray-600 mt-2">Publica las cotizaciones actuales en tu canal de Telegram</p>
         </div>
 
+        <!-- Panel de Control del Bot -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-robot text-blue-500 mr-2"></i>
+                🤖 Control del Bot
+            </h2>
+            
+            <!-- Estado del Bot -->
+            <div class="mb-6">
+                <div id="bot-status" class="flex items-center">
+                    <span id="status-indicator" class="text-3xl mr-3">●</span>
+                    <div>
+                        <p id="status-text" class="text-lg font-semibold text-gray-700">Verificando...</p>
+                        <p id="status-details" class="text-sm text-gray-500"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botones de Control -->
+            <div class="flex gap-3 mb-6">
+                <button id="btn-start-bot" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition flex items-center">
+                    <i class="fas fa-play mr-2"></i>
+                    Iniciar Bot
+                </button>
+                <button id="btn-stop-bot" class="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition flex items-center">
+                    <i class="fas fa-stop mr-2"></i>
+                    Detener Bot
+                </button>
+                <button id="btn-restart-bot" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center">
+                    <i class="fas fa-sync mr-2"></i>
+                    Reiniciar Bot
+                </button>
+            </div>
+            
+            <!-- Estadísticas del Bot -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-600 mb-1">Mensajes hoy</p>
+                    <p class="text-2xl font-bold text-blue-600" id="messages-count">0</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-600 mb-1">Órdenes activas</p>
+                    <p class="text-2xl font-bold text-green-600" id="orders-count">0</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-600 mb-1">Uptime</p>
+                    <p class="text-2xl font-bold text-purple-600" id="bot-uptime">--</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Mensajes Flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -155,7 +206,10 @@
     </div>
 </div>
 
-<!-- Scripts -->
+<!-- Control del Bot Script -->
+<script src="{{ url_for('static', filename='js/bot_control.js') }}"></script>
+
+<!-- Scripts de Publicación -->
 <script>
 // Vista previa de imagen subida
 document.getElementById('custom_image').addEventListener('change', function(e) {
