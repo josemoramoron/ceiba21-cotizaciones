@@ -72,8 +72,8 @@ def logout():
     - Limpia sesión de Redis
     - Redirige a login
     """
-    # Registrar logout
-    AuthService.logout_operator(current_user)
+    # Registrar logout (pasar ID, no objeto)
+    AuthService.logout_operator(current_user.id)
     
     # Logout de Flask-Login
     logout_user()

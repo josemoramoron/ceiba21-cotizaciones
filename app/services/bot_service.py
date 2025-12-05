@@ -212,7 +212,7 @@ class BotService(BaseService):
             orders_active = Order.query.filter(
                 Order.status.in_([
                     OrderStatus.PENDING,
-                    OrderStatus.PROCESSING
+                    OrderStatus.IN_PROCESS
                 ])
             ).count()
             
