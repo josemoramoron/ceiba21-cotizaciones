@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Ceiba21 - Cotizaciones{% endblock %}</title>
     
+    <!-- Meta Tags para SEO -->
+    <meta name="description" content="{% block description %}Ceiba21 - Cotizaciones en tiempo real de divisas, calculadora de cambio y servicios financieros internacionales. Bolívares, Pesos Colombianos, Real Brasileño y más.{% endblock %}">
+    <meta name="keywords" content="ceiba21, cotizaciones, cambio de divisas, bolívares, pesos colombianos, dólar, PayPal, Zelle, USDT, calculadora de cambio">
+    <meta name="author" content="Ceiba21">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{% block og_title %}Ceiba21 - Cotizaciones y Cambio de Divisas{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Cotizaciones en tiempo real de divisas. Consulta las mejores tasas de cambio para PayPal, Zelle, USDT y más métodos de pago.{% endblock %}">
+    <meta property="og:image" content="{{ url_for('static', filename='img/logos/logo-telegram-channel.png', _external=True) }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Ceiba21">
+    <meta property="og:locale" content="es_ES">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ request.url }}">
+    <meta name="twitter:title" content="{% block twitter_title %}Ceiba21 - Cotizaciones y Cambio de Divisas{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Cotizaciones en tiempo real de divisas. Consulta las mejores tasas de cambio.{% endblock %}">
+    <meta name="twitter:image" content="{{ url_for('static', filename='img/logos/logo-telegram-channel.png', _external=True) }}">
+    
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32.png') }}">
@@ -277,7 +300,44 @@
             box-shadow: 0 0 0 3px rgba(255, 214, 10, 0.15) !important;
         }
 
-    </style>   
+        /* Menú Radial de Contacto */
+        #contactMenu {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+        }
+
+        .contact-btn {
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .contact-btn-hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0);
+        }
+
+        .contact-btn-visible {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1);
+        }
+
+        #mainContactBtn {
+            cursor: pointer;
+            border: none;
+            outline: none;
+        }
+
+        #mainContactBtn:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        #mainContactBtn.active {
+            transform: rotate(90deg);
+        }
+
+    </style>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -301,9 +361,8 @@
                 <a href="{{ url_for('public.home') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Inicio</a>
                 <a href="{{ url_for('public.cotizaciones') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Cotizaciones</a>
                 <a href="{{ url_for('public.calculadora') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Calculadora</a>
-                <a href="{{ url_for('public.servicios') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Servicios</a>
-                <a href="{{ url_for('public.tienda') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Tienda</a>
-                <a href="{{ url_for('public.contacto') }}" style="color: #1A1A1A;" class="hover:opacity-70 transition">Contacto</a>
+                <a href="#" style="color: #1A1A1A;" class="hover:opacity-70 transition">Servicios</a>
+                <a href="#" style="color: #1A1A1A;" class="hover:opacity-70 transition">Tienda</a>
             </div>
 
             <!-- Botones derecha -->
@@ -348,9 +407,8 @@
             <a href="{{ url_for('public.home') }}" class="block py-2" style="color: #1A1A1A;">Inicio</a>
             <a href="{{ url_for('public.cotizaciones') }}" class="block py-2" style="color: #1A1A1A;">Cotizaciones</a>
             <a href="{{ url_for('public.calculadora') }}" class="block py-2" style="color: #1A1A1A;">Calculadora</a>
-            <a href="{{ url_for('public.servicios') }}" class="block py-2" style="color: #1A1A1A;">Servicios</a>
-            <a href="{{ url_for('public.tienda') }}" class="block py-2" style="color: #1A1A1A;">Tienda</a>
-            <a href="{{ url_for('public.contacto') }}" class="block py-2" style="color: #1A1A1A;">Contacto</a>
+            <a href="#" class="block py-2" style="color: #1A1A1A;">Servicios</a>
+            <a href="#" class="block py-2" style="color: #1A1A1A;">Tienda</a>
             
             {% if session.get('logged_in') %}
             <a href="{{ url_for('dashboard.index') }}" class="block py-2" style="color: #F7D917;">
@@ -399,7 +457,6 @@
                     <ul class="space-y-2 text-sm text-gray-400">
                         <li><i class="fas fa-envelope mr-2"></i> info@ceiba21.com</li>
                         <li><i class="fab fa-telegram mr-2"></i> @ceiba21</li>
-                        <li><i class="fab fa-whatsapp mr-2"></i> +58 XXX XXX XXXX</li>
                     </ul>
                 </div>
                 
@@ -407,16 +464,16 @@
                 <div>
                     <h4 class="font-bold mb-4">Síguenos</h4>
                     <div class="flex space-x-4">
-                        <a href="#" class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-700">
+                        <a href="https://t.me/ceiba21channel" target="_blank" class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-700 transition">
                             <i class="fab fa-telegram"></i>
                         </a>
-                        <a href="#" class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700">
+                        <a href="https://wa.me/573022100056" target="_blank" class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition">
                             <i class="fab fa-whatsapp"></i>
                         </a>
-                        <a href="#" class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700">
+                        <a href="https://facebook.com/ceiba21.oficial" target="_blank" class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition">
                             <i class="fab fa-facebook"></i>
                         </a>
-                        <a href="#" class="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700">
+                        <a href="https://instagram.com/ceiba21_oficial" target="_blank" class="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 transition">
                             <i class="fab fa-instagram"></i>
                         </a>
                     </div>
@@ -429,16 +486,33 @@
         </div>
     </footer>
 
-    <!-- Botón flotante de WhatsApp/Telegram -->
-    <div class="fixed bottom-6 right-6 flex flex-col space-y-3 z-50">
-        <a href="https://t.me/ceiba21" target="_blank" 
-           class="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition">
-            <i class="fab fa-telegram text-white text-2xl"></i>
+    <!-- Botón flotante con menú radial -->
+    <div id="contactMenu" class="fixed bottom-6 right-6 z-50">
+        <!-- Botones del menú radial (ocultos inicialmente) -->
+        <a href="#" id="btn-telegram" 
+           class="contact-btn contact-btn-hidden w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-all absolute"
+           style="bottom: 0; right: 0;">
+            <i class="fab fa-telegram text-white text-xl"></i>
         </a>
-        <a href="https://wa.me/58XXXXXXXXX" target="_blank" 
-           class="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition">
-            <i class="fab fa-whatsapp text-white text-2xl"></i>
+        
+        <a href="https://wa.me/573022100056" target="_blank" id="btn-whatsapp"
+           class="contact-btn contact-btn-hidden w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition-all absolute"
+           style="bottom: 0; right: 0;">
+            <i class="fab fa-whatsapp text-white text-xl"></i>
         </a>
+        
+        <a href="#" id="btn-chat"
+           class="contact-btn contact-btn-hidden w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-600 transition-all absolute"
+           style="bottom: 0; right: 0;">
+            <i class="fas fa-comments text-white text-xl"></i>
+        </a>
+        
+        <!-- Botón principal -->
+        <button id="mainContactBtn" 
+                class="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all relative z-10"
+                style="background: linear-gradient(135deg, #F7D917 0%, #E5C500 100%);">
+            <i class="fas fa-headset text-white text-2xl" id="mainContactIcon"></i>
+        </button>
     </div>
 
     <script>
@@ -505,6 +579,76 @@
         // Mobile menu toggle
         document.getElementById('menuToggle')?.addEventListener('click', function() {
             document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+    </script>
+
+    <!-- Script del Menú Radial de Contacto -->
+    <script>
+        const mainBtn = document.getElementById('mainContactBtn');
+        const mainIcon = document.getElementById('mainContactIcon');
+        const btnTelegram = document.getElementById('btn-telegram');
+        const btnWhatsapp = document.getElementById('btn-whatsapp');
+        const btnChat = document.getElementById('btn-chat');
+        
+        let menuOpen = false;
+        
+        mainBtn.addEventListener('click', function() {
+            menuOpen = !menuOpen;
+            
+            if (menuOpen) {
+                // Abrir menú
+                mainBtn.classList.add('active');
+                mainIcon.className = 'fas fa-times text-white text-2xl';
+                
+                // Posicionar botones en arco uniforme, rotados hacia la izquierda
+                // Telegram (izquierda - 160°)
+                btnTelegram.classList.remove('contact-btn-hidden');
+                btnTelegram.classList.add('contact-btn-visible');
+                btnTelegram.style.bottom = '50px';
+                btnTelegram.style.right = '85px';
+                
+                // WhatsApp (arriba - 110°)
+                btnWhatsapp.classList.remove('contact-btn-hidden');
+                btnWhatsapp.classList.add('contact-btn-visible');
+                btnWhatsapp.style.bottom = '85px';
+                btnWhatsapp.style.right = '45px';
+                
+                // Chat en línea (arriba derecha - 70°)
+                btnChat.classList.remove('contact-btn-hidden');
+                btnChat.classList.add('contact-btn-visible');
+                btnChat.style.bottom = '75px';
+                btnChat.style.right = '-15px';
+                
+            } else {
+                // Cerrar menú
+                mainBtn.classList.remove('active');
+                mainIcon.className = 'fas fa-headset text-white text-2xl';
+                
+                // Ocultar botones
+                btnTelegram.classList.remove('contact-btn-visible');
+                btnTelegram.classList.add('contact-btn-hidden');
+                btnTelegram.style.bottom = '0';
+                btnTelegram.style.right = '0';
+                
+                btnWhatsapp.classList.remove('contact-btn-visible');
+                btnWhatsapp.classList.add('contact-btn-hidden');
+                btnWhatsapp.style.bottom = '0';
+                btnWhatsapp.style.right = '0';
+                
+                btnChat.classList.remove('contact-btn-visible');
+                btnChat.classList.add('contact-btn-hidden');
+                btnChat.style.bottom = '0';
+                btnChat.style.right = '0';
+            }
+        });
+        
+        // Cerrar menú al hacer clic en cualquier botón de contacto
+        [btnTelegram, btnWhatsapp, btnChat].forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (menuOpen) {
+                    mainBtn.click();
+                }
+            });
         });
     </script>
 

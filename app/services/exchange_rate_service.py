@@ -21,7 +21,9 @@ class ExchangeRateService:
     
     @staticmethod
     def update_rate(currency_code, new_rate):
-        """Actualizar tasa de cambio y recalcular todas las cotizaciones"""
+        """
+        Actualizar tasa de cambio y recalcular SOLO las cotizaciones de esa moneda (POO)
+        """
         currency = Currency.query.filter_by(code=currency_code).first()
         if not currency:
             return None
@@ -35,15 +37,16 @@ class ExchangeRateService:
                 source_type='manual'
             )
             db.session.add(exchange_rate)
+            db.session.flush()  # Para obtener el ID
         else:
             exchange_rate.rate = new_rate
         
+        # Recalcular SOLO las cotizaciones de esta moneda (POO)
+        quotes_updated = exchange_rate.recalculate_quotes()
+        
         db.session.commit()
         
-        # Recalcular todas las cotizaciones
-        QuoteService.recalculate_all_quotes()
-        
-        return exchange_rate
+        return exchange_rate, quotes_updated
     
     @staticmethod
     def update_multiple_rates(rates_dict):

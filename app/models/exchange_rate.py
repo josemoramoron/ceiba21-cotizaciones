@@ -29,6 +29,20 @@ class ExchangeRate(db.Model):
     def __repr__(self):
         return f'<ExchangeRate USD→{self.currency.code}: {self.rate}>'
     
+    def recalculate_quotes(self):
+        """
+        Recalcula todas las cotizaciones asociadas a esta moneda
+        cuando se actualiza la tasa de cambio
+        """
+        from app.models.quote import Quote
+        
+        quotes = Quote.query.filter_by(currency_id=self.currency_id).all()
+        
+        for quote in quotes:
+            quote.calculate_final_value()
+        
+        return len(quotes)
+    
     def to_dict(self):
         return {
             'id': self.id,

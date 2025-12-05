@@ -47,8 +47,3 @@ def condiciones():
 def tienda():
     """Tienda online"""
     return render_template('public/tienda.html')
-
-@public_bp.route('/contacto')
-def contacto():
-    """Página de contacto"""
-    return render_template('public/contacto.html')

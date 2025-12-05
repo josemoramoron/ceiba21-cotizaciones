@@ -22,33 +22,56 @@ class CurrencyService:
         return Currency.query.filter_by(code=code.upper()).first()
     
     @staticmethod
-    def create(code, name, symbol, active=True, initial_rate=None):
-        """Crear nueva moneda y su tasa de cambio inicial"""
-        # Verificar que no exista
-        if CurrencyService.get_by_code(code):
-            return None, "Ya existe una moneda con ese código"
-        
-        currency = Currency(
-            code=code.upper(),
-            name=name,
-            symbol=symbol,
-            active=active
-        )
-        
-        db.session.add(currency)
-        db.session.flush()  # Para obtener el ID antes de commit
-        
-        # Crear tasa de cambio inicial si se proporciona
-        if initial_rate:
-            exchange_rate = ExchangeRate(
-                currency_id=currency.id,
-                rate=initial_rate,
-                source_type='manual'
+    def create(code, name, symbol, initial_rate=None):
+        """
+        Crea una nueva moneda y automáticamente genera tasas de cambio
+        para todos los métodos de pago existentes.
+        """
+        try:
+            from app.models import Currency
+            from datetime import datetime
+            
+            # Validar que no exista
+            existing = Currency.query.filter_by(code=code).first()
+            if existing:
+                return None, f"Ya existe una moneda con código {code}"
+            
+            # Determinar tasa por defecto
+            if initial_rate is None:
+                initial_rate = Currency.get_default_rate_for_currency(code)
+            else:
+                try:
+                    initial_rate = float(initial_rate)
+                except (ValueError, TypeError):
+                    initial_rate = Currency.get_default_rate_for_currency(code)
+            
+            # Crear la moneda
+            currency = Currency(
+                code=code,
+                name=name,
+                symbol=symbol,
+                active=True,
+                display_order=0
             )
-            db.session.add(exchange_rate)
-        
-        db.session.commit()
-        return currency, None
+            
+            db.session.add(currency)
+            db.session.flush()  # Para obtener el ID sin hacer commit completo
+            
+            # Crear tasas de cambio automáticamente
+            success, message = currency.create_default_exchange_rates(initial_rate)
+            
+            if not success:
+                # Si falla la creación de tasas, revertir todo
+                db.session.rollback()
+                return None, f"Error al crear tasas: {message}"
+            
+            db.session.commit()
+            
+            return currency, None  # Sin error
+            
+        except Exception as e:
+            db.session.rollback()
+            return None, str(e)
     
     @staticmethod
     def update(currency_id, code=None, name=None, symbol=None, active=None):
