@@ -16,6 +16,9 @@ from app.services.auth_service import AuthService
 from app.services.notification_service import NotificationService
 from app.services.cache_service import CacheService
 
+# ✨ FASE 6: Contabilidad Automática
+from app.services.accounting_service import AccountingService
+
 __all__ = [
     # Servicios existentes
     'QuoteService', 
@@ -23,11 +26,13 @@ __all__ = [
     'CurrencyService', 
     'PaymentMethodService',
     'APIService',
-    # Nuevos servicios
+    # Nuevos servicios - Fase 2
     'BaseService',
     'OrderService',
     'UserService',
     'AuthService',
     'NotificationService',
-    'CacheService'
+    'CacheService',
+    # Fase 6 - Contabilidad
+    'AccountingService'
 ]
