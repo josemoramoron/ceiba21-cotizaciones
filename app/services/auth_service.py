@@ -18,7 +18,7 @@ class AuthService(BaseService):
     """
     
     @classmethod
-    def authenticate_operator(cls, username: str, password: str) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+    def authenticate_operator(cls, username: str, password: str) -> Optional[Operator]:
         """
         Autenticar operador con username y password.
         
@@ -27,7 +27,7 @@ class AuthService(BaseService):
             password: Contraseña
             
         Returns:
-            Tupla (success, message, operator_data)
+            Objeto Operator si autenticación exitosa, None si falla
         """
         try:
             operator = Operator.authenticate(username, password)
@@ -38,14 +38,14 @@ class AuthService(BaseService):
                 
                 cls.log_info(f"Operador {username} autenticado exitosamente")
                 
-                return True, "Autenticación exitosa", operator.to_dict()
+                return operator
             else:
                 cls.log_warning(f"Intento de login fallido para: {username}")
-                return False, "Credenciales inválidas", None
+                return None
                 
         except Exception as e:
             cls.log_error("Error al autenticar operador", e)
-            return False, f"Error en autenticación: {str(e)}", None
+            return None
     
     @classmethod
     def logout_operator(cls, operator_id: int) -> Tuple[bool, str]:
