@@ -1,9 +1,10 @@
 """
-Servicio de notificaciones (básico).
-Maneja envío de notificaciones a usuarios y operadores.
+Servicio de notificaciones.
+Maneja envío de notificaciones a usuarios y operadores usando canales.
 """
 from app.services.base_service import BaseService
 from app.models import User, Operator, Order, Message
+from app.channels import ChannelFactory
 from typing import Optional, Dict, Any, Tuple
 
 
