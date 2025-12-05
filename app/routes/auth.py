@@ -35,9 +35,9 @@ def login():
             return render_template('auth/login.html')
         
         # Autenticar con AuthService
-        success, message, operator = AuthService.authenticate_operator(username, password)
+        operator = AuthService.authenticate_operator(username, password)
         
-        if success:
+        if operator:
             # Verificar que esté activo
             if not operator.is_active:
                 flash('❌ Tu cuenta está desactivada. Contacta al administrador.', 'error')
@@ -57,7 +57,7 @@ def login():
                 return redirect(next_page)
             return redirect(url_for('dashboard.index'))
         else:
-            flash(f'❌ {message}', 'error')
+            flash('❌ Credenciales inválidas', 'error')
     
     return render_template('auth/login.html')
 
