@@ -30,5 +30,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\n\n👋 Bot detenido por usuario.")
     except Exception as e:
-        print(f"\n❌ Error: {str(e)}")
+        import traceback
+        print(f"\n❌ Error: {str(e)}\n")
+        traceback.print_exc()
         sys.exit(1)

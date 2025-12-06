@@ -74,7 +74,7 @@ def get_or_create_user_from_telegram(telegram_user) -> User:
     return user
 
 
-def save_proof_to_storage(photo_file, order_reference: str) -> str:
+async def save_proof_to_storage(photo_file, order_reference: str) -> str:
     """Guardar comprobante en almacenamiento local"""
     proofs_dir = os.path.join('app', 'static', 'proofs')
     os.makedirs(proofs_dir, exist_ok=True)
@@ -82,8 +82,7 @@ def save_proof_to_storage(photo_file, order_reference: str) -> str:
     filename = f"{order_reference}_{photo_file.file_unique_id}.jpg"
     filepath = os.path.join(proofs_dir, filename)
     
-    import asyncio
-    asyncio.run(photo_file.download_to_drive(filepath))
+    await photo_file.download_to_drive(filepath)
     
     return f"/static/proofs/{filename}"
 
@@ -339,7 +338,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         
         photo_file = await update.message.photo[-1].get_file()
-        proof_url = save_proof_to_storage(photo_file, order_reference)
+        proof_url = await save_proof_to_storage(photo_file, order_reference)
         
         response = conv_handler.handle_proof_received(user, proof_url)
         
