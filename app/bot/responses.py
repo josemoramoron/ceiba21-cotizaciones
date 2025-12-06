@@ -1,0 +1,468 @@
+"""
+Templates de respuestas del bot.
+Todos los mensajes que el bot envía a los usuarios.
+"""
+from typing import Dict, Any, List
+from app.models.user import User
+from app.models.currency import Currency
+from app.models.payment_method import PaymentMethod
+from app.models.order import Order
+
+
+class Responses:
+    """
+    Clase con todos los templates de mensajes del bot.
+    
+    Cada método retorna un dict con:
+    - 'text': Mensaje a enviar
+    - 'buttons': Lista de botones (opcional)
+    """
+    
+    @staticmethod
+    def welcome_message(user: User) -> Dict[str, Any]:
+        """Mensaje de bienvenida con menú principal"""
+        name = user.first_name if hasattr(user, 'first_name') else user.get_display_name()
+        
+        text = f'''¡Hola {name}! 👋 Bienvenido a **Ceiba21** 🌳
+
+Cambio de divisas rápido y seguro.
+
+¿Qué deseas hacer?'''
+        
+        buttons = [
+            [
+                {'text': '💱 Nueva operación', 'callback_data': 'action:new_operation'}
+            ],
+            [
+                {'text': '📊 Ver cotizaciones', 'url': 'https://ceiba21.com/cotizaciones'}
+            ],
+            [
+                {'text': '🧮 Calculadora', 'url': 'https://ceiba21.com/calculadora'}
+            ],
+            [
+                {'text': '📋 Condiciones de uso', 'url': 'https://ceiba21.com/condiciones'}
+            ],
+            [
+                {'text': '💬 Ayuda', 'callback_data': 'action:help'}
+            ]
+        ]
+        
+        return {'text': text, 'buttons': buttons}
+    
+    @staticmethod
+    def main_menu_message() -> Dict[str, Any]:
+        """Mostrar menú principal nuevamente"""
+        text = '''¿Qué deseas hacer?'''
+        
+        buttons = [
+            [
+                {'text': '💱 Nueva operación', 'callback_data': 'action:new_operation'}
+            ],
+            [
+                {'text': '📊 Ver cotizaciones', 'url': 'https://ceiba21.com/cotizaciones'},
+                {'text': '🧮 Calculadora', 'url': 'https://ceiba21.com/calculadora'}
+            ],
+            [
+                {'text': '💬 Ayuda', 'callback_data': 'action:help'}
+            ]
+        ]
+        
+        return {'text': text, 'buttons': buttons}
+    
+    @staticmethod
+    def help_message() -> Dict[str, Any]:
+        """Mensaje de ayuda"""
+        text = '''**Ceiba21 - Ayuda** 💬
+
+**Comandos disponibles:**
+• `/start` - Iniciar conversación
+• `/cancel` - Cancelar operación actual
+• `/status` - Ver estado de última orden
+• `/help` - Ver esta ayuda
+
+**¿Cómo hacer una operación?**
+1. Selecciona la moneda que recibirás
+2. Elige tu método de pago
+3. Ingresa el monto a enviar
+4. Confirma el cálculo
+5. Proporciona tus datos bancarios
+6. Realiza el pago
+7. Envía el comprobante
+
+**Soporte:**
+📧 Email: ceiba21.oficial@gmail.com
+📱 WhatsApp: +57 302 210 0056
+🌐 Web: ceiba21.com
+
+Escribe `/start` para comenzar.'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def select_currency_message() -> Dict[str, Any]:
+        """Solicitar selección de moneda"""
+        text = '''Perfecto! Vamos a crear tu operación.
+
+**¿Qué moneda recibirás?** 💰'''
+        
+        # Obtener monedas activas de la BD
+        currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
+        
+        # Mapeo de íconos de banderas
+        flag_map = {
+            'VES': '🇻🇪',
+            'COP': '🇨🇴',
+            'CLP': '🇨🇱',
+            'ARS': '🇦🇷',
+            'BRL': '🇧🇷',
+            'MXN': '🇲🇽'
+        }
+        
+        # Crear botones (2 por fila)
+        buttons = []
+        row = []
+        for currency in currencies:
+            flag = flag_map.get(currency.code, '💵')
+            row.append({
+                'text': f'{flag} {currency.name}',
+                'callback_data': f'currency:{currency.id}'
+            })
+            if len(row) == 2:
+                buttons.append(row)
+                row = []
+        
+        # Agregar última fila si quedó algo
+        if row:
+            buttons.append(row)
+        
+        return {'text': text, 'buttons': buttons}
+    
+    @staticmethod
+    def select_payment_method_message(currency: Currency) -> Dict[str, Any]:
+        """Solicitar método de pago"""
+        flag_map = {'VES': '🇻🇪', 'COP': '🇨🇴', 'CLP': '🇨🇱', 'ARS': '🇦🇷'}
+        flag = flag_map.get(currency.code, '💵')
+        
+        text = f'''Excelente! Recibirás **{currency.name}** {flag}
+
+**¿Con qué método de pago enviarás?** 💳'''
+        
+        # Obtener métodos activos
+        methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
+        
+        # Íconos de métodos
+        icon_map = {
+            'PayPal': '💳',
+            'Zelle': '💵',
+            'USDT': '₿',
+            'Wise': '🌍',
+            'Zinli': '💰',
+            'REF': '🏦'
+        }
+        
+        buttons = []
+        for method in methods:
+            icon = icon_map.get(method.name, '💳')
+            buttons.append([{
+                'text': f'{icon} {method.name}',
+                'callback_data': f'method:{method.id}'
+            }])
+        
+        return {'text': text, 'buttons': buttons}
+    
+    @staticmethod
+    def enter_amount_message(payment_method: PaymentMethod) -> Dict[str, Any]:
+        """Solicitar monto a enviar"""
+        icon_map = {'PayPal': '💳', 'Zelle': '💵', 'USDT': '₿', 'Wise': '🌍', 'Zinli': '💰'}
+        icon = icon_map.get(payment_method.name, '💳')
+        
+        text = f'''Método seleccionado: **{payment_method.name}** {icon}
+
+**¿Qué cantidad ENVIARÁS?** 💵
+
+Ingresa el monto en USD (dólares).
+
+**Ejemplo:** 100'''
+        
+        # Si es PayPal, agregar nota sobre comisión
+        if payment_method.name == 'PayPal':
+            text += '''\n\n⚠️ **Nota importante:**
+PayPal cobra una comisión de plataforma (5.4% + $0.30).
+Te mostraremos el monto neto que recibiremos y calcularemos tu pago basado en eso.'''
+        else:
+            text += '''\n\n⚠️ **Nota:** Si tu banco o plataforma cobra comisión por la transferencia, esta corre por tu cuenta. Solo te pagaremos el monto neto que recibamos.'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def confirm_calculation_message(data: Dict[str, Any]) -> Dict[str, Any]:
+        """Mostrar resumen del cálculo y pedir confirmación"""
+        calc = data['calculation']
+        method_name = data.get('payment_method_from_name', 'N/A')
+        
+        # Formatear números
+        amount_usd = f"{data['amount_usd']:.2f}"
+        fee_usd = f"{calc['fee_usd']:.2f}"
+        net_usd = f"{calc['net_usd']:.2f}"
+        exchange_rate = f"{calc['exchange_rate']:.2f}"
+        amount_local = f"{calc['amount_local']:,.2f}"
+        currency_code = calc['currency_code']
+        
+        # Verificar si tiene comisión
+        has_fee = calc['fee_usd'] > 0
+        
+        text = f'''📊 **RESUMEN**
+━━━━━━━━━━━'''
+        
+        if has_fee:
+            # PayPal (con comisión)
+            text += f'''
+**Si me envías:** ${amount_usd} USD
+**Comisión {method_name}:** -${fee_usd} USD
+**Recibiré:** ${net_usd} USD ({method_name})
+**Recibirás:** {amount_local} {currency_code}
+**Tasa aplicada:** {exchange_rate} {currency_code}/$'''
+        else:
+            # Otros métodos (sin comisión)
+            text += f'''
+**Si me envías:** ${amount_usd} USD ({method_name})
+**Recibiré:** ${net_usd} USD
+**Recibirás:** {amount_local} {currency_code}
+**Tasa aplicada:** {exchange_rate} {currency_code}/$'''
+        
+        text += '''
+━━━━━━━━━━━
+
+**¿Confirmas?**'''
+        
+        buttons = [
+            [
+                {'text': '✅ Sí, confirmo', 'callback_data': 'confirm:yes'},
+                {'text': '❌ No, cambiar monto', 'callback_data': 'confirm:no'}
+            ]
+        ]
+        
+        return {'text': text, 'buttons': buttons}
+    
+    @staticmethod
+    def enter_bank_message() -> Dict[str, Any]:
+        """Solicitar nombre del banco"""
+        text = '''Excelente! ✅
+
+**Para que te enviemos los bolívares/pesos, necesito:**
+
+📌 **Datos de tu cuenta:**
+1. Banco
+2. Número de cuenta
+3. Titular
+4. Cédula/DNI
+
+**Empecemos: ¿Cuál es tu banco?**
+
+**Ejemplo:** Banco Venezuela'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def enter_account_message() -> Dict[str, Any]:
+        """Solicitar número de cuenta"""
+        text = '''**¿Número de cuenta?** 🏦
+
+Ingresa los 20 dígitos sin espacios ni guiones.
+
+**Ejemplo:** 01020123456789012345'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def enter_holder_message() -> Dict[str, Any]:
+        """Solicitar nombre del titular"""
+        text = '''**¿Nombre completo del titular de la cuenta?** 👤
+
+**Ejemplo:** Juan Pérez'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def enter_dni_message(currency_code: str) -> Dict[str, Any]:
+        """Solicitar cédula/DNI del titular"""
+        # Personalizar según país
+        if currency_code == 'VES':
+            text = '''**¿Cédula o DNI del titular?** 🪪
+
+**Formato:** V-12345678 o E-12345678
+
+**Ejemplo:** V-12345678'''
+        elif currency_code == 'COP':
+            text = '''**¿Cédula del titular?** 🪪
+
+Ingresa tu número de cédula (6-10 dígitos).
+
+**Ejemplo:** 12345678'''
+        elif currency_code == 'CLP':
+            text = '''**¿RUT del titular?** 🪪
+
+**Formato:** 12345678-9
+
+**Ejemplo:** 12345678-9'''
+        elif currency_code == 'ARS':
+            text = '''**¿DNI del titular?** 🪪
+
+Ingresa tu DNI (7-8 dígitos).
+
+**Ejemplo:** 12345678'''
+        else:
+            text = '''**¿Documento de identidad del titular?** 🪪
+
+**Ejemplo:** 12345678'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def payment_instructions_message(order: Order, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Instrucciones de pago"""
+        method_name = data.get('payment_method_from_name', 'N/A')
+        amount_usd = data.get('amount_usd', 0)
+        
+        text = f'''Perfecto! ✅ **Datos verificados**
+
+📋 **ORDEN:** {order.reference}
+
+**Ahora envía tu pago:**
+━━━━━━━━━━━'''
+        
+        # Instrucciones específicas por método
+        if method_name == 'PayPal':
+            text += f'''
+💳 **PayPal:** ceiba21@paypal.com
+💰 **Monto EXACTO:** ${amount_usd:.2f} USD
+📝 **Referencia:** {order.reference}
+━━━━━━━━━━━
+
+⚠️ **IMPORTANTE:**
+• Verifica el monto exacto
+• Envía como "Bienes y Servicios" o "Amigos y Familia"
+• Guarda el comprobante'''
+        
+        elif method_name == 'Zelle':
+            text += f'''
+💵 **Zelle:** ceiba21@zelle.com
+💰 **Monto:** ${amount_usd:.2f} USD
+📝 **Nota:** {order.reference}
+━━━━━━━━━━━
+
+⚠️ **IMPORTANTE:**
+• Verifica el monto exacto
+• Incluye la referencia en la nota
+• Guarda el comprobante'''
+        
+        elif method_name == 'USDT':
+            text += f'''
+₿ **USDT (TRC20):**
+`TXyz123...` (copia la dirección completa)
+💰 **Monto:** ${amount_usd:.2f} USDT
+📝 **Memo:** {order.reference}
+━━━━━━━━━━━
+
+⚠️ **IMPORTANTE:**
+• Verifica que sea red TRC20
+• Envía el monto exacto
+• Guarda el hash de transacción'''
+        
+        else:
+            text += f'''
+💳 **Método:** {method_name}
+💰 **Monto:** ${amount_usd:.2f} USD
+📝 **Referencia:** {order.reference}
+━━━━━━━━━━━
+
+⚠️ **IMPORTANTE:**
+• Verifica el monto exacto
+• Guarda el comprobante'''
+        
+        text += f'''\n\nUna vez realizado el pago, **envía la captura de pantalla del comprobante.**
+
+📸 El comprobante debe mostrar:
+• Monto exacto
+• Fecha y hora
+• Estado: Completado/Exitoso'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def proof_received_success_message(order: Order) -> Dict[str, Any]:
+        """Confirmación de comprobante recibido"""
+        text = f'''✅ **¡Comprobante recibido!**
+
+📋 **Orden:** {order.reference}
+⏳ **Estado:** Verificando pago
+
+Un operador verificará tu pago y realizará la transferencia en breve.
+Te notificaremos cuando tus fondos estén en camino.
+
+⏱️ **Tiempo estimado:** 10-30 minutos
+
+**Gracias por usar Ceiba21** 💚
+
+Para nueva operación: /start'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def bot_disabled_message() -> Dict[str, Any]:
+        """Mensaje cuando el bot está deshabilitado"""
+        text = '''⚠️ **El bot está temporalmente en mantenimiento.**
+
+Un operador te atenderá pronto.
+
+📞 **Para contacto inmediato:**
+• WhatsApp: +57 302 210 0056
+• Email: ceiba21.oficial@gmail.com
+• Telegram: @ceiba21_soporte
+
+Disculpa las molestias.'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def transferred_to_operator_message() -> Dict[str, Any]:
+        """Mensaje cuando se transfiere a operador"""
+        text = '''👤 **Un operador está revisando tu caso personalmente.**
+
+Te responderemos en breve.
+
+Gracias por tu paciencia. 💚'''
+        
+        return {'text': text, 'buttons': None}
+    
+    @staticmethod
+    def format_buttons_for_telegram(buttons: List[List[Dict]]):
+        """
+        Convertir lista de botones a formato de Telegram InlineKeyboardMarkup.
+        
+        Args:
+            buttons: Lista de filas de botones
+            
+        Returns:
+            InlineKeyboardMarkup de python-telegram-bot
+        """
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        
+        if not buttons:
+            return None
+        
+        keyboard = []
+        for row in buttons:
+            keyboard_row = []
+            for button in row:
+                if 'url' in button:
+                    keyboard_row.append(
+                        InlineKeyboardButton(button['text'], url=button['url'])
+                    )
+                elif 'callback_data' in button:
+                    keyboard_row.append(
+                        InlineKeyboardButton(button['text'], callback_data=button['callback_data'])
+                    )
+            keyboard.append(keyboard_row)
+        
+        return InlineKeyboardMarkup(keyboard)
