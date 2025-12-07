@@ -10,13 +10,16 @@ from telegram.ext import (
     filters, ContextTypes
 )
 from telegram.constants import ParseMode
+from app import create_app
 from app.bot.conversation_handler import ConversationHandler
 from app.bot.responses import Responses
 from app.models.user import User
 from app.models.operator import Operator, OperatorRole
 from app.models.order import Order
-from app import db
 import redis
+
+# Crear app Flask para contexto
+flask_app = create_app()
 
 # Configurar logging
 logging.basicConfig(
@@ -37,6 +40,14 @@ redis_client = redis.Redis(
 # ==========================================
 # FUNCIONES AUXILIARES
 # ==========================================
+
+def with_app_context(func):
+    """Decorator para ejecutar función con contexto de Flask"""
+    async def wrapper(*args, **kwargs):
+        with flask_app.app_context():
+            return await func(*args, **kwargs)
+    return wrapper
+
 
 def is_bot_enabled() -> bool:
     """Verificar si el bot está habilitado"""
@@ -62,13 +73,12 @@ def get_or_create_user_from_telegram(telegram_user) -> User:
         return user
     
     user_data = {
-        'telegram_id': str(telegram_user.id),
-        'telegram_username': telegram_user.username,
+        'username': telegram_user.username,
         'first_name': telegram_user.first_name,
         'last_name': telegram_user.last_name
     }
     
-    user = User.create_from_channel('telegram', user_data)
+    user = User.create_from_channel('telegram', str(telegram_user.id), user_data)
     logger.info(f"New user created: {user.id} - @{telegram_user.username}")
     
     return user
@@ -91,6 +101,7 @@ async def save_proof_to_storage(photo_file, order_reference: str) -> str:
 # HANDLERS DE COMANDOS
 # ==========================================
 
+@with_app_context
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /start"""
     try:
@@ -114,6 +125,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+@with_app_context
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /cancel"""
     try:
@@ -129,6 +141,7 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text('❌ Error al cancelar.')
 
 
+@with_app_context
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /help"""
     try:
@@ -147,6 +160,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text('❌ Error al mostrar ayuda.')
 
 
+@with_app_context
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /status"""
     try:
@@ -169,6 +183,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # COMANDOS ADMIN
 # ==========================================
 
+@with_app_context
 async def stopbot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /stopbot (solo ADMIN)"""
     try:
@@ -191,6 +206,7 @@ async def stopbot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text('❌ Error al detener bot.')
 
 
+@with_app_context
 async def startbot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /startbot (solo ADMIN)"""
     try:
@@ -213,6 +229,7 @@ async def startbot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text('❌ Error al activar bot.')
 
 
+@with_app_context
 async def takeover_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /takeover ORDER_ID (operadores)"""
     try:
@@ -255,6 +272,7 @@ async def takeover_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # HANDLERS DE MENSAJES
 # ==========================================
 
+@with_app_context
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para mensajes de texto"""
     try:
@@ -284,6 +302,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+@with_app_context
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para botones inline (callbacks)"""
     try:
@@ -314,6 +333,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         await query.message.reply_text('❌ Error al procesar selección.')
 
 
+@with_app_context
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para fotos (comprobantes de pago)"""
     try:
@@ -362,9 +382,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def start_conversational_bot():
     """Iniciar bot conversacional (v20+ con Application)"""
-    token = os.getenv('TELEGRAM_BOT_TOKEN')
+    token = os.getenv('TELEGRAM_CONVERSATIONAL_BOT_TOKEN')
     if not token:
-        logger.error("TELEGRAM_BOT_TOKEN not found in environment variables")
+        logger.error("TELEGRAM_CONVERSATIONAL_BOT_TOKEN not found in environment variables")
         return
     
     # Crear application

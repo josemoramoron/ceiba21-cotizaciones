@@ -209,15 +209,17 @@ class ConversationHandler:
                 
                 # Obtener currencies activas y extraer datos
                 from app.models.currency import Currency
+                from sqlalchemy.orm import joinedload
                 currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
-                currencies_list = [
-                    {
+                # Acceder a todos los atributos INMEDIATAMENTE mientras sesión está activa
+                currencies_list = []
+                for c in currencies:
+                    currencies_list.append({
                         'id': c.id,
                         'code': c.code,
-                        'name': c.name
-                    }
-                    for c in currencies
-                ]
+                        'name': c.name,
+                        'is_active': c.is_active
+                    })
                 
                 return Responses.select_currency_message(currencies_list)
             
@@ -268,14 +270,15 @@ class ConversationHandler:
         # Si no es válido, volver a preguntar
         # Obtener currencies activas y extraer datos
         currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
-        currencies_list = [
-            {
+        # Acceder a todos los atributos INMEDIATAMENTE mientras sesión está activa
+        currencies_list = []
+        for c in currencies:
+            currencies_list.append({
                 'id': c.id,
                 'code': c.code,
-                'name': c.name
-            }
-            for c in currencies
-        ]
+                'name': c.name,
+                'is_active': c.is_active
+            })
         return Responses.select_currency_message(currencies_list)
     
     def _handle_select_method_from(self, user: User, message: str) -> Dict[str, Any]:
