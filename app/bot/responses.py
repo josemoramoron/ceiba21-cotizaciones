@@ -1,12 +1,11 @@
 """
 Templates de respuestas del bot.
 Todos los mensajes que el bot envía a los usuarios.
+
+REGLA DE ORO: NO hacer queries a la base de datos aquí.
+Solo retornar strings y recibir datos ya serializados.
 """
 from typing import Dict, Any, List
-from app.models.user import User
-from app.models.currency import Currency
-from app.models.payment_method import PaymentMethod
-from app.models.order import Order
 
 
 class Responses:
@@ -19,8 +18,13 @@ class Responses:
     """
     
     @staticmethod
-    def welcome_message(user: User) -> Dict[str, Any]:
-        """Mensaje de bienvenida con menú principal"""
+    def welcome_message(user) -> Dict[str, Any]:
+        """
+        Mensaje de bienvenida con menú principal
+        
+        Args:
+            user: Objeto User (accedido dentro de app_context)
+        """
         name = user.first_name if hasattr(user, 'first_name') else user.get_display_name()
         
         text = f'''¡Hola {name}! 👋 Bienvenido a **Ceiba21** 🌳
@@ -141,17 +145,22 @@ Escribe `/start` para comenzar.'''
         return {'text': text, 'buttons': buttons}
     
     @staticmethod
-    def select_payment_method_message(currency_code: str, currency_name: str) -> Dict[str, Any]:
-        """Solicitar método de pago"""
+    def select_payment_method_message(currency_code: str, currency_name: str, methods_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Solicitar método de pago
+        
+        Args:
+            currency_code: Código de moneda (VES, COP, etc.)
+            currency_name: Nombre de moneda
+            methods_list: Lista de diccionarios con datos de métodos
+                [{'id': 1, 'name': 'PayPal', 'code': 'PAYPAL'}, ...]
+        """
         flag_map = {'VES': '🇻🇪', 'COP': '🇨🇴', 'CLP': '🇨🇱', 'ARS': '🇦🇷'}
         flag = flag_map.get(currency_code, '💵')
         
         text = f'''Excelente! Recibirás **{currency_name}** {flag}
 
 **¿Con qué método de pago enviarás?** 💳'''
-        
-        # Obtener métodos activos
-        methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
         
         # Íconos de métodos
         icon_map = {
@@ -164,11 +173,11 @@ Escribe `/start` para comenzar.'''
         }
         
         buttons = []
-        for method in methods:
-            icon = icon_map.get(method.name, '💳')
+        for method in methods_list:
+            icon = icon_map.get(method['name'], '💳')
             buttons.append([{
-                'text': f'{icon} {method.name}',
-                'callback_data': f'method:{method.id}'
+                'text': f'{icon} {method["name"]}',
+                'callback_data': f'method:{method["id"]}'
             }])
         
         return {'text': text, 'buttons': buttons}

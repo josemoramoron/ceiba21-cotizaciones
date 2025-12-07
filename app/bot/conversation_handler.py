@@ -254,9 +254,15 @@ class ConversationHandler:
                     
                     # Transicionar a selección de método
                     self.set_state(user, ConversationState.SELECT_METHOD_FROM)
+                    
+                    # Obtener métodos de pago activos y serializar
+                    methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
+                    methods_list = [m.to_dict() for m in methods]
+                    
                     return Responses.select_payment_method_message(
                         currency_code=currency_code,
-                        currency_name=currency_name
+                        currency_name=currency_name,
+                        methods_list=methods_list
                     )
         
         # Si no es válido, volver a preguntar
