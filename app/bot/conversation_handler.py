@@ -206,7 +206,20 @@ class ConversationHandler:
             if action == 'new_operation':
                 # Iniciar nueva operación
                 self.set_state(user, ConversationState.SELECT_CURRENCY)
-                return Responses.select_currency_message()
+                
+                # Obtener currencies activas y extraer datos
+                from app.models.currency import Currency
+                currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
+                currencies_list = [
+                    {
+                        'id': c.id,
+                        'code': c.code,
+                        'name': c.name
+                    }
+                    for c in currencies
+                ]
+                
+                return Responses.select_currency_message(currencies_list)
             
             elif action == 'help':
                 return Responses.help_message()
@@ -225,19 +238,39 @@ class ConversationHandler:
             currency_id = int(callback['value'])
             currency = Currency.query.get(currency_id)
             
-            if currency and currency.is_active:
-                # Guardar moneda seleccionada
-                data = self.get_data(user)
-                data['currency_id'] = currency_id
-                data['currency_code'] = currency.code
-                self.set_data(user, data)
+            if currency:
+                # Acceder a atributos mientras sesión está activa
+                is_active = currency.is_active
+                currency_code = currency.code
+                currency_name = currency.name
                 
-                # Transicionar a selección de método
-                self.set_state(user, ConversationState.SELECT_METHOD_FROM)
-                return Responses.select_payment_method_message(currency)
+                if is_active:
+                    # Guardar moneda seleccionada
+                    data = self.get_data(user)
+                    data['currency_id'] = currency_id
+                    data['currency_code'] = currency_code
+                    data['currency_name'] = currency_name
+                    self.set_data(user, data)
+                    
+                    # Transicionar a selección de método
+                    self.set_state(user, ConversationState.SELECT_METHOD_FROM)
+                    return Responses.select_payment_method_message(
+                        currency_code=currency_code,
+                        currency_name=currency_name
+                    )
         
         # Si no es válido, volver a preguntar
-        return Responses.select_currency_message()
+        # Obtener currencies activas y extraer datos
+        currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
+        currencies_list = [
+            {
+                'id': c.id,
+                'code': c.code,
+                'name': c.name
+            }
+            for c in currencies
+        ]
+        return Responses.select_currency_message(currencies_list)
     
     def _handle_select_method_from(self, user: User, message: str) -> Dict[str, Any]:
         """Handler para SELECT_METHOD_FROM"""
@@ -249,21 +282,28 @@ class ConversationHandler:
             method_id = int(callback['value'])
             method = PaymentMethod.query.get(method_id)
             
-            if method and method.is_active:
-                # Guardar método seleccionado
-                data = self.get_data(user)
-                data['payment_method_from_id'] = method_id
-                data['payment_method_from_name'] = method.name
-                self.set_data(user, data)
+            if method:
+                # Acceder a atributos mientras sesión está activa
+                is_active = method.is_active
+                method_name = method.name
                 
-                # Transicionar a ingresar monto
-                self.set_state(user, ConversationState.ENTER_AMOUNT)
-                return Responses.enter_amount_message(method)
+                if is_active:
+                    # Guardar método seleccionado
+                    data = self.get_data(user)
+                    data['payment_method_from_id'] = method_id
+                    data['payment_method_from_name'] = method_name
+                    self.set_data(user, data)
+                    
+                    # Transicionar a ingresar monto
+                    self.set_state(user, ConversationState.ENTER_AMOUNT)
+                    return Responses.enter_amount_message(method_name=method_name)
         
         # Volver a preguntar
         data = self.get_data(user)
-        currency = Currency.query.get(data.get('currency_id'))
-        return Responses.select_payment_method_message(currency)
+        return Responses.select_payment_method_message(
+            currency_code=data.get('currency_code'),
+            currency_name=data.get('currency_name')
+        )
     
     def _handle_enter_amount(self, user: User, message: str) -> Dict[str, Any]:
         """Handler para ENTER_AMOUNT"""
@@ -329,8 +369,8 @@ class ConversationHandler:
                 # Usuario rechazó, volver a ingresar monto
                 self.set_state(user, ConversationState.ENTER_AMOUNT)
                 data = self.get_data(user)
-                method = PaymentMethod.query.get(data.get('payment_method_from_id'))
-                return Responses.enter_amount_message(method)
+                method_name = data.get('payment_method_from_name', 'PayPal')
+                return Responses.enter_amount_message(method_name=method_name)
         
         # Si no es válido
         data = self.get_data(user)
@@ -447,7 +487,7 @@ class ConversationHandler:
             # Transicionar a esperar comprobante
             self.set_state(user, ConversationState.AWAIT_PROOF)
             
-            return Responses.payment_instructions_message(order, data)
+            return Responses.payment_instructions_message(data)
             
         except Exception as e:
             return {
@@ -508,7 +548,7 @@ class ConversationHandler:
                     self.set_state(user, ConversationState.COMPLETED)
                     self.clear_conversation(user)
                     
-                    return Responses.proof_received_success_message(order)
+                    return Responses.proof_received_success_message(order_reference=order.reference)
                 else:
                     return {
                         'text': f'❌ Error: {msg}',
