@@ -4,6 +4,9 @@ Todos los mensajes que el bot envía a los usuarios.
 
 REGLA DE ORO: NO hacer queries a la base de datos aquí.
 Solo retornar strings y recibir datos ya serializados.
+
+SOLUCIÓN AL ERROR: Recibir SOLO datos primitivos (dict, str, int)
+NUNCA objetos SQLAlchemy.
 """
 from typing import Dict, Any, List
 
@@ -15,17 +18,21 @@ class Responses:
     Cada método retorna un dict con:
     - 'text': Mensaje a enviar
     - 'buttons': Lista de botones (opcional)
+    
+    IMPORTANTE: Todos los parámetros deben ser datos primitivos,
+    NUNCA objetos SQLAlchemy.
     """
     
     @staticmethod
-    def welcome_message(user) -> Dict[str, Any]:
+    def welcome_message(user_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Mensaje de bienvenida con menú principal
         
         Args:
-            user: Objeto User (accedido dentro de app_context)
+            user_data: Dict con datos del usuario ya serializados
+                {'id': 1, 'first_name': 'Juan', 'display_name': 'Juan'}
         """
-        name = user.first_name if hasattr(user, 'first_name') else user.get_display_name()
+        name = user_data.get('first_name', user_data.get('display_name', 'Amigo'))
         
         text = f'''¡Hola {name}! 👋 Bienvenido a **Ceiba21** 🌳
 
@@ -108,8 +115,11 @@ Escribe `/start` para comenzar.'''
         Solicitar selección de moneda
         
         Args:
-            currencies_list: Lista de diccionarios con datos de monedas
+            currencies_list: Lista de diccionarios con datos de monedas SERIALIZADOS
                 [{'id': 1, 'code': 'VES', 'name': 'Bolívares'}, ...]
+                
+        IMPORTANTE: currencies_list debe contener SOLO datos primitivos,
+        NO objetos Currency.
         """
         text = '''Perfecto! Vamos a crear tu operación.
 
@@ -150,9 +160,9 @@ Escribe `/start` para comenzar.'''
         Solicitar método de pago
         
         Args:
-            currency_code: Código de moneda (VES, COP, etc.)
-            currency_name: Nombre de moneda
-            methods_list: Lista de diccionarios con datos de métodos
+            currency_code: Código de moneda (VES, COP, etc.) - STRING
+            currency_name: Nombre de moneda - STRING
+            methods_list: Lista de diccionarios con datos de métodos SERIALIZADOS
                 [{'id': 1, 'name': 'PayPal', 'code': 'PAYPAL'}, ...]
         """
         flag_map = {'VES': '🇻🇪', 'COP': '🇨🇴', 'CLP': '🇨🇱', 'ARS': '🇦🇷'}
@@ -184,7 +194,12 @@ Escribe `/start` para comenzar.'''
     
     @staticmethod
     def enter_amount_message(method_name: str) -> Dict[str, Any]:
-        """Solicitar monto a enviar"""
+        """
+        Solicitar monto a enviar
+        
+        Args:
+            method_name: Nombre del método (STRING)
+        """
         icon_map = {'PayPal': '💳', 'Zelle': '💵', 'USDT': '₿', 'Wise': '🌍', 'Zinli': '💰'}
         icon = icon_map.get(method_name, '💳')
         
@@ -208,7 +223,23 @@ Te mostraremos el monto neto que recibiremos y calcularemos tu pago basado en es
     
     @staticmethod
     def confirm_calculation_message(data: Dict[str, Any]) -> Dict[str, Any]:
-        """Mostrar resumen del cálculo y pedir confirmación"""
+        """
+        Mostrar resumen del cálculo y pedir confirmación
+        
+        Args:
+            data: Dict con TODOS los datos primitivos:
+                {
+                    'amount_usd': 100.0,
+                    'payment_method_from_name': 'PayPal',
+                    'calculation': {
+                        'fee_usd': 5.70,
+                        'net_usd': 94.30,
+                        'exchange_rate': 305.50,
+                        'amount_local': 28808.65,
+                        'currency_code': 'VES'
+                    }
+                }
+        """
         calc = data['calculation']
         method_name = data.get('payment_method_from_name', 'N/A')
         
@@ -297,7 +328,12 @@ Ingresa los 20 dígitos sin espacios ni guiones.
     
     @staticmethod
     def enter_dni_message(currency_code: str) -> Dict[str, Any]:
-        """Solicitar cédula/DNI del titular"""
+        """
+        Solicitar cédula/DNI del titular
+        
+        Args:
+            currency_code: Código de moneda (STRING)
+        """
         # Personalizar según país
         if currency_code == 'VES':
             text = '''**¿Cédula o DNI del titular?** 🪪
@@ -332,7 +368,12 @@ Ingresa tu DNI (7-8 dígitos).
     
     @staticmethod
     def payment_instructions_message(data: Dict[str, Any]) -> Dict[str, Any]:
-        """Instrucciones de pago"""
+        """
+        Instrucciones de pago
+        
+        Args:
+            data: Dict con datos primitivos
+        """
         method_name = data.get('payment_method_from_name', 'N/A')
         amount_usd = data.get('amount_usd', 0)
         order_reference = data.get('order_reference', 'N/A')
@@ -404,7 +445,12 @@ Ingresa tu DNI (7-8 dígitos).
     
     @staticmethod
     def proof_received_success_message(order_reference: str) -> Dict[str, Any]:
-        """Confirmación de comprobante recibido"""
+        """
+        Confirmación de comprobante recibido
+        
+        Args:
+            order_reference: Referencia de orden (STRING)
+        """
         text = f'''✅ **¡Comprobante recibido!**
 
 📋 **Orden:** {order_reference}
@@ -454,7 +500,7 @@ Gracias por tu paciencia. 💚'''
         Convertir lista de botones a formato de Telegram InlineKeyboardMarkup.
         
         Args:
-            buttons: Lista de filas de botones
+            buttons: Lista de filas de botones (datos primitivos)
             
         Returns:
             InlineKeyboardMarkup de python-telegram-bot

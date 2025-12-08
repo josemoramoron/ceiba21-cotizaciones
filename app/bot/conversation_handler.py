@@ -1,6 +1,9 @@
 """
 Conversation Handler - Cerebro del bot conversacional.
 Gestiona el flujo de conversación usando FSM (Finite State Machine).
+
+SOLUCIÓN AL ERROR: Serializar TODOS los objetos SQLAlchemy a dict
+ANTES de salir del contexto de Flask.
 """
 from app.bot.states import ConversationState
 from app.bot.message_parser import MessageParser
@@ -28,6 +31,10 @@ class ConversationHandler:
     - Validar datos
     - Crear órdenes
     - Integrar con servicios
+    
+    REGLA CRÍTICA:
+    NUNCA retornar objetos SQLAlchemy.
+    SIEMPRE serializar a dict/primitivos.
     """
     
     # Redis client (compartido)
@@ -125,6 +132,9 @@ class ConversationHandler:
         """
         Procesar mensaje del usuario según el estado actual.
         
+        CRÍTICO: Este método DEBE ser llamado dentro de app.app_context()
+        y SOLO retornar datos primitivos (dict, str, int, bool).
+        
         Args:
             user: Usuario
             message: Mensaje recibido
@@ -180,11 +190,57 @@ class ConversationHandler:
         }
     
     # ==========================================
+    # HELPERS DE SERIALIZACIÓN
+    # ==========================================
+    
+    @staticmethod
+    def _serialize_currency(currency: Currency) -> Dict[str, Any]:
+        """
+        Serializar Currency a dict.
+        
+        CRÍTICO: Acceder a TODOS los atributos AQUÍ,
+        mientras la sesión SQLAlchemy está activa.
+        """
+        return {
+            'id': currency.id,
+            'code': currency.code,
+            'name': currency.name,
+            'is_active': currency.is_active
+        }
+    
+    @staticmethod
+    def _serialize_payment_method(method: PaymentMethod) -> Dict[str, Any]:
+        """
+        Serializar PaymentMethod a dict.
+        """
+        return {
+            'id': method.id,
+            'name': method.name,
+            'code': method.code if hasattr(method, 'code') else method.name.upper(),
+            'is_active': method.is_active
+        }
+    
+    @staticmethod
+    def _serialize_user(user: User) -> Dict[str, Any]:
+        """
+        Serializar User a dict (solo datos necesarios).
+        """
+        return {
+            'id': user.id,
+            'first_name': user.first_name if hasattr(user, 'first_name') else '',
+            'display_name': user.get_display_name() if hasattr(user, 'get_display_name') else str(user.id)
+        }
+    
+    # ==========================================
     # HANDLERS POR ESTADO
     # ==========================================
     
     def _handle_start(self, user: User, message: str = None) -> Dict[str, Any]:
-        """Handler para /start o estado START"""
+        """
+        Handler para /start o estado START
+        
+        IMPORTANTE: Serializar datos de user AQUÍ
+        """
         from app.bot.responses import Responses
         
         # Limpiar conversación anterior
@@ -193,7 +249,10 @@ class ConversationHandler:
         # Transicionar a MAIN_MENU
         self.set_state(user, ConversationState.MAIN_MENU)
         
-        return Responses.welcome_message(user)
+        # Serializar user a dict
+        user_data = self._serialize_user(user)
+        
+        return Responses.welcome_message(user_data)
     
     def _handle_main_menu(self, user: User, message: str) -> Dict[str, Any]:
         """Handler para MAIN_MENU"""
@@ -207,19 +266,11 @@ class ConversationHandler:
                 # Iniciar nueva operación
                 self.set_state(user, ConversationState.SELECT_CURRENCY)
                 
-                # Obtener currencies activas y extraer datos
-                from app.models.currency import Currency
-                from sqlalchemy.orm import joinedload
+                # ✅ SOLUCIÓN: Obtener currencies y SERIALIZAR inmediatamente
                 currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
-                # Acceder a todos los atributos INMEDIATAMENTE mientras sesión está activa
-                currencies_list = []
-                for c in currencies:
-                    currencies_list.append({
-                        'id': c.id,
-                        'code': c.code,
-                        'name': c.name,
-                        'is_active': c.is_active
-                    })
+                
+                # Serializar mientras la sesión está activa
+                currencies_list = [self._serialize_currency(c) for c in currencies]
                 
                 return Responses.select_currency_message(currencies_list)
             
@@ -240,45 +291,34 @@ class ConversationHandler:
             currency_id = int(callback['value'])
             currency = Currency.query.get(currency_id)
             
-            if currency:
-                # Acceder a atributos mientras sesión está activa
-                is_active = currency.is_active
-                currency_code = currency.code
-                currency_name = currency.name
+            if currency and currency.is_active:
+                # ✅ SERIALIZAR currency inmediatamente
+                currency_data = self._serialize_currency(currency)
                 
-                if is_active:
-                    # Guardar moneda seleccionada
-                    data = self.get_data(user)
-                    data['currency_id'] = currency_id
-                    data['currency_code'] = currency_code
-                    data['currency_name'] = currency_name
-                    self.set_data(user, data)
-                    
-                    # Transicionar a selección de método
-                    self.set_state(user, ConversationState.SELECT_METHOD_FROM)
-                    
-                    # Obtener métodos de pago activos y serializar
-                    methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
-                    methods_list = [m.to_dict() for m in methods]
-                    
-                    return Responses.select_payment_method_message(
-                        currency_code=currency_code,
-                        currency_name=currency_name,
-                        methods_list=methods_list
-                    )
+                # Guardar en datos de conversación
+                data = self.get_data(user)
+                data['currency_id'] = currency_data['id']
+                data['currency_code'] = currency_data['code']
+                data['currency_name'] = currency_data['name']
+                self.set_data(user, data)
+                
+                # Transicionar a selección de método
+                self.set_state(user, ConversationState.SELECT_METHOD_FROM)
+                
+                # ✅ Obtener métodos y SERIALIZAR
+                methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
+                methods_list = [self._serialize_payment_method(m) for m in methods]
+                
+                return Responses.select_payment_method_message(
+                    currency_code=currency_data['code'],
+                    currency_name=currency_data['name'],
+                    methods_list=methods_list
+                )
         
         # Si no es válido, volver a preguntar
-        # Obtener currencies activas y extraer datos
         currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
-        # Acceder a todos los atributos INMEDIATAMENTE mientras sesión está activa
-        currencies_list = []
-        for c in currencies:
-            currencies_list.append({
-                'id': c.id,
-                'code': c.code,
-                'name': c.name,
-                'is_active': c.is_active
-            })
+        currencies_list = [self._serialize_currency(c) for c in currencies]
+        
         return Responses.select_currency_message(currencies_list)
     
     def _handle_select_method_from(self, user: User, message: str) -> Dict[str, Any]:
@@ -291,27 +331,29 @@ class ConversationHandler:
             method_id = int(callback['value'])
             method = PaymentMethod.query.get(method_id)
             
-            if method:
-                # Acceder a atributos mientras sesión está activa
-                is_active = method.is_active
-                method_name = method.name
+            if method and method.is_active:
+                # ✅ SERIALIZAR method
+                method_data = self._serialize_payment_method(method)
                 
-                if is_active:
-                    # Guardar método seleccionado
-                    data = self.get_data(user)
-                    data['payment_method_from_id'] = method_id
-                    data['payment_method_from_name'] = method_name
-                    self.set_data(user, data)
-                    
-                    # Transicionar a ingresar monto
-                    self.set_state(user, ConversationState.ENTER_AMOUNT)
-                    return Responses.enter_amount_message(method_name=method_name)
+                # Guardar método seleccionado
+                data = self.get_data(user)
+                data['payment_method_from_id'] = method_data['id']
+                data['payment_method_from_name'] = method_data['name']
+                self.set_data(user, data)
+                
+                # Transicionar a ingresar monto
+                self.set_state(user, ConversationState.ENTER_AMOUNT)
+                return Responses.enter_amount_message(method_name=method_data['name'])
         
         # Volver a preguntar
         data = self.get_data(user)
+        methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
+        methods_list = [self._serialize_payment_method(m) for m in methods]
+        
         return Responses.select_payment_method_message(
-            currency_code=data.get('currency_code'),
-            currency_name=data.get('currency_name')
+            currency_code=data.get('currency_code', 'VES'),
+            currency_name=data.get('currency_name', 'Bolívares'),
+            methods_list=methods_list
         )
     
     def _handle_enter_amount(self, user: User, message: str) -> Dict[str, Any]:
@@ -340,7 +382,7 @@ class ConversationHandler:
                 payment_method_id=method_id
             )
             
-            # Guardar cálculo
+            # ✅ CONVERTIR Decimals a float para JSON
             data['amount_usd'] = float(amount)
             data['calculation'] = {
                 'fee_usd': float(calculation['fee_usd']),
@@ -413,7 +455,7 @@ class ConversationHandler:
         
         # Obtener país para validación
         data = self.get_data(user)
-        currency_code = data.get('currency_code', 'VE')
+        currency_code = data.get('currency_code', 'VES')
         
         # Mapear moneda a país
         country_map = {
@@ -489,6 +531,8 @@ class ConversationHandler:
         # CREAR ORDEN (estado DRAFT)
         try:
             order = self._create_order_draft(user, data)
+            
+            # ✅ SERIALIZAR order antes de guardar
             data['order_id'] = order.id
             data['order_reference'] = order.reference
             self.set_data(user, data)
@@ -516,6 +560,8 @@ class ConversationHandler:
     def handle_proof_received(self, user: User, proof_url: str) -> Dict[str, Any]:
         """
         Procesar comprobante recibido.
+        
+        IMPORTANTE: Llamar dentro de app.app_context()
         
         Args:
             user: Usuario
@@ -549,6 +595,9 @@ class ConversationHandler:
                 if success:
                     order.save()
                     
+                    # ✅ SERIALIZAR order.reference AHORA
+                    order_reference = order.reference
+                    
                     # Notificar operadores
                     from app.services.notification_service import NotificationService
                     NotificationService.notify_new_order(order)
@@ -557,7 +606,7 @@ class ConversationHandler:
                     self.set_state(user, ConversationState.COMPLETED)
                     self.clear_conversation(user)
                     
-                    return Responses.proof_received_success_message(order_reference=order.reference)
+                    return Responses.proof_received_success_message(order_reference=order_reference)
                 else:
                     return {
                         'text': f'❌ Error: {msg}',
@@ -587,7 +636,11 @@ class ConversationHandler:
         return Responses.help_message()
     
     def _handle_status(self, user: User) -> Dict[str, Any]:
-        """Handler para /status - Ver última orden"""
+        """
+        Handler para /status - Ver última orden
+        
+        IMPORTANTE: Serializar datos de order
+        """
         # Buscar última orden del usuario
         last_order = Order.query.filter_by(user_id=user.id).order_by(Order.created_at.desc()).first()
         
@@ -596,6 +649,12 @@ class ConversationHandler:
                 'text': '📋 No tienes órdenes registradas.\n\nEscribe /start para crear una.',
                 'buttons': None
             }
+        
+        # ✅ SERIALIZAR atributos de order AHORA
+        order_reference = last_order.reference
+        order_amount = float(last_order.amount_usd)
+        order_status = last_order.status
+        order_created = last_order.created_at.strftime('%d/%m/%Y %H:%M')
         
         status_text = {
             OrderStatus.DRAFT: 'Borrador',
@@ -606,11 +665,11 @@ class ConversationHandler:
         }
         
         return {
-            'text': f'''📋 **Última orden:** {last_order.reference}
+            'text': f'''📋 **Última orden:** {order_reference}
 
-💰 Monto: ${last_order.amount_usd} USD
-📊 Estado: {status_text.get(last_order.status, 'Desconocido')}
-📅 Creada: {last_order.created_at.strftime('%d/%m/%Y %H:%M')}
+💰 Monto: ${order_amount:.2f} USD
+📊 Estado: {status_text.get(order_status, 'Desconocido')}
+📅 Creada: {order_created}
 
 Para nueva operación: /start''',
             'buttons': None
