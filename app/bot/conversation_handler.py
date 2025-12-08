@@ -205,7 +205,7 @@ class ConversationHandler:
             'id': currency.id,
             'code': currency.code,
             'name': currency.name,
-            'is_active': currency.is_active
+            'active': currency.active
         }
     
     @staticmethod
@@ -217,7 +217,7 @@ class ConversationHandler:
             'id': method.id,
             'name': method.name,
             'code': method.code if hasattr(method, 'code') else method.name.upper(),
-            'is_active': method.is_active
+            'active': method.active
         }
     
     @staticmethod
@@ -267,7 +267,7 @@ class ConversationHandler:
                 self.set_state(user, ConversationState.SELECT_CURRENCY)
                 
                 # ✅ SOLUCIÓN: Obtener currencies y SERIALIZAR inmediatamente
-                currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
+                currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
                 
                 # Serializar mientras la sesión está activa
                 currencies_list = [self._serialize_currency(c) for c in currencies]
@@ -291,7 +291,7 @@ class ConversationHandler:
             currency_id = int(callback['value'])
             currency = Currency.query.get(currency_id)
             
-            if currency and currency.is_active:
+            if currency and currency.active:
                 # ✅ SERIALIZAR currency inmediatamente
                 currency_data = self._serialize_currency(currency)
                 
@@ -306,7 +306,7 @@ class ConversationHandler:
                 self.set_state(user, ConversationState.SELECT_METHOD_FROM)
                 
                 # ✅ Obtener métodos y SERIALIZAR
-                methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
+                methods = PaymentMethod.query.filter_by(active=True).order_by(PaymentMethod.id).all()
                 methods_list = [self._serialize_payment_method(m) for m in methods]
                 
                 return Responses.select_payment_method_message(
@@ -316,7 +316,7 @@ class ConversationHandler:
                 )
         
         # Si no es válido, volver a preguntar
-        currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
+        currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
         currencies_list = [self._serialize_currency(c) for c in currencies]
         
         return Responses.select_currency_message(currencies_list)
@@ -331,7 +331,7 @@ class ConversationHandler:
             method_id = int(callback['value'])
             method = PaymentMethod.query.get(method_id)
             
-            if method and method.is_active:
+            if method and method.active:
                 # ✅ SERIALIZAR method
                 method_data = self._serialize_payment_method(method)
                 
@@ -347,7 +347,7 @@ class ConversationHandler:
         
         # Volver a preguntar
         data = self.get_data(user)
-        methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
+        methods = PaymentMethod.query.filter_by(active=True).order_by(PaymentMethod.id).all()
         methods_list = [self._serialize_payment_method(m) for m in methods]
         
         return Responses.select_payment_method_message(
