@@ -33,8 +33,11 @@ def create_app(config_class=Config):
     # ✨ Configuración de sesiones en Redis
     app.config['SESSION_TYPE'] = 'redis'
     app.config['SESSION_REDIS'] = Redis(host='localhost', port=6379, db=1)
-    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_PERMANENT'] = True  # Sesión persistente
+    app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 horas
     app.config['SESSION_USE_SIGNER'] = True
+    app.config['SESSION_COOKIE_SECURE'] = False  # True solo con HTTPS
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
     # ✨ Configuración de Connection Pooling PostgreSQL
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -57,8 +60,6 @@ def create_app(config_class=Config):
     # ✨ Configuración de Flask-Login
     app.config['REMEMBER_COOKIE_DURATION'] = 2592000  # 30 días
     app.config['REMEMBER_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
     # Inicializar extensiones
     cache.init_app(app)
@@ -70,7 +71,7 @@ def create_app(config_class=Config):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = '⚠️ Debes iniciar sesión para acceder a esta página'
     login_manager.login_message_category = 'error'
-    login_manager.session_protection = 'strong'  # Protección contra session hijacking
+    login_manager.session_protection = 'basic'  # Protección básica (strong era muy restrictivo)
     
     @login_manager.user_loader
     def load_user(user_id):
