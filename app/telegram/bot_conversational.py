@@ -1,6 +1,11 @@
 """
 Bot conversacional de Telegram con FSM (python-telegram-bot v20+).
 Maneja conversaciones completas para crear órdenes.
+
+VERSIÓN CORREGIDA - SOLUCIÓN AL ERROR:
+- TODAS las queries dentro de app.app_context()
+- Serialización de objetos ANTES de salir del contexto
+- Uso de datos primitivos en handlers async
 """
 import os
 import logging
@@ -41,14 +46,6 @@ redis_client = redis.Redis(
 # FUNCIONES AUXILIARES
 # ==========================================
 
-def with_app_context(func):
-    """Decorator para ejecutar función con contexto de Flask"""
-    async def wrapper(*args, **kwargs):
-        with flask_app.app_context():
-            return await func(*args, **kwargs)
-    return wrapper
-
-
 def is_bot_enabled() -> bool:
     """Verificar si el bot está habilitado"""
     try:
@@ -59,10 +56,15 @@ def is_bot_enabled() -> bool:
 
 
 def get_or_create_user_from_telegram(telegram_user) -> User:
-    """Buscar o crear usuario desde datos de Telegram"""
+    """
+    Buscar o crear usuario desde datos de Telegram.
+    
+    IMPORTANTE: Llamar SOLO dentro de app.app_context()
+    """
     user = User.query.filter_by(telegram_id=str(telegram_user.id)).first()
     
     if user:
+        # Actualizar datos si cambiaron
         if telegram_user.first_name and user.first_name != telegram_user.first_name:
             user.first_name = telegram_user.first_name
         if telegram_user.last_name and user.last_name != telegram_user.last_name:
@@ -72,6 +74,7 @@ def get_or_create_user_from_telegram(telegram_user) -> User:
         user.save()
         return user
     
+    # Crear nuevo usuario
     user_data = {
         'username': telegram_user.username,
         'first_name': telegram_user.first_name,
@@ -101,15 +104,21 @@ async def save_proof_to_storage(photo_file, order_reference: str) -> str:
 # HANDLERS DE COMANDOS
 # ==========================================
 
-@with_app_context
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler para /start"""
+    """
+    Handler para /start
+    
+    CRÍTICO: TODO dentro de with flask_app.app_context()
+    """
     try:
-        user = get_or_create_user_from_telegram(update.message.from_user)
+        # ✅ TODO dentro del contexto Flask
+        with flask_app.app_context():
+            user = get_or_create_user_from_telegram(update.message.from_user)
+            
+            conv_handler = ConversationHandler()
+            response = conv_handler.handle_message(user, '/start')
         
-        conv_handler = ConversationHandler()
-        response = conv_handler.handle_message(user, '/start')
-        
+        # ✅ Usar datos primitivos fuera del contexto
         reply_markup = Responses.format_buttons_for_telegram(response.get('buttons'))
         
         await update.message.reply_text(
@@ -119,36 +128,36 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     except Exception as e:
-        logger.error(f"Error in start_command: {str(e)}")
+        logger.error(f"Error in start_command: {str(e)}", exc_info=True)
         await update.message.reply_text(
             '❌ Error al iniciar. Intenta de nuevo o contacta a soporte.'
         )
 
 
-@with_app_context
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /cancel"""
     try:
-        user = get_or_create_user_from_telegram(update.message.from_user)
-        
-        conv_handler = ConversationHandler()
-        response = conv_handler.handle_message(user, '/cancel')
+        with flask_app.app_context():
+            user = get_or_create_user_from_telegram(update.message.from_user)
+            
+            conv_handler = ConversationHandler()
+            response = conv_handler.handle_message(user, '/cancel')
         
         await update.message.reply_text(response['text'])
         
     except Exception as e:
-        logger.error(f"Error in cancel_command: {str(e)}")
+        logger.error(f"Error in cancel_command: {str(e)}", exc_info=True)
         await update.message.reply_text('❌ Error al cancelar.')
 
 
-@with_app_context
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /help"""
     try:
-        user = get_or_create_user_from_telegram(update.message.from_user)
-        
-        conv_handler = ConversationHandler()
-        response = conv_handler.handle_message(user, '/help')
+        with flask_app.app_context():
+            user = get_or_create_user_from_telegram(update.message.from_user)
+            
+            conv_handler = ConversationHandler()
+            response = conv_handler.handle_message(user, '/help')
         
         await update.message.reply_text(
             response['text'],
@@ -156,18 +165,18 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     except Exception as e:
-        logger.error(f"Error in help_command: {str(e)}")
+        logger.error(f"Error in help_command: {str(e)}", exc_info=True)
         await update.message.reply_text('❌ Error al mostrar ayuda.')
 
 
-@with_app_context
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /status"""
     try:
-        user = get_or_create_user_from_telegram(update.message.from_user)
-        
-        conv_handler = ConversationHandler()
-        response = conv_handler.handle_message(user, '/status')
+        with flask_app.app_context():
+            user = get_or_create_user_from_telegram(update.message.from_user)
+            
+            conv_handler = ConversationHandler()
+            response = conv_handler.handle_message(user, '/status')
         
         await update.message.reply_text(
             response['text'],
@@ -175,7 +184,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     except Exception as e:
-        logger.error(f"Error in status_command: {str(e)}")
+        logger.error(f"Error in status_command: {str(e)}", exc_info=True)
         await update.message.reply_text('❌ Error al consultar estado.')
 
 
@@ -183,88 +192,104 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # COMANDOS ADMIN
 # ==========================================
 
-@with_app_context
 async def stopbot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /stopbot (solo ADMIN)"""
     try:
         telegram_id = update.message.from_user.id
-        operator = Operator.query.filter_by(
-            telegram_notification_id=str(telegram_id)
-        ).first()
         
-        if not operator or operator.role != OperatorRole.ADMIN:
-            await update.message.reply_text('❌ No tienes permisos para este comando.')
-            return
+        with flask_app.app_context():
+            operator = Operator.query.filter_by(
+                telegram_notification_id=str(telegram_id)
+            ).first()
+            
+            if not operator or operator.role != OperatorRole.ADMIN:
+                await update.message.reply_text('❌ No tienes permisos para este comando.')
+                return
+            
+            # Serializar nombre del operador
+            operator_name = operator.name
         
+        # Fuera del contexto, usar datos primitivos
         redis_client.set('bot_enabled', '0')
         
         await update.message.reply_text('🛑 **Bot detenido.**\n\nLas conversaciones se pausarán.')
-        logger.info(f"Bot stopped by admin: {operator.name}")
+        logger.info(f"Bot stopped by admin: {operator_name}")
         
     except Exception as e:
-        logger.error(f"Error in stopbot_command: {str(e)}")
+        logger.error(f"Error in stopbot_command: {str(e)}", exc_info=True)
         await update.message.reply_text('❌ Error al detener bot.')
 
 
-@with_app_context
 async def startbot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /startbot (solo ADMIN)"""
     try:
         telegram_id = update.message.from_user.id
-        operator = Operator.query.filter_by(
-            telegram_notification_id=str(telegram_id)
-        ).first()
         
-        if not operator or operator.role != OperatorRole.ADMIN:
-            await update.message.reply_text('❌ No tienes permisos para este comando.')
-            return
+        with flask_app.app_context():
+            operator = Operator.query.filter_by(
+                telegram_notification_id=str(telegram_id)
+            ).first()
+            
+            if not operator or operator.role != OperatorRole.ADMIN:
+                await update.message.reply_text('❌ No tienes permisos para este comando.')
+                return
+            
+            # Serializar nombre del operador
+            operator_name = operator.name
         
+        # Fuera del contexto
         redis_client.set('bot_enabled', '1')
         
         await update.message.reply_text('✅ **Bot activado.**\n\nLas conversaciones se reanudarán.')
-        logger.info(f"Bot started by admin: {operator.name}")
+        logger.info(f"Bot started by admin: {operator_name}")
         
     except Exception as e:
-        logger.error(f"Error in startbot_command: {str(e)}")
+        logger.error(f"Error in startbot_command: {str(e)}", exc_info=True)
         await update.message.reply_text('❌ Error al activar bot.')
 
 
-@with_app_context
 async def takeover_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para /takeover ORDER_ID (operadores)"""
     try:
         telegram_id = update.message.from_user.id
-        operator = Operator.query.filter_by(
-            telegram_notification_id=str(telegram_id)
-        ).first()
-        
-        if not operator:
-            await update.message.reply_text('❌ No estás registrado como operador.')
-            return
         
         if len(context.args) < 1:
             await update.message.reply_text('Uso: `/takeover ORD-20251204-001`')
             return
         
         order_reference = context.args[0]
-        order = Order.query.filter_by(reference=order_reference).first()
         
-        if not order:
-            await update.message.reply_text(f'❌ Orden `{order_reference}` no encontrada.')
-            return
+        with flask_app.app_context():
+            operator = Operator.query.filter_by(
+                telegram_notification_id=str(telegram_id)
+            ).first()
+            
+            if not operator:
+                await update.message.reply_text('❌ No estás registrado como operador.')
+                return
+            
+            order = Order.query.filter_by(reference=order_reference).first()
+            
+            if not order:
+                await update.message.reply_text(f'❌ Orden `{order_reference}` no encontrada.')
+                return
+            
+            conv_handler = ConversationHandler()
+            conv_handler.transfer_to_operator(order, operator)
+            
+            # Serializar nombre del operador
+            operator_name = operator.name
         
-        conv_handler = ConversationHandler()
-        conv_handler.transfer_to_operator(order, operator)
-        
+        # Fuera del contexto
         await update.message.reply_text(
             f'✅ **Atendiendo manualmente orden `{order_reference}`**\n\n'
             f'El bot automático se ha deshabilitado para este usuario.'
         )
         
-        logger.info(f"Order {order_reference} taken over by {operator.name}")
+        logger.info(f"Order {order_reference} taken over by {operator_name}")
         
     except Exception as e:
-        logger.error(f"Error in takeover_command: {str(e)}")
+        logger.error(f"Error in takeover_command: {str(e)}", exc_info=True)
         await update.message.reply_text('❌ Error al tomar orden.')
 
 
@@ -272,21 +297,28 @@ async def takeover_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # HANDLERS DE MENSAJES
 # ==========================================
 
-@with_app_context
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler para mensajes de texto"""
+    """
+    Handler para mensajes de texto
+    
+    CRÍTICO: Queries dentro de app_context
+    """
     try:
+        # Verificar si bot está habilitado (sin contexto, solo Redis)
         if not is_bot_enabled():
             response = Responses.bot_disabled_message()
             await update.message.reply_text(response['text'])
             return
         
-        user = get_or_create_user_from_telegram(update.message.from_user)
-        message_text = update.message.text
+        # ✅ TODO dentro del contexto Flask
+        with flask_app.app_context():
+            user = get_or_create_user_from_telegram(update.message.from_user)
+            message_text = update.message.text
+            
+            conv_handler = ConversationHandler()
+            response = conv_handler.handle_message(user, message_text)
         
-        conv_handler = ConversationHandler()
-        response = conv_handler.handle_message(user, message_text)
-        
+        # ✅ Usar datos primitivos fuera del contexto
         reply_markup = Responses.format_buttons_for_telegram(response.get('buttons'))
         
         await update.message.reply_text(
@@ -296,30 +328,37 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     except Exception as e:
-        logger.error(f"Error in message_handler: {str(e)}")
+        logger.error(f"Error in message_handler: {str(e)}", exc_info=True)
         await update.message.reply_text(
             '❌ Error al procesar mensaje. Intenta de nuevo o escribe /cancel.'
         )
 
 
-@with_app_context
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler para botones inline (callbacks)"""
+    """
+    Handler para botones inline (callbacks)
+    
+    CRÍTICO: Queries dentro de app_context
+    """
     try:
         query = update.callback_query
         await query.answer()
         
+        # Verificar si bot está habilitado
         if not is_bot_enabled():
             response = Responses.bot_disabled_message()
             await query.message.reply_text(response['text'])
             return
         
-        user = get_or_create_user_from_telegram(query.from_user)
-        callback_data = query.data
+        # ✅ TODO dentro del contexto Flask
+        with flask_app.app_context():
+            user = get_or_create_user_from_telegram(query.from_user)
+            callback_data = query.data
+            
+            conv_handler = ConversationHandler()
+            response = conv_handler.handle_message(user, callback_data)
         
-        conv_handler = ConversationHandler()
-        response = conv_handler.handle_message(user, callback_data)
-        
+        # ✅ Usar datos primitivos fuera del contexto
         reply_markup = Responses.format_buttons_for_telegram(response.get('buttons'))
         
         await query.message.reply_text(
@@ -329,39 +368,51 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         )
         
     except Exception as e:
-        logger.error(f"Error in button_callback_handler: {str(e)}")
+        logger.error(f"Error in button_callback_handler: {str(e)}", exc_info=True)
         await query.message.reply_text('❌ Error al procesar selección.')
 
 
-@with_app_context
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler para fotos (comprobantes de pago)"""
+    """
+    Handler para fotos (comprobantes de pago)
+    
+    CRÍTICO: Queries dentro de app_context
+    """
     try:
-        user = get_or_create_user_from_telegram(update.message.from_user)
+        # ✅ TODO dentro del contexto Flask
+        with flask_app.app_context():
+            user = get_or_create_user_from_telegram(update.message.from_user)
+            
+            conv_handler = ConversationHandler()
+            current_state = conv_handler.get_state(user)
+            
+            from app.bot.states import ConversationState
+            
+            if current_state != ConversationState.AWAIT_PROOF:
+                await update.message.reply_text(
+                    '📸 Envía primero /start para crear una operación.'
+                )
+                return
+            
+            data = conv_handler.get_data(user)
+            order_reference = data.get('order_reference')
+            
+            if not order_reference:
+                await update.message.reply_text('❌ Error: No se encontró orden activa.')
+                return
         
-        conv_handler = ConversationHandler()
-        current_state = conv_handler.get_state(user)
-        
-        from app.bot.states import ConversationState
-        
-        if current_state != ConversationState.AWAIT_PROOF:
-            await update.message.reply_text(
-                '📸 Envía primero /start para crear una operación.'
-            )
-            return
-        
-        data = conv_handler.get_data(user)
-        order_reference = data.get('order_reference')
-        
-        if not order_reference:
-            await update.message.reply_text('❌ Error: No se encontró orden activa.')
-            return
-        
+        # ✅ Salir del contexto antes de operaciones async de Telegram
+        # Descargar foto (fuera del contexto)
         photo_file = await update.message.photo[-1].get_file()
         proof_url = await save_proof_to_storage(photo_file, order_reference)
         
-        response = conv_handler.handle_proof_received(user, proof_url)
+        # ✅ Volver a entrar al contexto para procesar
+        with flask_app.app_context():
+            user = get_or_create_user_from_telegram(update.message.from_user)
+            conv_handler = ConversationHandler()
+            response = conv_handler.handle_proof_received(user, proof_url)
         
+        # ✅ Usar datos primitivos fuera del contexto
         await update.message.reply_text(
             response['text'],
             parse_mode=ParseMode.MARKDOWN
@@ -370,7 +421,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"Proof received for order {order_reference}")
         
     except Exception as e:
-        logger.error(f"Error in photo_handler: {str(e)}")
+        logger.error(f"Error in photo_handler: {str(e)}", exc_info=True)
         await update.message.reply_text(
             '❌ Error al procesar comprobante. Intenta de nuevo.'
         )
