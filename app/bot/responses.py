@@ -110,17 +110,45 @@ Escribe `/start` para comenzar.'''
         return {'text': text, 'buttons': None}
     
     @staticmethod
-    def select_currency_message(currencies_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def paginate_items(items: List[Any], page: int, items_per_page: int = 6) -> tuple:
         """
-        Solicitar selección de moneda
+        Paginar lista de items.
+        
+        Args:
+            items: Lista de items a paginar
+            page: Número de página (empezando en 0)
+            items_per_page: Items por página (default: 6)
+            
+        Returns:
+            tuple: (items_page, total_pages)
+        """
+        if not items:
+            return [], 0
+        
+        total_pages = (len(items) + items_per_page - 1) // items_per_page
+        # Asegurar que page esté en rango válido
+        page = max(0, min(page, total_pages - 1))
+        
+        start = page * items_per_page
+        end = start + items_per_page
+        return items[start:end], total_pages
+    
+    @staticmethod
+    def select_currency_message(currencies_list: List[Dict[str, Any]], page: int = 0) -> Dict[str, Any]:
+        """
+        Solicitar selección de moneda con paginación.
         
         Args:
             currencies_list: Lista de diccionarios con datos de monedas SERIALIZADOS
                 [{'id': 1, 'code': 'VES', 'name': 'Bolívares'}, ...]
+            page: Número de página actual (default: 0)
                 
         IMPORTANTE: currencies_list debe contener SOLO datos primitivos,
         NO objetos Currency.
         """
+        # Paginar monedas (6 por página)
+        currencies_page, total_pages = Responses.paginate_items(currencies_list, page, items_per_page=6)
+        
         text = '''Perfecto! Vamos a crear tu operación.
 
 **¿Qué moneda recibirás?** 💰'''
@@ -132,13 +160,17 @@ Escribe `/start` para comenzar.'''
             'CLP': '🇨🇱',
             'ARS': '🇦🇷',
             'BRL': '🇧🇷',
-            'MXN': '🇲🇽'
+            'MXN': '🇲🇽',
+            'PEN': '🇵🇪',
+            'UYU': '🇺🇾',
+            'EUR': '🇪🇺',
+            'USD': '🇺🇸'
         }
         
         # Crear botones (2 por fila)
         buttons = []
         row = []
-        for currency in currencies_list:
+        for currency in currencies_page:
             flag = flag_map.get(currency['code'], '💵')
             row.append({
                 'text': f"{flag} {currency['name']}",
@@ -152,20 +184,50 @@ Escribe `/start` para comenzar.'''
         if row:
             buttons.append(row)
         
+        # Agregar botones de navegación si hay múltiples páginas
+        if total_pages > 1:
+            nav_buttons = []
+            
+            # Botón "Anterior" (si no es la primera página)
+            if page > 0:
+                nav_buttons.append({
+                    'text': '⬅️ Anterior',
+                    'callback_data': 'currency_page:prev'
+                })
+            
+            # Indicador de página
+            nav_buttons.append({
+                'text': f'📄 {page + 1}/{total_pages}',
+                'callback_data': 'page_info:ignore'
+            })
+            
+            # Botón "Siguiente" (si no es la última página)
+            if page < total_pages - 1:
+                nav_buttons.append({
+                    'text': 'Siguiente ➡️',
+                    'callback_data': 'currency_page:next'
+                })
+            
+            buttons.append(nav_buttons)
+        
         return {'text': text, 'buttons': buttons}
     
     @staticmethod
-    def select_payment_method_message(currency_code: str, currency_name: str, methods_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def select_payment_method_message(currency_code: str, currency_name: str, methods_list: List[Dict[str, Any]], page: int = 0) -> Dict[str, Any]:
         """
-        Solicitar método de pago
+        Solicitar método de pago con paginación.
         
         Args:
             currency_code: Código de moneda (VES, COP, etc.) - STRING
             currency_name: Nombre de moneda - STRING
             methods_list: Lista de diccionarios con datos de métodos SERIALIZADOS
                 [{'id': 1, 'name': 'PayPal', 'code': 'PAYPAL'}, ...]
+            page: Número de página actual (default: 0)
         """
-        flag_map = {'VES': '🇻🇪', 'COP': '🇨🇴', 'CLP': '🇨🇱', 'ARS': '🇦🇷'}
+        # Paginar métodos (6 por página)
+        methods_page, total_pages = Responses.paginate_items(methods_list, page, items_per_page=6)
+        
+        flag_map = {'VES': '🇻🇪', 'COP': '🇨🇴', 'CLP': '🇨🇱', 'ARS': '🇦🇷', 'BRL': '🇧🇷', 'MXN': '🇲🇽'}
         flag = flag_map.get(currency_code, '💵')
         
         text = f'''Excelente! Recibirás **{currency_name}** {flag}
@@ -179,16 +241,61 @@ Escribe `/start` para comenzar.'''
             'USDT': '₿',
             'Wise': '🌍',
             'Zinli': '💰',
-            'REF': '🏦'
+            'REF': '🏦',
+            'Binance': '🔶',
+            'Venmo': '💸',
+            'Airtm': '🔷',
+            'Payoneer': '🎯'
         }
         
+        # Crear botones (2 por fila)
         buttons = []
-        for method in methods_list:
+        row = []
+        for method in methods_page:
             icon = icon_map.get(method['name'], '💳')
-            buttons.append([{
+            row.append({
                 'text': f'{icon} {method["name"]}',
                 'callback_data': f'method:{method["id"]}'
-            }])
+            })
+            if len(row) == 2:
+                buttons.append(row)
+                row = []
+        
+        # Agregar última fila si quedó algo
+        if row:
+            buttons.append(row)
+        
+        # Agregar botones de navegación si hay múltiples páginas
+        if total_pages > 1:
+            nav_buttons = []
+            
+            # Botón "Anterior"
+            if page > 0:
+                nav_buttons.append({
+                    'text': '⬅️ Anterior',
+                    'callback_data': 'method_page:prev'
+                })
+            
+            # Indicador de página
+            nav_buttons.append({
+                'text': f'📄 {page + 1}/{total_pages}',
+                'callback_data': 'page_info:ignore'
+            })
+            
+            # Botón "Siguiente"
+            if page < total_pages - 1:
+                nav_buttons.append({
+                    'text': 'Siguiente ➡️',
+                    'callback_data': 'method_page:next'
+                })
+            
+            buttons.append(nav_buttons)
+        
+        # Botón para volver
+        buttons.append([{
+            'text': '🔙 Cambiar moneda',
+            'callback_data': 'back:select_currency'
+        }])
         
         return {'text': text, 'buttons': buttons}
     

@@ -266,13 +266,23 @@ class ConversationHandler:
                 # Iniciar nueva operación
                 self.set_state(user, ConversationState.SELECT_CURRENCY)
                 
+                # Inicializar páginas en 0
+                data = self.get_data(user)
+                data['page_currency'] = 0
+                data['page_method'] = 0
+                self.set_data(user, data)
+                
                 # ✅ SOLUCIÓN: Obtener currencies y SERIALIZAR inmediatamente
                 currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
                 
                 # Serializar mientras la sesión está activa
                 currencies_list = [self._serialize_currency(c) for c in currencies]
                 
-                return Responses.select_currency_message(currencies_list)
+                # Guardar lista completa en datos
+                data['currencies_list'] = currencies_list
+                self.set_data(user, data)
+                
+                return Responses.select_currency_message(currencies_list, page=0)
             
             elif action == 'help':
                 return Responses.help_message()
@@ -281,12 +291,43 @@ class ConversationHandler:
         return Responses.main_menu_message()
     
     def _handle_select_currency(self, user: User, message: str) -> Dict[str, Any]:
-        """Handler para SELECT_CURRENCY"""
+        """Handler para SELECT_CURRENCY con soporte de paginación"""
         from app.bot.responses import Responses
+        
+        # Obtener datos actuales
+        data = self.get_data(user)
+        current_page = data.get('page_currency', 0)
+        currencies_list = data.get('currencies_list')
+        
+        # Si no hay lista guardada, obtenerla
+        if not currencies_list:
+            currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
+            currencies_list = [self._serialize_currency(c) for c in currencies]
+            data['currencies_list'] = currencies_list
+            self.set_data(user, data)
         
         # Parsear callback data
         callback = self.parser.parse_callback_data(message)
         
+        # Manejar paginación
+        if callback['action'] == 'currency_page':
+            if callback['value'] == 'next':
+                current_page += 1
+            elif callback['value'] == 'prev':
+                current_page = max(0, current_page - 1)
+            
+            # Guardar nueva página
+            data['page_currency'] = current_page
+            self.set_data(user, data)
+            
+            # Mostrar página actualizada
+            return Responses.select_currency_message(currencies_list, page=current_page)
+        
+        # Ignorar click en indicador de página
+        if callback['action'] == 'page_info':
+            return Responses.select_currency_message(currencies_list, page=current_page)
+        
+        # Selección de moneda
         if callback['action'] == 'currency':
             currency_id = int(callback['value'])
             currency = Currency.query.get(currency_id)
@@ -296,10 +337,10 @@ class ConversationHandler:
                 currency_data = self._serialize_currency(currency)
                 
                 # Guardar en datos de conversación
-                data = self.get_data(user)
                 data['currency_id'] = currency_data['id']
                 data['currency_code'] = currency_data['code']
                 data['currency_name'] = currency_data['name']
+                data['page_method'] = 0  # Resetear página de métodos
                 self.set_data(user, data)
                 
                 # Transicionar a selección de método
@@ -309,24 +350,79 @@ class ConversationHandler:
                 methods = PaymentMethod.query.filter_by(active=True).order_by(PaymentMethod.id).all()
                 methods_list = [self._serialize_payment_method(m) for m in methods]
                 
+                # Guardar lista de métodos
+                data['methods_list'] = methods_list
+                self.set_data(user, data)
+                
                 return Responses.select_payment_method_message(
                     currency_code=currency_data['code'],
                     currency_name=currency_data['name'],
-                    methods_list=methods_list
+                    methods_list=methods_list,
+                    page=0
                 )
         
-        # Si no es válido, volver a preguntar
-        currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
-        currencies_list = [self._serialize_currency(c) for c in currencies]
-        
-        return Responses.select_currency_message(currencies_list)
+        # Si no es válido, volver a preguntar en página actual
+        return Responses.select_currency_message(currencies_list, page=current_page)
     
     def _handle_select_method_from(self, user: User, message: str) -> Dict[str, Any]:
-        """Handler para SELECT_METHOD_FROM"""
+        """Handler para SELECT_METHOD_FROM con soporte de paginación"""
         from app.bot.responses import Responses
         
+        # Obtener datos actuales
+        data = self.get_data(user)
+        current_page = data.get('page_method', 0)
+        methods_list = data.get('methods_list')
+        currency_code = data.get('currency_code', 'VES')
+        currency_name = data.get('currency_name', 'Bolívares')
+        
+        # Si no hay lista guardada, obtenerla
+        if not methods_list:
+            methods = PaymentMethod.query.filter_by(active=True).order_by(PaymentMethod.id).all()
+            methods_list = [self._serialize_payment_method(m) for m in methods]
+            data['methods_list'] = methods_list
+            self.set_data(user, data)
+        
+        # Parsear callback data
         callback = self.parser.parse_callback_data(message)
         
+        # Manejar paginación
+        if callback['action'] == 'method_page':
+            if callback['value'] == 'next':
+                current_page += 1
+            elif callback['value'] == 'prev':
+                current_page = max(0, current_page - 1)
+            
+            # Guardar nueva página
+            data['page_method'] = current_page
+            self.set_data(user, data)
+            
+            # Mostrar página actualizada
+            return Responses.select_payment_method_message(
+                currency_code=currency_code,
+                currency_name=currency_name,
+                methods_list=methods_list,
+                page=current_page
+            )
+        
+        # Ignorar click en indicador de página
+        if callback['action'] == 'page_info':
+            return Responses.select_payment_method_message(
+                currency_code=currency_code,
+                currency_name=currency_name,
+                methods_list=methods_list,
+                page=current_page
+            )
+        
+        # Volver a selección de moneda
+        if callback['action'] == 'back' and callback['value'] == 'select_currency':
+            self.set_state(user, ConversationState.SELECT_CURRENCY)
+            currencies_list = data.get('currencies_list', [])
+            if not currencies_list:
+                currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
+                currencies_list = [self._serialize_currency(c) for c in currencies]
+            return Responses.select_currency_message(currencies_list, page=data.get('page_currency', 0))
+        
+        # Selección de método
         if callback['action'] == 'method':
             method_id = int(callback['value'])
             method = PaymentMethod.query.get(method_id)
@@ -336,7 +432,6 @@ class ConversationHandler:
                 method_data = self._serialize_payment_method(method)
                 
                 # Guardar método seleccionado
-                data = self.get_data(user)
                 data['payment_method_from_id'] = method_data['id']
                 data['payment_method_from_name'] = method_data['name']
                 self.set_data(user, data)
@@ -345,15 +440,12 @@ class ConversationHandler:
                 self.set_state(user, ConversationState.ENTER_AMOUNT)
                 return Responses.enter_amount_message(method_name=method_data['name'])
         
-        # Volver a preguntar
-        data = self.get_data(user)
-        methods = PaymentMethod.query.filter_by(active=True).order_by(PaymentMethod.id).all()
-        methods_list = [self._serialize_payment_method(m) for m in methods]
-        
+        # Si no es válido, volver a preguntar en página actual
         return Responses.select_payment_method_message(
-            currency_code=data.get('currency_code', 'VES'),
-            currency_name=data.get('currency_name', 'Bolívares'),
-            methods_list=methods_list
+            currency_code=currency_code,
+            currency_name=currency_name,
+            methods_list=methods_list,
+            page=current_page
         )
     
     def _handle_enter_amount(self, user: User, message: str) -> Dict[str, Any]:
