@@ -520,26 +520,107 @@ class ConversationHandler:
         return Responses.confirm_calculation_message(data)
     
     def _handle_enter_bank(self, user: User, message: str) -> Dict[str, Any]:
-        """Handler para ENTER_BANK"""
+        """
+        Handler para ENTER_BANK con detección inteligente de múltiples líneas.
+        
+        Si el usuario envía todo junto (banco, cuenta, titular, DNI en líneas separadas),
+        el bot lo detecta y procesa todo de una vez.
+        """
         from app.bot.responses import Responses
         
-        # Validar nombre del banco
-        is_valid, bank_name, error_msg = self.parser.validate_bank_name(message)
+        # Detectar si el usuario envió múltiples líneas (todo junto)
+        lines = [line.strip() for line in message.strip().split('\n') if line.strip()]
         
-        if not is_valid:
-            return {
-                'text': error_msg,
-                'buttons': None
-            }
-        
-        # Guardar banco
+        # Obtener datos actuales
         data = self.get_data(user)
-        data['bank'] = bank_name
-        self.set_data(user, data)
+        currency_code = data.get('currency_code', 'VES')
+        country_map = {'VES': 'VE', 'COP': 'CO', 'CLP': 'CL', 'ARS': 'AR'}
+        country = country_map.get(currency_code, 'VE')
         
-        # Transicionar a número de cuenta
-        self.set_state(user, ConversationState.ENTER_ACCOUNT)
-        return Responses.enter_account_message()
+        # Caso 1: Usuario envió todo junto (4 líneas: banco, cuenta, titular, DNI)
+        if len(lines) == 4:
+            bank_name = lines[0]
+            account = lines[1]
+            holder = lines[2]
+            dni = lines[3]
+            
+            # Validar banco
+            is_valid_bank, bank_name, error_bank = self.parser.validate_bank_name(bank_name)
+            if not is_valid_bank:
+                return {
+                    'text': f'❌ Banco inválido: {error_bank}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 4 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI',
+                    'buttons': None
+                }
+            
+            # Validar cuenta
+            is_valid_account, account, error_account = self.parser.validate_account(account, country)
+            if not is_valid_account:
+                return {
+                    'text': f'❌ Cuenta inválida: {error_account}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 4 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI',
+                    'buttons': None
+                }
+            
+            # Validar titular
+            is_valid_holder, holder, error_holder = self.parser.validate_holder_name(holder)
+            if not is_valid_holder:
+                return {
+                    'text': f'❌ Titular inválido: {error_holder}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 4 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI',
+                    'buttons': None
+                }
+            
+            # Validar DNI
+            is_valid_dni, dni, error_dni = self.parser.validate_dni(dni, country)
+            if not is_valid_dni:
+                return {
+                    'text': f'❌ DNI inválido: {error_dni}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 4 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI',
+                    'buttons': None
+                }
+            
+            # Todo válido! Guardar todos los datos
+            data['bank'] = bank_name
+            data['account'] = account
+            data['holder'] = holder
+            data['dni'] = dni
+            self.set_data(user, data)
+            
+            # Crear orden directamente (saltar estados intermedios)
+            try:
+                order = self._create_order_draft(user, data)
+                
+                # ✅ SERIALIZAR order antes de guardar
+                data['order_id'] = order.id
+                data['order_reference'] = order.reference
+                self.set_data(user, data)
+                
+                # Transicionar a esperar comprobante
+                self.set_state(user, ConversationState.AWAIT_PROOF)
+                
+                return Responses.payment_instructions_message(data)
+                
+            except Exception as e:
+                return {
+                    'text': f'❌ Error al crear orden: {str(e)}\n\nContacta a soporte.',
+                    'buttons': None
+                }
+        
+        # Caso 2: Flujo normal (solo banco)
+        else:
+            # Validar nombre del banco
+            is_valid, bank_name, error_msg = self.parser.validate_bank_name(message)
+            
+            if not is_valid:
+                return {
+                    'text': error_msg,
+                    'buttons': None
+                }
+            
+            # Guardar banco
+            data['bank'] = bank_name
+            self.set_data(user, data)
+            
+            # Transicionar a número de cuenta
+            self.set_state(user, ConversationState.ENTER_ACCOUNT)
+            return Responses.enter_account_message()
     
     def _handle_enter_account(self, user: User, message: str) -> Dict[str, Any]:
         """Handler para ENTER_ACCOUNT"""

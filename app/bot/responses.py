@@ -396,20 +396,30 @@ Te mostraremos el monto neto que recibiremos y calcularemos tu pago basado en es
     
     @staticmethod
     def enter_bank_message() -> Dict[str, Any]:
-        """Solicitar nombre del banco"""
+        """Solicitar nombre del banco con opción de envío completo"""
         text = '''Excelente! ✅
 
 **Para que te enviemos los bolívares/pesos, necesito:**
 
 📌 **Datos de tu cuenta:**
 1. Banco
-2. Número de cuenta
-3. Titular
+2. Número de cuenta (20 dígitos)
+3. Titular (nombre completo)
 4. Cédula/DNI
 
-**Empecemos: ¿Cuál es tu banco?**
+**💡 Puedes enviar de DOS formas:**
 
-**Ejemplo:** Banco Venezuela'''
+**Opción 1:** Todo junto en 4 líneas ⚡
+```
+Banco Venezuela
+01020123456789012345
+Juan Pérez
+V-12345678
+```
+
+**Opción 2:** Uno por uno (te iré preguntando cada dato) 📝
+
+**Empecemos: ¿Cuál es tu banco?** (o envía todo)'''
         
         return {'text': text, 'buttons': None}
     
