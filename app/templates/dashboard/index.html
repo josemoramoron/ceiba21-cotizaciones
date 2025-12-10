@@ -4,6 +4,33 @@
 
 {% block content %}
 <div class="bg-white rounded-lg shadow-lg p-6">
+    <!-- Quick Actions -->
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <a href="{{ url_for('operator.orders') }}" class="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition text-center">
+            <div class="text-3xl mb-2">📋</div>
+            <div class="font-semibold">Ver Órdenes</div>
+            <div class="text-xs opacity-80">Gestionar órdenes del bot</div>
+        </a>
+        
+        <a href="{{ url_for('dashboard.operators') }}" class="bg-indigo-500 text-white p-4 rounded-lg hover:bg-indigo-600 transition text-center">
+            <div class="text-3xl mb-2">👨‍💼</div>
+            <div class="font-semibold">Operadores</div>
+            <div class="text-xs opacity-80">Gestionar operadores</div>
+        </a>
+        
+        <a href="{{ url_for('dashboard.telegram_publisher') }}" class="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition text-center">
+            <div class="text-3xl mb-2">📱</div>
+            <div class="font-semibold">Telegram</div>
+            <div class="text-xs opacity-80">Publicar cotizaciones</div>
+        </a>
+        
+        <a href="{{ url_for('dashboard.manage_rates') }}" class="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition text-center">
+            <div class="text-3xl mb-2">💱</div>
+            <div class="font-semibold">Tasas</div>
+            <div class="text-xs opacity-80">Actualizar tasas</div>
+        </a>
+    </div>
+
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
         <div>
@@ -14,9 +41,6 @@
             <button onclick="saveColumnOrder()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
                 <i class="fas fa-save"></i> Guardar Orden de Monedas
             </button>
-	<a href="{{ url_for('dashboard.telegram_publisher') }}" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition inline-flex items-center">
-	    <i class="fab fa-telegram mr-2"></i> Publicar en Telegram
-	</a>
         </div>
     </div>
 

@@ -260,6 +260,95 @@ def delete_payment_method(pm_id):
     
     return redirect(url_for('dashboard.manage_payment_methods'))
 
+# ==================== CRUD OPERADORES ====================
+
+@dashboard_bp.route('/operators')
+@login_required
+def operators():
+    """Gestionar operadores (CRUD)"""
+    from app.models.operator import Operator
+    operators = Operator.query.order_by(Operator.created_at.desc()).all()
+    return render_template('dashboard/operators.html', operators=operators)
+
+@dashboard_bp.route('/operators/add', methods=['POST'])
+@login_required
+def add_operator():
+    """Crear nuevo operador"""
+    from app.models.operator import Operator, OperatorRole
+    
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    full_name = request.form.get('full_name', '').strip()
+    email = request.form.get('email', '').strip()
+    role = request.form.get('role', 'agent')
+    
+    if not username or not password or not full_name:
+        flash('❌ Usuario, contraseña y nombre completo son obligatorios', 'error')
+        return redirect(url_for('dashboard.operators'))
+    
+    # Verificar que no exista
+    existing = Operator.query.filter_by(username=username).first()
+    if existing:
+        flash(f'❌ El usuario {username} ya existe', 'error')
+        return redirect(url_for('dashboard.operators'))
+    
+    # Crear operador
+    operator = Operator(
+        username=username,
+        full_name=full_name,
+        email=email,
+        role=OperatorRole(role)
+    )
+    operator.set_password(password)
+    
+    if operator.save():
+        flash(f'✅ Operador {username} creado exitosamente', 'success')
+    else:
+        flash('❌ Error al crear operador', 'error')
+    
+    return redirect(url_for('dashboard.operators'))
+
+@dashboard_bp.route('/operators/<int:operator_id>/toggle', methods=['POST'])
+@login_required
+def toggle_operator(operator_id):
+    """Activar/Desactivar operador"""
+    from app.models.operator import Operator
+    
+    operator = Operator.query.get(operator_id)
+    if not operator:
+        flash('❌ Operador no encontrado', 'error')
+        return redirect(url_for('dashboard.operators'))
+    
+    operator.is_active = not operator.is_active
+    operator.save()
+    
+    status = "activado" if operator.is_active else "desactivado"
+    flash(f'✅ Operador {status} exitosamente', 'success')
+    
+    return redirect(url_for('dashboard.operators'))
+
+@dashboard_bp.route('/operators/<int:operator_id>/reset-password', methods=['POST'])
+@login_required
+def reset_operator_password(operator_id):
+    """Resetear contraseña de operador"""
+    from app.models.operator import Operator
+    
+    operator = Operator.query.get(operator_id)
+    if not operator:
+        flash('❌ Operador no encontrado', 'error')
+        return redirect(url_for('dashboard.operators'))
+    
+    new_password = request.form.get('new_password', '').strip()
+    if not new_password:
+        flash('❌ La nueva contraseña es obligatoria', 'error')
+        return redirect(url_for('dashboard.operators'))
+    
+    operator.set_password(new_password)
+    operator.save()
+    
+    flash(f'✅ Contraseña de {operator.username} actualizada', 'success')
+    return redirect(url_for('dashboard.operators'))
+
 # ==================== API ENDPOINTS ====================
 
 @dashboard_bp.route('/api/quote/<int:quote_id>', methods=['PUT'])
