@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Orden {{ order.reference }} - Dashboard Operador{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-6xl">
+    
+    <!-- Breadcrumb -->
+    <div class="mb-4">
+        <a href="{{ url_for('operator.orders') }}" class="text-blue-600 hover:text-blue-800">← Volver a órdenes</a>
+    </div>
+    
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ order.reference }}</h1>
+                <p class="text-gray-600 mt-1">Creada: {{ order.created_at.strftime('%d/%m/%Y a las %H:%M') }}</p>
+            </div>
+            <div>
+                {% if order.status.value == 'pending' %}
+                <span class="px-4 py-2 text-sm font-semibold rounded bg-yellow-100 text-yellow-800">
+                    ⏳ PENDIENTE
+                </span>
+                {% elif order.status.value == 'in_process' %}
+                <span class="px-4 py-2 text-sm font-semibold rounded bg-blue-100 text-blue-800">
+                    🔄 EN PROCESO
+                </span>
+                {% elif order.status.value == 'completed' %}
+                <span class="px-4 py-2 text-sm font-semibold rounded bg-green-100 text-green-800">
+                    ✅ COMPLETADA
+                </span>
+                {% elif order.status.value == 'cancelled' %}
+                <span class="px-4 py-2 text-sm font-semibold rounded bg-red-100 text-red-800">
+                    ❌ CANCELADA
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-6">
+        
+        <!-- Columna izquierda: Información -->
+        <div class="col-span-2 space-y-6">
+            
+            <!-- Datos del cliente -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">👤 Datos del Cliente</h2>
+                <dl class="grid grid-cols-2 gap-4">
+                    <div>
+                        <dt class="text-sm text-gray-600">Nombre/Usuario</dt>
+                        <dd class="text-base font-medium text-gray-900">{{ order.user.get_display_name() }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-600">Canal</dt>
+                        <dd class="text-base font-medium">
+                            {% if order.channel == 'telegram' %}
+                            <span class="text-blue-600">🔵 Telegram</span>
+                            {% elif order.channel == 'whatsapp' %}
+                            <span class="text-green-600">🟢 WhatsApp</span>
+                            {% else %}
+                            <span class="text-yellow-600">🟡 {{ order.channel }}</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    {% if order.client_phone %}
+                    <div>
+                        <dt class="text-sm text-gray-600">Teléfono</dt>
+                        <dd class="text-base font-medium text-gray-900">📞 {{ order.client_phone }}</dd>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <dt class="text-sm text-gray-600">Banco</dt>
+                        <dd class="text-base font-medium text-gray-900">{{ order.client_bank or 'N/A' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-600">Cuenta</dt>
+                        <dd class="text-base font-medium text-gray-900">{{ order.client_account or 'N/A' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-600">Titular</dt>
+                        <dd class="text-base font-medium text-gray-900">{{ order.client_holder or 'N/A' }}</dd>
+                    </div>
+                    <div class="col-span-2">
+                        <dt class="text-sm text-gray-600">DNI/Cédula</dt>
+                        <dd class="text-base font-medium text-gray-900">{{ order.client_dni or 'N/A' }}</dd>
+                    </div>
+                </dl>
+            </div>
+            
+            <!-- Datos financieros -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Datos Financieros</h2>
+                <dl class="grid grid-cols-2 gap-4">
+                    <div>
+                        <dt class="text-sm text-gray-600">Método de Pago (Origen)</dt>
+                        <dd class="text-base font-medium text-gray-900">{{ order.payment_method_from.name }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-600">Método de Pago (Destino)</dt>
+                        <dd class="text-base font-medium text-gray-900">{{ order.payment_method_to.name if order.payment_method_to else order.client_bank }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-600">Monto Enviado (USD)</dt>
+                        <dd class="text-2xl font-bold text-blue-600">${{ "%.2f"|format(order.amount_usd) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-600">Comisión (USD)</dt>
+                        <dd class="text-xl font-medium text-gray-600">${{ "%.2f"|format(order.fee_usd) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-600">Monto Neto (USD)</dt>
+                        <dd class="text-xl font-medium text-gray-900">${{ "%.2f"|format(order.net_usd) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-600">Tasa de Cambio</dt>
+                        <dd class="text-xl font-medium text-gray-900">{{ "%.2f"|format(order.exchange_rate) }}</dd>
+                    </div>
+                    <div class="col-span-2">
+                        <dt class="text-sm text-gray-600">Monto a Recibir ({{ order.currency.code }})</dt>
+                        <dd class="text-3xl font-bold text-green-600">{{ "%.2f"|format(order.amount_local) }} {{ order.currency.code }}</dd>
+                    </div>
+                </dl>
+            </div>
+            
+            <!-- Comprobante -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">📸 Comprobante de Pago</h2>
+                {% if order.client_proof_url %}
+                <div class="text-center">
+                    <img src="{{ order.client_proof_url }}" 
+                         alt="Comprobante" 
+                         class="max-w-full h-auto rounded border border-gray-300 mx-auto"
+                         style="max-height: 600px;">
+                    <div class="mt-4">
+                        <a href="{{ order.client_proof_url }}" 
+                           target="_blank" 
+                           class="text-blue-600 hover:text-blue-800">
+                            🔍 Ver en tamaño completo
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">Sin comprobante</p>
+                {% endif %}
+            </div>
+            
+        </div>
+        
+        <!-- Columna derecha: Acciones -->
+        <div class="space-y-6">
+            
+            <!-- Información del operador -->
+            {% if order.operator %}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 class="font-medium text-gray-900 mb-2">👨‍💼 Operador Asignado</h3>
+                <p class="text-sm text-gray-700">{{ order.operator.full_name }}</p>
+                {% if order.assigned_at %}
+                <p class="text-xs text-gray-500 mt-1">
+                    Asignada: {{ order.assigned_at.strftime('%d/%m/%Y %H:%M') }}
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Acciones -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">⚡ Acciones</h3>
+                
+                {% if order.status.value == 'pending' %}
+                <!-- Tomar orden -->
+                <button onclick="takeOrder({{ order.id }})" 
+                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded mb-3">
+                    👋 Tomar Orden
+                </button>
+                {% endif %}
+                
+                {% if order.status.value in ['pending', 'in_process'] %}
+                <!-- Completar -->
+                <button onclick="completeOrder({{ order.id }})" 
+                        class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded mb-3">
+                    ✅ Marcar como Completada
+                </button>
+                
+                <!-- Cancelar -->
+                <button onclick="cancelOrder({{ order.id }})" 
+                        class="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded">
+                    ❌ Cancelar Orden
+                </button>
+                {% endif %}
+                
+                {% if order.status.value == 'completed' %}
+                <div class="text-center py-4">
+                    <span class="text-4xl">✅</span>
+                    <p class="text-gray-600 mt-2">Orden completada</p>
+                    {% if order.completed_at %}
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ order.completed_at.strftime('%d/%m/%Y %H:%M') }}
+                    </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                {% if order.status.value == 'cancelled' %}
+                <div class="text-center py-4">
+                    <span class="text-4xl">❌</span>
+                    <p class="text-gray-600 mt-2">Orden cancelada</p>
+                    {% if order.cancellation_reason %}
+                    <p class="text-xs text-gray-500 mt-2 italic">
+                        "{{ order.cancellation_reason }}"
+                    </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Información adicional -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 class="font-medium text-gray-900 mb-3">📋 Información</h3>
+                <div class="space-y-2 text-sm">
+                    <div>
+                        <span class="text-gray-600">ID:</span>
+                        <span class="font-mono text-gray-900">{{ order.id }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Referencia:</span>
+                        <span class="font-mono text-gray-900">{{ order.reference }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Creada:</span>
+                        <span class="text-gray-900">{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                    {% if order.submitted_at %}
+                    <div>
+                        <span class="text-gray-600">Enviada:</span>
+                        <span class="text-gray-900">{{ order.submitted_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+    
+</div>
+
+<!-- JavaScript para acciones -->
+<script>
+function takeOrder(orderId) {
+    if (!confirm('¿Deseas tomar esta orden?')) return;
+    
+    fetch(`/operator/api/orders/${orderId}/take`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error);
+    });
+}
+
+function completeOrder(orderId) {
+    if (!confirm('¿Confirmaste el pago al cliente?\n\nAl marcar como completada:\n- Se generarán las transacciones contables\n- Se notificará al cliente\n- No se podrá revertir')) {
+        return;
+    }
+    
+    fetch(`/operator/api/orders/${orderId}/complete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error);
+    });
+}
+
+function cancelOrder(orderId) {
+    const reason = prompt('¿Por qué cancelas esta orden?\n\nEscribe el motivo:');
+    
+    if (!reason || reason.trim() === '') {
+        alert('❌ Debes proporcionar un motivo');
+        return;
+    }
+    
+    fetch(`/operator/api/orders/${orderId}/cancel`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            reason: reason.trim()
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error);
+    });
+}
+</script>
+{% endblock %}

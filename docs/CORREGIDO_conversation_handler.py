@@ -176,7 +176,6 @@ class ConversationHandler:
             ConversationState.ENTER_ACCOUNT: self._handle_enter_account,
             ConversationState.ENTER_HOLDER: self._handle_enter_holder,
             ConversationState.ENTER_DNI: self._handle_enter_dni,
-            ConversationState.ENTER_PHONE: self._handle_enter_phone,
             ConversationState.AWAIT_PROOF: self._handle_await_proof,
         }
         
@@ -206,7 +205,7 @@ class ConversationHandler:
             'id': currency.id,
             'code': currency.code,
             'name': currency.name,
-            'active': currency.active
+            'is_active': currency.is_active
         }
     
     @staticmethod
@@ -218,7 +217,7 @@ class ConversationHandler:
             'id': method.id,
             'name': method.name,
             'code': method.code if hasattr(method, 'code') else method.name.upper(),
-            'active': method.active
+            'is_active': method.is_active
         }
     
     @staticmethod
@@ -267,23 +266,13 @@ class ConversationHandler:
                 # Iniciar nueva operación
                 self.set_state(user, ConversationState.SELECT_CURRENCY)
                 
-                # Inicializar páginas en 0
-                data = self.get_data(user)
-                data['page_currency'] = 0
-                data['page_method'] = 0
-                self.set_data(user, data)
-                
                 # ✅ SOLUCIÓN: Obtener currencies y SERIALIZAR inmediatamente
-                currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
+                currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
                 
                 # Serializar mientras la sesión está activa
                 currencies_list = [self._serialize_currency(c) for c in currencies]
                 
-                # Guardar lista completa en datos
-                data['currencies_list'] = currencies_list
-                self.set_data(user, data)
-                
-                return Responses.select_currency_message(currencies_list, page=0)
+                return Responses.select_currency_message(currencies_list)
             
             elif action == 'help':
                 return Responses.help_message()
@@ -292,147 +281,62 @@ class ConversationHandler:
         return Responses.main_menu_message()
     
     def _handle_select_currency(self, user: User, message: str) -> Dict[str, Any]:
-        """Handler para SELECT_CURRENCY con soporte de paginación"""
+        """Handler para SELECT_CURRENCY"""
         from app.bot.responses import Responses
-        
-        # Obtener datos actuales
-        data = self.get_data(user)
-        current_page = data.get('page_currency', 0)
-        currencies_list = data.get('currencies_list')
-        
-        # Si no hay lista guardada, obtenerla
-        if not currencies_list:
-            currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
-            currencies_list = [self._serialize_currency(c) for c in currencies]
-            data['currencies_list'] = currencies_list
-            self.set_data(user, data)
         
         # Parsear callback data
         callback = self.parser.parse_callback_data(message)
         
-        # Manejar paginación
-        if callback['action'] == 'currency_page':
-            if callback['value'] == 'next':
-                current_page += 1
-            elif callback['value'] == 'prev':
-                current_page = max(0, current_page - 1)
-            
-            # Guardar nueva página
-            data['page_currency'] = current_page
-            self.set_data(user, data)
-            
-            # Mostrar página actualizada
-            return Responses.select_currency_message(currencies_list, page=current_page)
-        
-        # Ignorar click en indicador de página
-        if callback['action'] == 'page_info':
-            return Responses.select_currency_message(currencies_list, page=current_page)
-        
-        # Selección de moneda
         if callback['action'] == 'currency':
             currency_id = int(callback['value'])
             currency = Currency.query.get(currency_id)
             
-            if currency and currency.active:
+            if currency and currency.is_active:
                 # ✅ SERIALIZAR currency inmediatamente
                 currency_data = self._serialize_currency(currency)
                 
                 # Guardar en datos de conversación
+                data = self.get_data(user)
                 data['currency_id'] = currency_data['id']
                 data['currency_code'] = currency_data['code']
                 data['currency_name'] = currency_data['name']
-                data['page_method'] = 0  # Resetear página de métodos
                 self.set_data(user, data)
                 
                 # Transicionar a selección de método
                 self.set_state(user, ConversationState.SELECT_METHOD_FROM)
                 
                 # ✅ Obtener métodos y SERIALIZAR
-                methods = PaymentMethod.query.filter_by(active=True).order_by(PaymentMethod.id).all()
+                methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
                 methods_list = [self._serialize_payment_method(m) for m in methods]
-                
-                # Guardar lista de métodos
-                data['methods_list'] = methods_list
-                self.set_data(user, data)
                 
                 return Responses.select_payment_method_message(
                     currency_code=currency_data['code'],
                     currency_name=currency_data['name'],
-                    methods_list=methods_list,
-                    page=0
+                    methods_list=methods_list
                 )
         
-        # Si no es válido, volver a preguntar en página actual
-        return Responses.select_currency_message(currencies_list, page=current_page)
+        # Si no es válido, volver a preguntar
+        currencies = Currency.query.filter_by(is_active=True).order_by(Currency.id).all()
+        currencies_list = [self._serialize_currency(c) for c in currencies]
+        
+        return Responses.select_currency_message(currencies_list)
     
     def _handle_select_method_from(self, user: User, message: str) -> Dict[str, Any]:
-        """Handler para SELECT_METHOD_FROM con soporte de paginación"""
+        """Handler para SELECT_METHOD_FROM"""
         from app.bot.responses import Responses
         
-        # Obtener datos actuales
-        data = self.get_data(user)
-        current_page = data.get('page_method', 0)
-        methods_list = data.get('methods_list')
-        currency_code = data.get('currency_code', 'VES')
-        currency_name = data.get('currency_name', 'Bolívares')
-        
-        # Si no hay lista guardada, obtenerla
-        if not methods_list:
-            methods = PaymentMethod.query.filter_by(active=True).order_by(PaymentMethod.id).all()
-            methods_list = [self._serialize_payment_method(m) for m in methods]
-            data['methods_list'] = methods_list
-            self.set_data(user, data)
-        
-        # Parsear callback data
         callback = self.parser.parse_callback_data(message)
         
-        # Manejar paginación
-        if callback['action'] == 'method_page':
-            if callback['value'] == 'next':
-                current_page += 1
-            elif callback['value'] == 'prev':
-                current_page = max(0, current_page - 1)
-            
-            # Guardar nueva página
-            data['page_method'] = current_page
-            self.set_data(user, data)
-            
-            # Mostrar página actualizada
-            return Responses.select_payment_method_message(
-                currency_code=currency_code,
-                currency_name=currency_name,
-                methods_list=methods_list,
-                page=current_page
-            )
-        
-        # Ignorar click en indicador de página
-        if callback['action'] == 'page_info':
-            return Responses.select_payment_method_message(
-                currency_code=currency_code,
-                currency_name=currency_name,
-                methods_list=methods_list,
-                page=current_page
-            )
-        
-        # Volver a selección de moneda
-        if callback['action'] == 'back' and callback['value'] == 'select_currency':
-            self.set_state(user, ConversationState.SELECT_CURRENCY)
-            currencies_list = data.get('currencies_list', [])
-            if not currencies_list:
-                currencies = Currency.query.filter_by(active=True).order_by(Currency.id).all()
-                currencies_list = [self._serialize_currency(c) for c in currencies]
-            return Responses.select_currency_message(currencies_list, page=data.get('page_currency', 0))
-        
-        # Selección de método
         if callback['action'] == 'method':
             method_id = int(callback['value'])
             method = PaymentMethod.query.get(method_id)
             
-            if method and method.active:
+            if method and method.is_active:
                 # ✅ SERIALIZAR method
                 method_data = self._serialize_payment_method(method)
                 
                 # Guardar método seleccionado
+                data = self.get_data(user)
                 data['payment_method_from_id'] = method_data['id']
                 data['payment_method_from_name'] = method_data['name']
                 self.set_data(user, data)
@@ -441,12 +345,15 @@ class ConversationHandler:
                 self.set_state(user, ConversationState.ENTER_AMOUNT)
                 return Responses.enter_amount_message(method_name=method_data['name'])
         
-        # Si no es válido, volver a preguntar en página actual
+        # Volver a preguntar
+        data = self.get_data(user)
+        methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
+        methods_list = [self._serialize_payment_method(m) for m in methods]
+        
         return Responses.select_payment_method_message(
-            currency_code=currency_code,
-            currency_name=currency_name,
-            methods_list=methods_list,
-            page=current_page
+            currency_code=data.get('currency_code', 'VES'),
+            currency_name=data.get('currency_name', 'Bolívares'),
+            methods_list=methods_list
         )
     
     def _handle_enter_amount(self, user: User, message: str) -> Dict[str, Any]:
@@ -521,124 +428,26 @@ class ConversationHandler:
         return Responses.confirm_calculation_message(data)
     
     def _handle_enter_bank(self, user: User, message: str) -> Dict[str, Any]:
-        """
-        Handler para ENTER_BANK con detección inteligente de múltiples líneas.
-        
-        Si el usuario envía todo junto (banco, cuenta, titular, DNI en líneas separadas),
-        el bot lo detecta y procesa todo de una vez.
-        """
+        """Handler para ENTER_BANK"""
         from app.bot.responses import Responses
         
-        # Detectar si el usuario envió múltiples líneas (todo junto)
-        lines = [line.strip() for line in message.strip().split('\n') if line.strip()]
+        # Validar nombre del banco
+        is_valid, bank_name, error_msg = self.parser.validate_bank_name(message)
         
-        # Obtener datos actuales
-        data = self.get_data(user)
-        currency_code = data.get('currency_code', 'VES')
-        country_map = {'VES': 'VE', 'COP': 'CO', 'CLP': 'CL', 'ARS': 'AR'}
-        country = country_map.get(currency_code, 'VE')
-        
-        # Caso 1: Usuario envió todo junto (5 líneas: banco, cuenta, titular, DNI, teléfono)
-        if len(lines) == 5:
-            bank_name = lines[0]
-            account = lines[1]
-            holder = lines[2]
-            dni = lines[3]
-            phone = lines[4]
-            
-            # Validar banco
-            is_valid_bank, bank_name, error_bank = self.parser.validate_bank_name(bank_name)
-            if not is_valid_bank:
-                return {
-                    'text': f'❌ Banco inválido: {error_bank}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Validar cuenta
-            is_valid_account, account, error_account = self.parser.validate_account(account, country)
-            if not is_valid_account:
-                return {
-                    'text': f'❌ Cuenta inválida: {error_account}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Validar titular
-            is_valid_holder, holder, error_holder = self.parser.validate_holder_name(holder)
-            if not is_valid_holder:
-                return {
-                    'text': f'❌ Titular inválido: {error_holder}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Validar DNI
-            is_valid_dni, dni, error_dni = self.parser.validate_dni(dni, country)
-            if not is_valid_dni:
-                return {
-                    'text': f'❌ DNI inválido: {error_dni}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Validar teléfono
-            is_valid_phone, phone, error_phone = self.parser.validate_phone(phone, country)
-            if not is_valid_phone:
-                return {
-                    'text': f'❌ Teléfono inválido: {error_phone}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Todo válido! Guardar todos los datos
-            data['bank'] = bank_name
-            data['account'] = account
-            data['holder'] = holder
-            data['dni'] = dni
-            data['phone'] = phone
-            self.set_data(user, data)
-            
-            # Crear orden directamente (saltar estados intermedios)
-            try:
-                order = self._create_order_draft(user, data)
-                
-                # ✅ SERIALIZAR order antes de guardar
-                data['order_id'] = order.id
-                data['order_reference'] = order.reference
-                self.set_data(user, data)
-                
-                # Transicionar a esperar comprobante
-                self.set_state(user, ConversationState.AWAIT_PROOF)
-                
-                return Responses.payment_instructions_message(data)
-                
-            except Exception as e:
-                return {
-                    'text': f'❌ Error al crear orden: {str(e)}\n\nContacta a soporte.',
-                    'buttons': None
-                }
-        
-        # Caso 2: Formato anterior (4 líneas sin teléfono) - Mantener compatibilidad
-        elif len(lines) == 4:
+        if not is_valid:
             return {
-                'text': '⚠️ Formato antiguo detectado.\n\nAhora necesitamos 5 datos:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. **Teléfono móvil** (nuevo)\n\nPor favor envía los 5 datos o continúa uno por uno.',
+                'text': error_msg,
                 'buttons': None
             }
         
-        # Caso 3: Flujo normal (solo banco)
-        else:
-            # Validar nombre del banco
-            is_valid, bank_name, error_msg = self.parser.validate_bank_name(message)
-            
-            if not is_valid:
-                return {
-                    'text': error_msg,
-                    'buttons': None
-                }
-            
-            # Guardar banco
-            data['bank'] = bank_name
-            self.set_data(user, data)
-            
-            # Transicionar a número de cuenta
-            self.set_state(user, ConversationState.ENTER_ACCOUNT)
-            return Responses.enter_account_message()
+        # Guardar banco
+        data = self.get_data(user)
+        data['bank'] = bank_name
+        self.set_data(user, data)
+        
+        # Transicionar a número de cuenta
+        self.set_state(user, ConversationState.ENTER_ACCOUNT)
+        return Responses.enter_account_message()
     
     def _handle_enter_account(self, user: User, message: str) -> Dict[str, Any]:
         """Handler para ENTER_ACCOUNT"""
@@ -697,7 +506,7 @@ class ConversationHandler:
         return Responses.enter_dni_message(data.get('currency_code', 'VES'))
     
     def _handle_enter_dni(self, user: User, message: str) -> Dict[str, Any]:
-        """Handler para ENTER_DNI - Ya NO crea orden, pide teléfono"""
+        """Handler para ENTER_DNI"""
         from app.bot.responses import Responses
         
         # Obtener país
@@ -719,34 +528,7 @@ class ConversationHandler:
         data['dni'] = dni
         self.set_data(user, data)
         
-        # Transicionar a pedir teléfono
-        self.set_state(user, ConversationState.ENTER_PHONE)
-        return Responses.enter_phone_message(currency_code)
-    
-    def _handle_enter_phone(self, user: User, message: str) -> Dict[str, Any]:
-        """Handler para ENTER_PHONE - Aquí SÍ crea la orden"""
-        from app.bot.responses import Responses
-        
-        # Obtener país
-        data = self.get_data(user)
-        currency_code = data.get('currency_code', 'VES')
-        country_map = {'VES': 'VE', 'COP': 'CO', 'CLP': 'CL', 'ARS': 'AR'}
-        country = country_map.get(currency_code, 'VE')
-        
-        # Validar teléfono
-        is_valid, phone, error_msg = self.parser.validate_phone(message, country)
-        
-        if not is_valid:
-            return {
-                'text': error_msg,
-                'buttons': None
-            }
-        
-        # Guardar teléfono
-        data['phone'] = phone
-        self.set_data(user, data)
-        
-        # AHORA SÍ CREAR ORDEN (estado DRAFT)
+        # CREAR ORDEN (estado DRAFT)
         try:
             order = self._create_order_draft(user, data)
             
@@ -907,39 +689,28 @@ Para nueva operación: /start''',
             
         Returns:
             Order creada
-            
-        Raises:
-            Exception si falla la creación
         """
         calc = data['calculation']
         
-        # Preparar datos de pago del cliente (ahora con teléfono)
+        # Preparar datos de pago del cliente
         client_payment_data = {
             'bank': data['bank'],
             'account': data['account'],
             'holder': data['holder'],
-            'dni': data['dni'],
-            'phone': data.get('phone', '')  # Puede estar vacío si flujo antiguo
+            'dni': data['dni']
         }
         
-        # Crear orden con OrderService (retorna tupla: success, message, order)
-        success, message, order = OrderService.create_order(
+        # Crear orden con OrderService
+        order = OrderService.create_order(
             user_id=user.id,
             currency_id=data['currency_id'],
             payment_method_from_id=data['payment_method_from_id'],
             payment_method_to_id=data['payment_method_from_id'],  # Por ahora el mismo
             amount_usd=Decimal(str(data['amount_usd'])),
-            amount_local=Decimal(str(calc['amount_local'])),
-            fee_usd=Decimal(str(calc['fee_usd'])),
-            net_usd=Decimal(str(calc['net_usd'])),
-            exchange_rate=Decimal(str(calc['exchange_rate'])),
             client_payment_data=client_payment_data,
             channel='telegram',
             channel_chat_id=str(user.telegram_id) if hasattr(user, 'telegram_id') else None
         )
-        
-        if not success or not order:
-            raise Exception(message)
         
         return order
     

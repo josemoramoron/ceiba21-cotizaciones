@@ -124,7 +124,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             response['text'],
             reply_markup=reply_markup,
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.MARKDOWN
         )
         
     except Exception as e:
@@ -161,7 +161,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update.message.reply_text(
             response['text'],
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.MARKDOWN
         )
         
     except Exception as e:
@@ -180,7 +180,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update.message.reply_text(
             response['text'],
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.MARKDOWN
         )
         
     except Exception as e:
@@ -324,7 +324,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             response['text'],
             reply_markup=reply_markup,
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.MARKDOWN
         )
         
     except Exception as e:
@@ -364,9 +364,9 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         await query.message.reply_text(
             response['text'],
             reply_markup=reply_markup,
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.MARKDOWN
         )
-    
+        
     except Exception as e:
         logger.error(f"Error in button_callback_handler: {str(e)}", exc_info=True)
         await query.message.reply_text('❌ Error al procesar selección.')
@@ -415,7 +415,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # ✅ Usar datos primitivos fuera del contexto
         await update.message.reply_text(
             response['text'],
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.MARKDOWN
         )
         
         logger.info(f"Proof received for order {order_reference}")

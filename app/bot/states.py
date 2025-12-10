@@ -37,6 +37,7 @@ class ConversationState(Enum):
     ENTER_ACCOUNT = 'enter_account'
     ENTER_HOLDER = 'enter_holder'
     ENTER_DNI = 'enter_dni'
+    ENTER_PHONE = 'enter_phone'
     
     # Estados finales
     AWAIT_PROOF = 'await_proof'
@@ -140,8 +141,13 @@ class ConversationState(Enum):
                 ConversationState.CANCELLED
             ],
             ConversationState.ENTER_DNI: [
-                ConversationState.AWAIT_PROOF,
+                ConversationState.ENTER_PHONE,
                 ConversationState.ENTER_HOLDER,
+                ConversationState.CANCELLED
+            ],
+            ConversationState.ENTER_PHONE: [
+                ConversationState.AWAIT_PROOF,
+                ConversationState.ENTER_DNI,
                 ConversationState.CANCELLED
             ],
             ConversationState.AWAIT_PROOF: [

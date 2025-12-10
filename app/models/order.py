@@ -117,6 +117,37 @@ class Order(BaseModel):
         """Representación de la orden"""
         return f"<Order {self.reference} - {self.status.value}>"
     
+    # Propiedades para acceder fácilmente a datos del cliente
+    @property
+    def client_phone(self) -> Optional[str]:
+        """Obtener teléfono del cliente desde JSON"""
+        return self.client_payment_data.get('phone') if self.client_payment_data else None
+    
+    @property
+    def client_bank(self) -> Optional[str]:
+        """Obtener banco del cliente desde JSON"""
+        return self.client_payment_data.get('bank') if self.client_payment_data else None
+    
+    @property
+    def client_account(self) -> Optional[str]:
+        """Obtener cuenta del cliente desde JSON"""
+        return self.client_payment_data.get('account') if self.client_payment_data else None
+    
+    @property
+    def client_holder(self) -> Optional[str]:
+        """Obtener titular del cliente desde JSON"""
+        return self.client_payment_data.get('holder') if self.client_payment_data else None
+    
+    @property
+    def client_dni(self) -> Optional[str]:
+        """Obtener DNI del cliente desde JSON"""
+        return self.client_payment_data.get('dni') if self.client_payment_data else None
+    
+    @property
+    def client_proof_url(self) -> Optional[str]:
+        """Alias para payment_proof_url"""
+        return self.payment_proof_url
+    
     @staticmethod
     def generate_reference(date_obj: Optional[date] = None) -> str:
         """

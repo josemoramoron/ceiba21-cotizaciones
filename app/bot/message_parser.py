@@ -143,15 +143,18 @@ class MessageParser:
         Returns:
             Tupla (es_valido, dni_limpio, mensaje_error)
         """
+        # Limpiar y convertir a mayúsculas para validación case-insensitive
         text = text.strip().upper()
         
         if country_code == 'VE':
-            # Venezuela: V-12345678 o E-12345678
+            # Venezuela: V-12345678 o E-12345678 (acepta v/e minúsculas)
+            # Permitir sin guion también: V12345678
             if not cls.DNI_VENEZUELA_PATTERN.match(text):
-                return False, None, "❌ Cédula inválida.\n\nFormato: V-12345678 o E-12345678"
+                return False, None, "❌ Cédula inválida.\n\nFormato: V-12345678 o E-12345678\n(Se acepta v minúscula también)"
             
-            # Normalizar (agregar guion si no lo tiene)
+            # Normalizar: asegurar formato con guion
             if '-' not in text:
+                # Insertar guion entre letra y números
                 text = text[0] + '-' + text[1:]
         
         elif country_code == 'CO':
@@ -168,6 +171,46 @@ class MessageParser:
             # Argentina: solo números
             if not cls.DNI_ARGENTINA_PATTERN.match(text):
                 return False, None, "❌ DNI inválido.\n\nDebe tener 7 u 8 dígitos."
+        
+        return True, text, None
+    
+    @classmethod
+    def validate_phone(cls, text: str, country_code: str = 'VE') -> Tuple[bool, Optional[str], Optional[str]]:
+        """
+        Validar número de teléfono móvil.
+        
+        Args:
+            text: Número de teléfono ingresado
+            country_code: Código del país (VE, CO, CL, AR)
+            
+        Returns:
+            Tupla (es_valido, telefono_limpio, mensaje_error)
+        """
+        # Limpiar espacios, guiones y paréntesis
+        text = text.strip().replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+        
+        if country_code == 'VE':
+            # Venezuela: 04XX-XXXXXXX (11 dígitos total, empieza con 04)
+            if not re.match(r'^04\d{9}$', text):
+                return False, None, "❌ Teléfono inválido.\n\nFormato: 04121234567 (11 dígitos)"
+            
+            # Formatear con guion: 0412-1234567
+            text = text[:4] + '-' + text[4:]
+        
+        elif country_code == 'CO':
+            # Colombia: 3XX-XXXXXXX (10 dígitos, empieza con 3)
+            if not re.match(r'^3\d{9}$', text):
+                return False, None, "❌ Teléfono inválido.\n\nFormato: 3001234567 (10 dígitos)"
+        
+        elif country_code == 'CL':
+            # Chile: +56 9 XXXX XXXX (9 dígitos)
+            if not re.match(r'^9\d{8}$', text):
+                return False, None, "❌ Teléfono inválido.\n\nFormato: 912345678 (9 dígitos)"
+        
+        elif country_code == 'AR':
+            # Argentina: 11-XXXX-XXXX (10 dígitos, puede empezar con 11, 15, etc)
+            if not re.match(r'^\d{10}$', text):
+                return False, None, "❌ Teléfono inválido.\n\nFormato: 1112345678 (10 dígitos)"
         
         return True, text, None
     

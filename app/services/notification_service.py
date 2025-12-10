@@ -193,6 +193,21 @@ class NotificationService(BaseService):
             return False, f"Error: {str(e)}"
     
     @classmethod
+    def notify_new_order(cls, order: Order) -> Tuple[bool, str]:
+        """
+        Alias para notify_new_order_to_operators.
+        
+        Notificar a operadores sobre nueva orden pendiente.
+        
+        Args:
+            order: Nueva orden
+            
+        Returns:
+            Tupla (success, message)
+        """
+        return cls.notify_new_order_to_operators(order)
+    
+    @classmethod
     def get_user_messages(cls, user_id: int, order_id: Optional[int] = None,
                          limit: Optional[int] = None) -> list[Dict[str, Any]]:
         """
