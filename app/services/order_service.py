@@ -123,7 +123,7 @@ class OrderService(BaseService):
             return False, f"Error al enviar orden: {str(e)}"
     
     @classmethod
-    def assign_order(cls, order_id: int, operator_id: int) -> Tuple[bool, str]:
+    def assign_order(cls, order_id: int, operator_id: int) -> Tuple[bool, str, Optional[Order]]:
         """
         Asignar orden a operador (PENDING → IN_PROCESS).
         
@@ -132,36 +132,39 @@ class OrderService(BaseService):
             operator_id: ID del operador
             
         Returns:
-            Tupla (success, message)
+            Tupla (success, message, order)
         """
         try:
             order = Order.find_by_id(order_id)
             if not order:
-                return False, "Orden no encontrada"
+                return False, "Orden no encontrada", None
             
             operator = Operator.find_by_id(operator_id)
             if not operator:
-                return False, "Operador no encontrado"
+                return False, "Operador no encontrado", None
             
             if not operator.is_active:
-                return False, "Operador no está activo"
+                return False, "Operador no está activo", None
             
             # Transicionar a IN_PROCESS
             success, message = order.transition_to(OrderStatus.IN_PROCESS, operator)
             
             if success:
                 cls.log_info(f"Orden {order.reference} asignada a operador {operator.username}")
+                # Notificar al cliente
+                from app.services.notification_service import NotificationService
+                NotificationService.notify_order_assigned(order)
             
-            return success, message
+            return success, message, order
             
         except Exception as e:
             cls.log_error("Error al asignar orden", e)
-            return False, f"Error al asignar orden: {str(e)}"
+            return False, f"Error al asignar orden: {str(e)}", None
     
     @classmethod
     def complete_order(cls, order_id: int, operator_id: int,
                       operator_proof_url: Optional[str] = None,
-                      notes: Optional[str] = None) -> Tuple[bool, str]:
+                      notes: Optional[str] = None) -> Tuple[bool, str, Optional[Order]]:
         """
         Completar orden (IN_PROCESS → COMPLETED).
         
@@ -174,20 +177,20 @@ class OrderService(BaseService):
             notes: Notas adicionales
             
         Returns:
-            Tupla (success, message)
+            Tupla (success, message, order)
         """
         try:
             order = Order.find_by_id(order_id)
             if not order:
-                return False, "Orden no encontrada"
+                return False, "Orden no encontrada", None
             
             operator = Operator.find_by_id(operator_id)
             if not operator:
-                return False, "Operador no encontrado"
+                return False, "Operador no encontrado", None
             
             # Validar que el operador asignado es quien completa
             if order.operator_id != operator_id:
-                return False, "Solo el operador asignado puede completar la orden"
+                return False, "Solo el operador asignado puede completar la orden", None
             
             # Actualizar campos opcionales
             if operator_proof_url:
@@ -200,16 +203,19 @@ class OrderService(BaseService):
             
             if success:
                 cls.log_info(f"Orden {order.reference} completada por operador {operator.username}")
+                # Notificar al cliente
+                from app.services.notification_service import NotificationService
+                NotificationService.notify_order_completed(order)
             
-            return success, message
+            return success, message, order
             
         except Exception as e:
             cls.log_error("Error al completar orden", e)
-            return False, f"Error al completar orden: {str(e)}"
+            return False, f"Error al completar orden: {str(e)}", None
     
     @classmethod
     def cancel_order(cls, order_id: int, reason: str,
-                    operator_id: Optional[int] = None) -> Tuple[bool, str]:
+                    operator_id: Optional[int] = None) -> Tuple[bool, str, Optional[Order]]:
         """
         Cancelar orden (Cualquier estado → CANCELLED).
         
@@ -219,15 +225,15 @@ class OrderService(BaseService):
             operator_id: ID del operador que cancela (opcional)
             
         Returns:
-            Tupla (success, message)
+            Tupla (success, message, order)
         """
         try:
             order = Order.find_by_id(order_id)
             if not order:
-                return False, "Orden no encontrada"
+                return False, "Orden no encontrada", None
             
             if order.status == OrderStatus.COMPLETED:
-                return False, "No se puede cancelar una orden completada"
+                return False, "No se puede cancelar una orden completada", None
             
             operator = None
             if operator_id:
@@ -238,12 +244,15 @@ class OrderService(BaseService):
             
             if success:
                 cls.log_info(f"Orden {order.reference} cancelada: {reason}")
+                # Notificar al cliente
+                from app.services.notification_service import NotificationService
+                NotificationService.notify_order_cancelled(order, reason)
             
-            return success, message
+            return success, message, order
             
         except Exception as e:
             cls.log_error("Error al cancelar orden", e)
-            return False, f"Error al cancelar orden: {str(e)}"
+            return False, f"Error al cancelar orden: {str(e)}", None
     
     @classmethod
     def get_order_by_id(cls, order_id: int, include_relationships: bool = False) -> Optional[Dict[str, Any]]:
