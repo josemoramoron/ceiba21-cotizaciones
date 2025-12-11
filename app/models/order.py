@@ -169,20 +169,40 @@ class Order(BaseModel):
             date_obj = date.today()
         
         date_str = date_obj.strftime('%Y%m%d')
+        prefix = f"ORD-{date_str}-"
         
-        # Contar órdenes del día
-        today_start = datetime.combine(date_obj, datetime.min.time())
-        today_end = datetime.combine(date_obj, datetime.max.time())
+        # Buscar todas las referencias del día usando LIKE
+        existing_refs = db.session.query(Order.reference).filter(
+            Order.reference.like(f"{prefix}%")
+        ).all()
         
-        count = Order.query.filter(
-            Order.created_at >= today_start,
-            Order.created_at <= today_end
-        ).count()
+        # Extraer números de las referencias existentes
+        existing_nums = []
+        for (ref,) in existing_refs:
+            try:
+                # Extraer el número después del último guión
+                num_str = ref.split('-')[-1]
+                existing_nums.append(int(num_str))
+            except (ValueError, IndexError):
+                continue
         
-        # Siguiente número
-        next_num = count + 1
+        # Encontrar el siguiente número disponible
+        next_num = 1
+        if existing_nums:
+            next_num = max(existing_nums) + 1
         
-        return f"ORD-{date_str}-{next_num:03d}"
+        # Generar referencia
+        reference = f"{prefix}{next_num:03d}"
+        
+        # Verificar que no exista (por si acaso)
+        max_attempts = 100
+        attempt = 0
+        while Order.query.filter_by(reference=reference).first() and attempt < max_attempts:
+            next_num += 1
+            reference = f"{prefix}{next_num:03d}"
+            attempt += 1
+        
+        return reference
     
     def can_transition_to(self, new_status: OrderStatus) -> bool:
         """
