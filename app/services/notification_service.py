@@ -116,9 +116,46 @@ class NotificationService(BaseService):
             Tupla (success, message)
         """
         try:
-            # TODO: Integrar con canales
-            cls.log_info(f"Notificación de orden asignada: {order.reference}")
-            return True, "Notificación enviada (simulated)"
+            # Verificar que tengamos canal y chat_id
+            if not order.channel_chat_id or order.channel != 'telegram':
+                cls.log_warning(f"No se puede notificar orden {order.reference}: sin canal válido")
+                return False, "Canal no disponible"
+            
+            # Crear canal de Telegram
+            telegram_channel = ChannelFactory.create_channel('telegram')
+            
+            if not telegram_channel or not telegram_channel.is_available():
+                cls.log_error("Canal de Telegram no disponible", None)
+                return False, "Canal no disponible"
+            
+            # Formatear mensaje
+            operator_name = order.operator.full_name if order.operator else "un operador"
+            
+            message_text = f"""
+✅ <b>¡Tu orden ha sido tomada!</b>
+
+Tu orden <b>{order.reference}</b> está siendo procesada por {operator_name}.
+
+💵 Monto: ${order.amount_usd:.2f} USD → {order.amount_local:.2f} {order.currency.code if order.currency else ''}
+
+⏳ <i>Estamos verificando tu pago y procesando la transferencia.</i>
+
+Te notificaremos cuando esté completada.
+            """.strip()
+            
+            # Enviar mensaje
+            success, result = telegram_channel.send_message(
+                recipient_id=order.channel_chat_id,
+                text=message_text,
+                parse_mode='HTML'
+            )
+            
+            if success:
+                cls.log_info(f"Notificación enviada a usuario para orden {order.reference}")
+                return True, "Notificación enviada"
+            else:
+                cls.log_error(f"Error al enviar notificación: {result}", None)
+                return False, f"Error al enviar: {result}"
             
         except Exception as e:
             cls.log_error("Error al notificar orden asignada", e)
@@ -136,9 +173,50 @@ class NotificationService(BaseService):
             Tupla (success, message)
         """
         try:
-            # TODO: Integrar con canales
-            cls.log_info(f"Notificación de orden completada: {order.reference}")
-            return True, "Notificación enviada (simulated)"
+            # Verificar que tengamos canal y chat_id
+            if not order.channel_chat_id or order.channel != 'telegram':
+                cls.log_warning(f"No se puede notificar orden {order.reference}: sin canal válido")
+                return False, "Canal no disponible"
+            
+            # Crear canal de Telegram
+            telegram_channel = ChannelFactory.create_channel('telegram')
+            
+            if not telegram_channel or not telegram_channel.is_available():
+                cls.log_error("Canal de Telegram no disponible", None)
+                return False, "Canal no disponible"
+            
+            # Formatear mensaje
+            currency_code = order.currency.code if order.currency else ''
+            payment_method = order.payment_method_to.name if order.payment_method_to else 'tu cuenta'
+            
+            message_text = f"""
+🎉 <b>¡Pago Completado Exitosamente!</b>
+
+Tu orden <b>{order.reference}</b> ha sido procesada.
+
+✅ <b>Detalles:</b>
+💵 Monto enviado: <b>{order.amount_local:.2f} {currency_code}</b>
+📤 Método: {payment_method}
+💰 Total USD: ${order.amount_usd:.2f}
+
+<i>El dinero debería reflejarse en tu cuenta en los próximos minutos.</i>
+
+¡Gracias por usar nuestro servicio! 🌳
+            """.strip()
+            
+            # Enviar mensaje
+            success, result = telegram_channel.send_message(
+                recipient_id=order.channel_chat_id,
+                text=message_text,
+                parse_mode='HTML'
+            )
+            
+            if success:
+                cls.log_info(f"Notificación de completado enviada para orden {order.reference}")
+                return True, "Notificación enviada"
+            else:
+                cls.log_error(f"Error al enviar notificación: {result}", None)
+                return False, f"Error al enviar: {result}"
             
         except Exception as e:
             cls.log_error("Error al notificar orden completada", e)
@@ -157,9 +235,47 @@ class NotificationService(BaseService):
             Tupla (success, message)
         """
         try:
-            # TODO: Integrar con canales
-            cls.log_info(f"Notificación de orden cancelada: {order.reference} - {reason}")
-            return True, "Notificación enviada (simulated)"
+            # Verificar que tengamos canal y chat_id
+            if not order.channel_chat_id or order.channel != 'telegram':
+                cls.log_warning(f"No se puede notificar orden {order.reference}: sin canal válido")
+                return False, "Canal no disponible"
+            
+            # Crear canal de Telegram
+            telegram_channel = ChannelFactory.create_channel('telegram')
+            
+            if not telegram_channel or not telegram_channel.is_available():
+                cls.log_error("Canal de Telegram no disponible", None)
+                return False, "Canal no disponible"
+            
+            # Formatear mensaje
+            message_text = f"""
+❌ <b>Orden Cancelada</b>
+
+Lo sentimos, tu orden <b>{order.reference}</b> ha sido cancelada.
+
+📝 <b>Motivo:</b>
+<i>{reason}</i>
+
+💵 Monto: ${order.amount_usd:.2f} USD
+
+Si tienes alguna duda, por favor contáctanos.
+
+Puedes crear una nueva orden cuando desees. 🌳
+            """.strip()
+            
+            # Enviar mensaje
+            success, result = telegram_channel.send_message(
+                recipient_id=order.channel_chat_id,
+                text=message_text,
+                parse_mode='HTML'
+            )
+            
+            if success:
+                cls.log_info(f"Notificación de cancelación enviada para orden {order.reference}")
+                return True, "Notificación enviada"
+            else:
+                cls.log_error(f"Error al enviar notificación: {result}", None)
+                return False, f"Error al enviar: {result}"
             
         except Exception as e:
             cls.log_error("Error al notificar orden cancelada", e)
