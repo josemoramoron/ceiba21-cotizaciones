@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Reporte - Blacklist{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-file-alt text-danger"></i> Crear Nuevo Reporte de Blacklist
+                </h1>
+                <a href="{{ url_for('blacklist.dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <!-- Identificadores -->
+                    <div class="mb-4">
+                        <h5 class="card-title mb-3">
+                            <i class="fas fa-user"></i> Identificadores del Usuario
+                        </h5>
+                        <p class="text-muted small mb-3">
+                            Proporciona al menos un identificador. El sistema completará automáticamente los demás si el usuario existe en la base de datos.
+                        </p>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">ID de Usuario</label>
+                                <input type="number" name="user_id" class="form-control" placeholder="Ej: 123">
+                                <small class="text-muted">ID del usuario en el sistema</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Telegram ID</label>
+                                <input type="number" name="telegram_id" class="form-control" placeholder="Ej: 123456789">
+                                <small class="text-muted">ID numérico de Telegram</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" name="phone" class="form-control" placeholder="Ej: +58414...">
+                                <small class="text-muted">Número con código de país</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" class="form-control" placeholder="usuario@ejemplo.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">DNI/Cédula</label>
+                                <input type="text" name="dni" class="form-control" placeholder="V-12345678">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre Completo</label>
+                                <input type="text" name="full_name" class="form-control" placeholder="Juan Pérez">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">País</label>
+                                <input type="text" name="country" class="form-control" placeholder="Venezuela">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado/Región</label>
+                                <input type="text" name="state" class="form-control" placeholder="Distrito Capital">
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Información de Transacción -->
+                    <div class="mb-4">
+                        <h5 class="card-title mb-3">
+                            <i class="fas fa-exchange-alt"></i> Información de Transacción
+                        </h5>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Transacción</label>
+                                <input type="text" name="transaction_type" class="form-control" placeholder="Ej: PayPal -> VES">
+                                <small class="text-muted">Método origen → Moneda destino</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Datos Bancarios</label>
+                                <input type="text" name="bank_info" class="form-control" placeholder="Banco: XXXX, Cuenta: XXXXXXXX">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Información Adicional</label>
+                                <textarea name="additional_info" rows="3" class="form-control" 
+                                          placeholder="Cualquier información relevante adicional..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Detalles del Bloqueo -->
+                    <div class="mb-4">
+                        <h5 class="card-title mb-3">
+                            <i class="fas fa-ban"></i> Detalles del Bloqueo
+                        </h5>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                                <select name="category" required class="form-select">
+                                    {% for cat in categories %}
+                                    <option value="{{ cat.value }}">{{ cat.value.replace('_', ' ').title() }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tipo de Bloqueo <span class="text-danger">*</span></label>
+                                <select name="block_type" id="block_type" required class="form-select">
+                                    <option value="PERMANENT">Permanente</option>
+                                    <option value="TEMPORARY">Temporal</option>
+                                    <option value="SUSPENDED">Suspendido</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Severidad (1-5) <span class="text-danger">*</span></label>
+                                <select name="severity" required class="form-select">
+                                    <option value="1">1 - Baja</option>
+                                    <option value="2">2 - Media-Baja</option>
+                                    <option value="3" selected>3 - Media</option>
+                                    <option value="4">4 - Media-Alta</option>
+                                    <option value="5">5 - Crítica</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="expires_at_field" style="display: none;">
+                            <label class="form-label">Fecha de Expiración</label>
+                            <input type="date" name="expires_at" class="form-control">
+                            <small class="text-muted">Solo para bloqueos temporales</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Razón del Bloqueo <span class="text-danger">*</span></label>
+                            <input type="text" name="reason" required maxlength="500" class="form-control" 
+                                   placeholder="Ej: Envió comprobante falso en orden ORD-20250101-001">
+                            <small class="text-muted">Descripción breve y clara (máx. 500 caracteres)</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notas Detalladas</label>
+                            <textarea name="detailed_notes" rows="4" class="form-control" 
+                                      placeholder="Información adicional, contexto, evidencias adicionales, etc."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Referencias de Órdenes</label>
+                            <input type="text" name="order_references" class="form-control" 
+                                   placeholder="ORD-20250101-001, ORD-20250101-002">
+                            <small class="text-muted">Referencias separadas por comas</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Evidencia Multimedia -->
+                    <div class="mb-4">
+                        <h5 class="card-title mb-3">
+                            <i class="fas fa-camera"></i> Evidencia Multimedia
+                        </h5>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Fotografía</label>
+                                <input type="file" name="photo" accept="image/*" class="form-control">
+                                <small class="text-muted">Se optimizará automáticamente (máx 800x800px, WebP)</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Enlaces Maliciosos</label>
+                                <textarea name="scam_links" rows="3" class="form-control" 
+                                          placeholder="http://sitio-estafa1.com&#10;http://sitio-estafa2.com"></textarea>
+                                <small class="text-muted">URLs separadas por líneas</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Información del Reporte -->
+                    <div class="mb-4">
+                        <h5 class="card-title mb-3">
+                            <i class="fas fa-user-shield"></i> Información del Reporte
+                        </h5>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Reportado por</label>
+                            <input type="text" name="reporter_name" value="ceiba21" class="form-control">
+                            <small class="text-muted">Nombre o identificador de quien reporta</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Verificación de Fraude -->
+                    <div class="mb-4">
+                        <h5 class="card-title mb-3">
+                            <i class="fas fa-shield-alt"></i> Verificación de Fraude
+                        </h5>
+                        <div class="form-check">
+                            <input type="checkbox" name="run_fraud_check" class="form-check-input" id="fraud_check">
+                            <label class="form-check-label" for="fraud_check">
+                                Ejecutar verificación de fraude con APIs externas
+                            </label>
+                            <small class="d-block text-muted mt-1">
+                                Verifica números de teléfono, emails y otros identificadores contra listas conocidas de estafadores.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer con botones -->
+                <div class="card-footer bg-light d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('blacklist.dashboard') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-ban"></i> Crear Reporte
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mostrar campo de fecha de expiración solo para bloqueos temporales
+document.getElementById('block_type').addEventListener('change', function() {
+    const expiresField = document.getElementById('expires_at_field');
+    if (this.value === 'TEMPORARY') {
+        expiresField.style.display = 'block';
+        expiresField.querySelector('input').required = true;
+    } else {
+        expiresField.style.display = 'none';
+        expiresField.querySelector('input').required = false;
+    }
+});
+</script>
+{% endblock %}

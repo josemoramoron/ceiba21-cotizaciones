@@ -99,6 +99,7 @@ def create_app(config_class=Config):
     from app.routes.dashboard import dashboard_bp
     from app.routes.bot_control import bot_control_bp
     from app.routes.operator_dashboard import operator_bp
+    from app.routes.blacklist import blacklist_bp
     
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
@@ -106,6 +107,7 @@ def create_app(config_class=Config):
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(bot_control_bp)
     app.register_blueprint(operator_bp)
+    app.register_blueprint(blacklist_bp)
     
     # Crear tablas si no existen
     with app.app_context():

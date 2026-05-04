@@ -219,3 +219,17 @@ class BaseService:
             message: Mensaje de advertencia
         """
         print(f"[WARNING] {cls.__name__}: {message}")
+    
+    @classmethod
+    def log_action(cls, action: str, data: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Log de acción realizada (placeholder para futuro logging system).
+        
+        Args:
+            action: Nombre de la acción realizada
+            data: Datos adicionales de la acción (opcional)
+        """
+        log_msg = f"[ACTION] {cls.__name__}: {action}"
+        if data:
+            log_msg += f" - Data: {data}"
+        print(log_msg)

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte #{{ entry.id }} - Blacklist{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-file-alt text-danger"></i> Reporte #{{ entry.id }}
+                </h1>
+                <a href="{{ url_for('blacklist.dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+
+            <!-- Información Principal -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-danger text-white py-3">
+                    <h5 class="mb-0">Información del Reporte</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Usuario</h6>
+                            <p class="mb-0"><strong>{{ entry.get_display_name() }}</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Estado</h6>
+                            <p class="mb-0">
+                                {% if entry.status.value == 'active' %}
+                                    <span class="badge bg-danger">Activo</span>
+                                {% elif entry.status.value == 'appealed' %}
+                                    <span class="badge bg-warning">En Apelación</span>
+                                {% elif entry.status.value == 'revoked' %}
+                                    <span class="badge bg-success">Revocado</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Categoría</h6>
+                            <p class="mb-0"><span class="badge bg-danger">{{ entry.category.value.replace('_', ' ').title() }}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Tipo de Bloqueo</h6>
+                            <p class="mb-0">{{ entry.block_type.value.title() }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Severidad</h6>
+                            <p class="mb-0">
+                                {% for i in range(entry.severity) %}
+                                    <i class="fas fa-circle text-danger"></i>
+                                {% endfor %}
+                                ({{ entry.severity }}/5)
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Bloqueado el</h6>
+                            <p class="mb-0">{{ entry.blocked_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted">Razón</h6>
+                        <p class="mb-0">{{ entry.reason }}</p>
+                    </div>
+
+                    {% if entry.detailed_notes %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">Notas Detalladas</h6>
+                        <p class="mb-0">{{ entry.detailed_notes }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if entry.order_references %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">Órdenes Relacionadas</h6>
+                        <p class="mb-0"><code>{{ entry.order_references }}</code></p>
+                    </div>
+                    {% endif %}
+
+                    {% if entry.blocked_by %}
+                    <div class="mb-0">
+                        <h6 class="text-muted">Bloqueado por</h6>
+                        <p class="mb-0">{{ entry.blocked_by.full_name }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Identificadores -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Identificadores</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if entry.user_id %}
+                        <div class="col-md-6 mb-2">
+                            <strong>ID Usuario:</strong> {{ entry.user_id }}
+                        </div>
+                        {% endif %}
+                        {% if entry.telegram_id %}
+                        <div class="col-md-6 mb-2">
+                            <strong>Telegram ID:</strong> {{ entry.telegram_id }}
+                        </div>
+                        {% endif %}
+                        {% if entry.phone %}
+                        <div class="col-md-6 mb-2">
+                            <strong>Teléfono:</strong> {{ entry.phone }}
+                        </div>
+                        {% endif %}
+                        {% if entry.email %}
+                        <div class="col-md-6 mb-2">
+                            <strong>Email:</strong> {{ entry.email }}
+                        </div>
+                        {% endif %}
+                        {% if entry.dni %}
+                        <div class="col-md-6 mb-2">
+                            <strong>DNI:</strong> {{ entry.dni }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actualizar Estado -->
+            {% if entry.status.value == 'active' %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Actualizar Estado</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('blacklist.update_status', blacklist_id=entry.id) }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nuevo Estado</label>
+                                <select name="status" class="form-select" required>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="REVOKED">Revocar (Desbloquear)</option>
+                                    <option value="EXPIRED">Marcar como Expirado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Razón</label>
+                                <input type="text" name="reason" class="form-control" required 
+                                       placeholder="Motivo del cambio">
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Actualizar Estado
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    {% if entry.unblocked_at %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        <strong><i class="fas fa-info-circle"></i> Última actualización de estado:</strong><br>
+                        {{ entry.unblocked_at.strftime('%d/%m/%Y %H:%M') }}
+                        {% if entry.unblocked_by %}
+                        por <strong>{{ entry.unblocked_by.full_name }}</strong>
+                        {% endif %}
+                        <br><small>Razón: {{ entry.unblock_reason }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Editar Reporte -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-edit"></i> Editar Reporte</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Modificar información del reporte</p>
+                    <a href="{{ url_for('blacklist.edit_report', blacklist_id=entry.id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Reporte
+                    </a>
+                    
+                    {% if entry.last_edited_at %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <strong><i class="fas fa-clock"></i> Última edición:</strong><br>
+                        {{ entry.last_edited_at.strftime('%d/%m/%Y %H:%M') }}
+                        {% if entry.last_edited_by %}
+                        por <strong>{{ entry.last_edited_by.full_name }}</strong>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

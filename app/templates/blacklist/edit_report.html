@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Reporte #{{ entry.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-edit text-primary"></i> Editar Reporte #{{ entry.id }}
+                </h1>
+                <a href="{{ url_for('blacklist.view_report', blacklist_id=entry.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancelar
+                </a>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <!-- Razón -->
+                    <div class="mb-3">
+                        <label class="form-label">Razón del Bloqueo <span class="text-danger">*</span></label>
+                        <input type="text" name="reason" required class="form-control" 
+                               value="{{ entry.reason }}">
+                    </div>
+
+                    <!-- Severidad -->
+                    <div class="mb-3">
+                        <label class="form-label">Severidad</label>
+                        <select name="severity" class="form-select">
+                            {% for i in range(1, 6) %}
+                            <option value="{{ i }}" {% if entry.severity == i %}selected{% endif %}>
+                                {{ i }} - {% if i == 1 %}Baja{% elif i == 2 %}Media-Baja{% elif i == 3 %}Media{% elif i == 4 %}Media-Alta{% else %}Crítica{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Nombre completo -->
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" name="full_name" class="form-control" 
+                               value="{{ entry.full_name or '' }}">
+                    </div>
+
+                    <!-- País y Estado -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">País</label>
+                            <input type="text" name="country" class="form-control" 
+                                   value="{{ entry.country or '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estado/Región</label>
+                            <input type="text" name="state" class="form-control" 
+                                   value="{{ entry.state or '' }}">
+                        </div>
+                    </div>
+
+                    <!-- Transacción -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo de Transacción</label>
+                            <input type="text" name="transaction_type" class="form-control" 
+                                   placeholder="Ej: PayPal -> VES" value="{{ entry.transaction_type or '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Datos Bancarios</label>
+                            <input type="text" name="bank_info" class="form-control" 
+                                   value="{{ entry.bank_info or '' }}">
+                        </div>
+                    </div>
+
+                    <!-- Notas detalladas -->
+                    <div class="mb-3">
+                        <label class="form-label">Notas Detalladas</label>
+                        <textarea name="detailed_notes" rows="4" class="form-control">{{ entry.detailed_notes or '' }}</textarea>
+                    </div>
+
+                    <!-- Info adicional -->
+                    <div class="mb-3">
+                        <label class="form-label">Información Adicional</label>
+                        <textarea name="additional_info" rows="3" class="form-control">{{ entry.additional_info or '' }}</textarea>
+                    </div>
+
+                    <hr>
+
+                    <!-- Foto actual -->
+                    {% if entry.photo_url %}
+                    <div class="mb-3">
+                        <label class="form-label">Foto Actual</label>
+                        <div class="mb-2">
+                            <img src="{{ entry.photo_url }}" alt="Evidencia" style="max-width: 300px; border-radius: 8px;">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Nueva foto -->
+                    <div class="mb-3">
+                        <label class="form-label">{% if entry.photo_url %}Cambiar{% else %}Agregar{% endif %} Foto</label>
+                        <input type="file" name="photo" accept="image/*" class="form-control">
+                        <small class="text-muted">Se optimizará automáticamente</small>
+                    </div>
+
+                    <!-- Enlaces maliciosos -->
+                    <div class="mb-3">
+                        <label class="form-label">Enlaces Maliciosos</label>
+                        <textarea name="scam_links" rows="3" class="form-control" 
+                                  placeholder="Un enlace por línea">{{ entry.scam_links or '' }}</textarea>
+                    </div>
+
+                    <!-- Reporter -->
+                    <div class="mb-3">
+                        <label class="form-label">Reportado por</label>
+                        <input type="text" name="reporter_name" class="form-control" 
+                               value="{{ entry.reporter_name or 'ceiba21' }}">
+                    </div>
+                </div>
+
+                <div class="card-footer bg-light d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('blacklist.view_report', blacklist_id=entry.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
