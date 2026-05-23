@@ -1,0 +1,46 @@
+# .clinerules — Ceiba21
+# Cline lee este archivo automáticamente en cada sesión
+
+## Proyecto
+Nombre: Ceiba21 — plataforma de exchange de criptomonedas
+Stack: Flask 3.1 + PostgreSQL + SQLAlchemy + Redis + Python 3.13
+Infraestructura: Raspberry Pi 5, Cloudflare Tunnel
+Entorno local: Windows, localhost:5000, BD ceiba21_dev
+
+## Arquitectura
+Capas en orden estricto: Routes → Services → Models
+- app/models/     → modelos SQLAlchemy, lógica de datos
+- app/routes/     → controllers Flask con Blueprints (solo orquestación)
+- app/services/   → toda la lógica de negocio
+- app/templates/  → views Jinja2, sin lógica Python
+- app/static/     → CSS, JS, imágenes
+- app/bot/        → bot conversacional
+- app/telegram/   → integración Telegram
+- scripts/        → migraciones y utilidades
+
+## Reglas de codificación
+1. Python 3.13 con Type Hints en todas las funciones
+2. Sigue PEP 8 estrictamente: snake_case para funciones/variables, PascalCase para clases
+3. Todas las funciones públicas con Docstrings en formato Google
+4. Nunca uses except: pass — captura excepciones específicas con respuestas claras
+5. Si una función supera 60 líneas sepárala en un módulo independiente
+6. No mezcles lógica de negocio en routes — va en services/
+
+## Reglas operacionales
+1. Antes de modificar código analiza dependencias para no romper otras partes
+2. Antes de ejecutar pip install o migraciones de BD pídeme confirmación explícita
+3. Nunca leas archivos .db o .sqlite completos — lee solo los models de Python
+4. Si un cambio afecta otro módulo avísame antes de proceder
+5. Si no tienes suficiente contexto pregunta antes de suponer
+6. Después de cada cambio dime cómo probarlo localmente
+
+## Flujo de deploy
+- Desarrollo: localhost:5000 con flask run
+- Deploy: git push → ssh ceiba21-local-webmaster "/var/www/cotizaciones/deploy.sh"
+- NUNCA modificar archivos directamente en el Raspberry Pi
+
+## Cuando hay un error
+1. Identifica en qué capa ocurrió (model/service/route/template)
+2. Propón la solución mínima sin cambiar nada innecesario
+3. Si requiere refactorizar dímelo primero y espera confirmación
+4. Muéstrame cómo reproducir el error antes de corregirlo
