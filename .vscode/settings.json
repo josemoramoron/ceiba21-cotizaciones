@@ -1,0 +1,18 @@
+{
+  "files.autoSave": "off",
+  "python.defaultInterpreterPath": "./venv/Scripts/python.exe",
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["app/tests"],
+  "editor.formatOnSave": false,
+  "editor.rulers": [79],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    ".pytest_cache": true,
+    "venv": true
+  },
+  "files.watcherExclude": {
+    "**/venv/**": true,
+    "**/__pycache__/**": true
+  }
+}
