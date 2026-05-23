@@ -24,7 +24,7 @@ def create_app(config_class=Config):
     app.secret_key = app.config['SECRET_KEY']
     
     # ✨ Configuración de Redis y Cache
-    app.config['CACHE_TYPE'] = 'redis'
+    app.config['CACHE_TYPE'] = 'flask_caching.backends.redis.RedisCache'
     app.config['CACHE_REDIS_HOST'] = 'localhost'
     app.config['CACHE_REDIS_PORT'] = 6379
     app.config['CACHE_REDIS_DB'] = 0
@@ -35,7 +35,6 @@ def create_app(config_class=Config):
     app.config['SESSION_REDIS'] = Redis(host='localhost', port=6379, db=1)
     app.config['SESSION_PERMANENT'] = True  # Sesión persistente
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 horas
-    app.config['SESSION_USE_SIGNER'] = True
     app.config['SESSION_COOKIE_SECURE'] = False  # True solo con HTTPS
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
