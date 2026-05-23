@@ -33,6 +33,7 @@ Capas en orden estricto: Routes → Services → Models
 4. Si un cambio afecta otro módulo avísame antes de proceder
 5. Si no tienes suficiente contexto pregunta antes de suponer
 6. Después de cada cambio dime cómo probarlo localmente
+7. Para ejecutar tests siempre usar: python -m pytest app\tests\ -v (nunca solo "pytest")
 
 ## Flujo de deploy
 - Desarrollo: localhost:5000 con flask run
