@@ -24,7 +24,7 @@ def create_app(config_class=Config):
     app.secret_key = app.config['SECRET_KEY']
     
     # ✨ Configuración de Redis y Cache
-    app.config['CACHE_TYPE'] = 'flask_caching.backends.redis.RedisCache'
+    app.config['CACHE_TYPE'] = 'RedisCache'
     app.config['CACHE_REDIS_HOST'] = 'localhost'
     app.config['CACHE_REDIS_PORT'] = 6379
     app.config['CACHE_REDIS_DB'] = 0
