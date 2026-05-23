@@ -6,7 +6,7 @@ from app.models import db
 from app.models.base import BaseModel
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, Dict, Any, List
 
@@ -225,7 +225,7 @@ class Operator(BaseModel, UserMixin):
             bool: True si se actualizó exitosamente
         """
         self.is_online = True
-        self.last_login_at = datetime.utcnow()
+        self.last_login_at = datetime.now(datetime.UTC)
         return self.save()
     
     def set_offline(self) -> bool:
@@ -246,7 +246,7 @@ class Operator(BaseModel, UserMixin):
         Returns:
             bool: True si se actualizó exitosamente
         """
-        self.last_login_at = datetime.utcnow()
+        self.last_login_at = datetime.now(datetime.UTC)
         return self.save()
     
     def update_stats(self, processing_time: Optional[int] = None) -> bool:

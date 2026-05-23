@@ -79,7 +79,7 @@ def create_app(config_class=Config):
         Flask-Login llama esta función en cada request.
         """
         from app.models.operator import Operator
-        return Operator.query.get(int(user_id))
+        return db.session.get(Operator, int(user_id))
     
     @login_manager.unauthorized_handler
     def unauthorized():
