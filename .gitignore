@@ -31,7 +31,6 @@ logs/
 Thumbs.db
 
 # Configuración sensible
-app/config.py
 *.pem
 *.key
 
