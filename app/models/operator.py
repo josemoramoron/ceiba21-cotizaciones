@@ -225,7 +225,7 @@ class Operator(BaseModel, UserMixin):
             bool: True si se actualizó exitosamente
         """
         self.is_online = True
-        self.last_login_at = datetime.now(datetime.UTC)
+        self.last_login_at = datetime.now(timezone.utc)
         return self.save()
     
     def set_offline(self) -> bool:
@@ -246,7 +246,7 @@ class Operator(BaseModel, UserMixin):
         Returns:
             bool: True si se actualizó exitosamente
         """
-        self.last_login_at = datetime.now(datetime.UTC)
+        self.last_login_at = datetime.now(timezone.utc)
         return self.save()
     
     def update_stats(self, processing_time: Optional[int] = None) -> bool:
