@@ -4,18 +4,94 @@
 
 {% block extra_css %}
 <style>
-    .calculator-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
     body {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
+
+    /* ── Tab buttons ── */
+    .calc-tab {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.85rem 1rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        color: #B4BCC5;
+        transition: color 0.2s ease, background 0.2s ease;
+        position: relative;
+        z-index: 1;
+    }
+
+    .calc-tab.active {
+        color: #F7D917;
+        background: rgba(247, 217, 23, 0.08);
+    }
+
+    /* Sliding indicator */
+    .tab-slider {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        width: 50%;
+        background: #F7D917;
+        border-radius: 3px 3px 0 0;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tab-slider.send {
+        transform: translateX(100%);
+    }
+
+    /* ── Panel animation ── */
+    .calc-panel {
+        display: none;
+        animation: fadeSlideIn 0.22s ease forwards;
+    }
+
+    .calc-panel.active {
+        display: block;
+    }
+
+    @keyframes fadeSlideIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Result highlight boxes ── */
+    .result-receive {
+        background-color: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .result-send {
+        background-color: rgba(247, 217, 23, 0.08);
+        border: 1px solid rgba(247, 217, 23, 0.3);
+    }
+
+    /* ── Input focus ring override ── */
+    input[type="number"]:focus,
+    select:focus {
+        outline: none;
+        border-color: #F7D917 !important;
+        box-shadow: 0 0 0 3px rgba(247, 217, 23, 0.18) !important;
+    }
+
+    /* hide number spinners */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- Hero Section -->
+<!-- Hero -->
 <section class="py-10" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
     <div class="container mx-auto px-4 text-center">
         <h1 class="text-3xl font-bold mb-3" style="color: white;">
@@ -27,226 +103,229 @@
 
 <section class="py-10" style="background-color: var(--color-bg);">
     <div class="container mx-auto px-4">
-        
-        <div class="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-            
-            <!-- Calculadora 1: Recibir -->
-            <div class="rounded-xl shadow-xl overflow-hidden" style="background-color: var(--color-surface); border: 2px solid var(--color-border);">
-                <!-- Header -->
-                <div style="background: linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 100%);" class="p-5">
-                    <h2 class="text-xl font-bold mb-1 flex items-center" style="color: white;">
-                        <i class="fas fa-arrow-down mr-2" style="color: #F7D917;"></i> Recibir Pago
-                    </h2>
-                    <p class="text-sm" style="color: #B4BCC5;">¿Cuánto me llega después de comisiones?</p>
+
+        <!-- ══ Contenedor único con tabs ══ -->
+        <div class="max-w-xl mx-auto rounded-xl shadow-xl overflow-hidden"
+             style="background-color: var(--color-surface); border: 2px solid var(--color-border);">
+
+            <!-- Tab bar -->
+            <div style="background: linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 100%);">
+                <div class="flex relative" id="tabBar">
+                    <button class="calc-tab active" id="tabReceive" onclick="switchTab('receive')">
+                        <i class="fas fa-arrow-down"></i> Recibir Pago
+                    </button>
+                    <button class="calc-tab" id="tabSend" onclick="switchTab('send')">
+                        <i class="fas fa-arrow-up"></i> Enviar Pago
+                    </button>
+                    <div class="tab-slider" id="tabSlider"></div>
                 </div>
-                
-                <div class="p-5 space-y-3">
-                    <!-- Input -->
-                    <div>
-                        <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">
-                            Cantidad que te envían
-                        </label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-3 text-lg font-bold" style="color: var(--color-text-secondary);">$</span>
-                            <input type="number" 
-                                   id="receiveInput" 
-                                   oninput="calculateReceive()" 
-                                   placeholder="106.03" 
-                                   step="0.01"
-                                   value="106.03"
-                                   style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
-                                   class="w-full pl-9 pr-4 py-3 text-xl font-semibold rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
+                <!-- Subtitle -->
+                <p class="text-sm px-5 pb-4 pt-1" style="color: #B4BCC5;" id="tabSubtitle">
+                    ¿Cuánto me llega después de comisiones?
+                </p>
+            </div>
+
+            <!-- ── Panel: Recibir ── -->
+            <div class="calc-panel active p-5 space-y-4" id="panelReceive">
+
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">
+                        Cantidad que te envían
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-lg font-bold" style="color: var(--color-text-secondary);">$</span>
+                        <input type="number"
+                               id="receiveInput"
+                               oninput="calculateReceive()"
+                               placeholder="106.03"
+                               step="0.01"
+                               value="106.03"
+                               style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
+                               class="w-full pl-9 pr-4 py-3 text-xl font-semibold rounded-lg">
                     </div>
-                    
-                    <!-- Resultados -->
-                    <div class="space-y-2 p-4 rounded-lg" style="background-color: var(--color-bg); border: 1px solid var(--color-border);">
-                        <div class="flex justify-between items-center py-1">
-                            <span class="text-sm" style="color: var(--color-text-secondary);">Monto enviado:</span>
-                            <span class="text-lg font-bold" style="color: var(--color-text);" id="receiveSent">$106.03</span>
-                        </div>
-                        <div class="flex justify-between items-center py-1">
-                            <span class="text-sm" style="color: var(--color-text-secondary);">Comisión PayPal:</span>
-                            <span class="text-lg font-bold text-red-600" id="receiveCommission">$6.03</span>
-                        </div>
-                        <div style="border-top: 1px solid var(--color-border);" class="my-1"></div>
-                        <div class="flex justify-between items-center py-2 px-3 rounded" style="background-color: rgba(16, 185, 129, 0.1);">
-                            <span class="font-semibold" style="color: var(--color-text);">
-                                <i class="fas fa-money-bill-wave text-green-600 mr-1"></i>
-                                Recibes neto:
-                            </span>
-                            <span class="text-2xl font-bold text-green-600" id="receiveNet">$100.00</span>
-                        </div>
+                </div>
+
+                <div class="space-y-2 p-4 rounded-lg" style="background-color: var(--color-bg); border: 1px solid var(--color-border);">
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-sm" style="color: var(--color-text-secondary);">Monto enviado:</span>
+                        <span class="text-lg font-bold" style="color: var(--color-text);" id="receiveSent">$106.03</span>
                     </div>
-                    
-                    <!-- Selector -->
-                    <div>
-                        <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">Moneda</label>
-                        <select id="receiveSelect" onchange="calculateReceive()" 
-                                style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
-                                class="w-full px-3 py-2 text-base rounded-lg focus:ring-2 focus:ring-indigo-500">
-                            <option value="USD">USD - Dólar</option>
-                            {% for currency in matrix.currencies %}
-                            <option value="{{ currency.code }}">{{ currency.code }} - {{ currency.name }}</option>
-                            {% endfor %}
-                        </select>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-sm" style="color: var(--color-text-secondary);">Comisión PayPal:</span>
+                        <span class="text-lg font-bold text-red-500" id="receiveCommission">$6.03</span>
                     </div>
-                    
-                    <!-- Conversión -->
-                    <div id="receiveConvertedBox" class="hidden p-3 rounded" style="background-color: rgba(59, 130, 246, 0.1); border-left: 4px solid #3B82F6;">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs mb-1" style="color: var(--color-text);">
-                                    <i class="fas fa-info-circle mr-1"></i> Monto en <span id="receiveCurrencyName">VES</span>:
-                                </p>
-                                <p class="text-xs" style="color: var(--color-text-secondary);">
-                                    Cotización PayPal: <span id="receiveQuoteRate">287.07</span>
-                                </p>
-                            </div>
-                            <span class="text-xl font-bold" style="color: #3B82F6;" id="receiveConverted">28,707.00</span>
+                    <div style="border-top: 1px solid var(--color-border);" class="my-1"></div>
+                    <div class="flex justify-between items-center py-2 px-3 rounded result-receive">
+                        <span class="font-semibold" style="color: var(--color-text);">
+                            <i class="fas fa-money-bill-wave text-green-500 mr-1"></i> Recibes neto:
+                        </span>
+                        <span class="text-2xl font-bold text-green-500" id="receiveNet">$100.00</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">Moneda</label>
+                    <select id="receiveSelect" onchange="calculateReceive()"
+                            style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
+                            class="w-full px-3 py-2 text-base rounded-lg">
+                        <option value="USD">USD - Dólar</option>
+                        {% for currency in matrix.currencies %}
+                        <option value="{{ currency.code }}">{{ currency.code }} - {{ currency.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="receiveConvertedBox" class="hidden p-3 rounded"
+                     style="background-color: rgba(59,130,246,0.08); border-left: 4px solid #3B82F6;">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs mb-1" style="color: var(--color-text);">
+                                <i class="fas fa-info-circle mr-1"></i> Monto en <span id="receiveCurrencyName">VES</span>:
+                            </p>
+                            <p class="text-xs" style="color: var(--color-text-secondary);">
+                                Cotización PayPal: <span id="receiveQuoteRate">287.07</span>
+                            </p>
                         </div>
+                        <span class="text-xl font-bold" style="color: #3B82F6;" id="receiveConverted">28,707.00</span>
                     </div>
                 </div>
             </div>
-            
-            <!-- Calculadora 2: Enviar -->
-            <div class="rounded-xl shadow-xl overflow-hidden" style="background-color: var(--color-surface); border: 2px solid var(--color-border);">
-                <!-- Header -->
-                <div style="background: linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 100%);" class="p-5">
-                    <h2 class="text-xl font-bold mb-1 flex items-center" style="color: white;">
-                        <i class="fas fa-arrow-up mr-2" style="color: #F7D917;"></i> Enviar Pago
-                    </h2>
-                    <p class="text-sm" style="color: #B4BCC5;">¿Cuánto debo enviar para que llegue X cantidad?</p>
+
+            <!-- ── Panel: Enviar ── -->
+            <div class="calc-panel p-5 space-y-4" id="panelSend">
+
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">
+                        Para que llegue (neto)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-lg font-bold" style="color: var(--color-text-secondary);">$</span>
+                        <input type="number"
+                               id="sendInput"
+                               oninput="calculateSend()"
+                               placeholder="100.00"
+                               step="0.01"
+                               value="100.00"
+                               style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
+                               class="w-full pl-9 pr-4 py-3 text-xl font-semibold rounded-lg">
+                    </div>
                 </div>
-                
-                <div class="p-5 space-y-3">
-                    <!-- Input -->
-                    <div>
-                        <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">
-                            Para que llegue (neto)
-                        </label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-3 text-lg font-bold" style="color: var(--color-text-secondary);">$</span>
-                            <input type="number" 
-                                   id="sendInput" 
-                                   oninput="calculateSend()" 
-                                   placeholder="100.00" 
-                                   step="0.01"
-                                   value="100.00"
-                                   style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
-                                   class="w-full pl-9 pr-4 py-3 text-xl font-semibold rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                        </div>
+
+                <div class="space-y-2 p-4 rounded-lg" style="background-color: var(--color-bg); border: 1px solid var(--color-border);">
+                    <div class="flex justify-between items-center py-2 px-3 rounded result-send">
+                        <span class="font-semibold" style="color: var(--color-text);">
+                            <i class="fas fa-paper-plane mr-1" style="color: #F7D917;"></i> Hay que enviar:
+                        </span>
+                        <span class="text-2xl font-bold" style="color: var(--color-text);" id="sendTotal">$106.03</span>
                     </div>
-                    
-                    <!-- Resultados -->
-                    <div class="space-y-2 p-4 rounded-lg" style="background-color: var(--color-bg); border: 1px solid var(--color-border);">
-                        <div class="flex justify-between items-center py-2 px-3 rounded" style="background-color: rgba(247, 217, 23, 0.1); border: 1px solid rgba(247, 217, 23, 0.3);">
-                            <span class="font-semibold" style="color: var(--color-text);">
-                                <i class="fas fa-paper-plane mr-1" style="color: #F7D917;"></i>
-                                Hay que enviar:
-                            </span>
-                            <span class="text-2xl font-bold" style="color: #1A1A1A;" id="sendTotal">$106.03</span>
-                        </div>
-                        <div style="border-top: 1px solid var(--color-border);" class="my-1"></div>
-                        <div class="flex justify-between items-center py-1">
-                            <span class="text-sm" style="color: var(--color-text-secondary);">La comisión es de:</span>
-                            <span class="text-lg font-bold text-red-600" id="sendCommission">$6.03</span>
-                        </div>
+                    <div style="border-top: 1px solid var(--color-border);" class="my-1"></div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-sm" style="color: var(--color-text-secondary);">La comisión es de:</span>
+                        <span class="text-lg font-bold text-red-500" id="sendCommission">$6.03</span>
                     </div>
-                    
-                    <!-- Selector -->
-                    <div>
-                        <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">Moneda</label>
-                        <select id="sendSelect" onchange="calculateSend()" 
-                                style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
-                                class="w-full px-3 py-2 text-base rounded-lg focus:ring-2 focus:ring-purple-500">
-                            <option value="USD">USD - Dólar</option>
-                            {% for currency in matrix.currencies %}
-                            <option value="{{ currency.code }}">{{ currency.code }} - {{ currency.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <!-- Conversión -->
-                    <div id="sendConvertedBox" class="hidden p-3 rounded" style="background-color: rgba(168, 85, 247, 0.1); border-left: 4px solid #A855F7;">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs mb-1" style="color: var(--color-text);">
-                                    <i class="fas fa-info-circle mr-1"></i> Monto en <span id="sendCurrencyName">VES</span>:
-                                </p>
-                                <p class="text-xs" style="color: var(--color-text-secondary);">
-                                    Cotización PayPal: <span id="sendQuoteRate">287.07</span>
-                                </p>
-                            </div>
-                            <span class="text-xl font-bold" style="color: #A855F7;" id="sendConverted">30,445.59</span>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">Moneda</label>
+                    <select id="sendSelect" onchange="calculateSend()"
+                            style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
+                            class="w-full px-3 py-2 text-base rounded-lg">
+                        <option value="USD">USD - Dólar</option>
+                        {% for currency in matrix.currencies %}
+                        <option value="{{ currency.code }}">{{ currency.code }} - {{ currency.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="sendConvertedBox" class="hidden p-3 rounded"
+                     style="background-color: rgba(168,85,247,0.08); border-left: 4px solid #A855F7;">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs mb-1" style="color: var(--color-text);">
+                                <i class="fas fa-info-circle mr-1"></i> Monto en <span id="sendCurrencyName">VES</span>:
+                            </p>
+                            <p class="text-xs" style="color: var(--color-text-secondary);">
+                                Cotización PayPal: <span id="sendQuoteRate">287.07</span>
+                            </p>
                         </div>
+                        <span class="text-xl font-bold" style="color: #A855F7;" id="sendConverted">30,445.59</span>
                     </div>
                 </div>
             </div>
-            
         </div>
-        
-        <!-- Información adicional -->
-        <div class="mt-10 max-w-4xl mx-auto">
+        <!-- fin contenedor único -->
+
+        <!-- Info adicional -->
+        <div class="mt-10 max-w-xl mx-auto">
             <div class="rounded-lg shadow-lg p-6" style="background-color: var(--color-surface); border: 1px solid var(--color-border);">
                 <h3 class="text-lg font-bold mb-3 flex items-center" style="color: var(--color-text);">
-                    <i class="fas fa-question-circle mr-2" style="color: #F7D917;"></i> 
-                    ¿Cómo usar la calculadora de Comisiones PayPal?
+                    <i class="fas fa-question-circle mr-2" style="color: #F7D917;"></i>
+                    ¿Cómo usar la calculadora?
                 </h3>
                 <p class="text-sm mb-3" style="color: var(--color-text);">
-                    Usar esta calculadora es muy sencillo. Llena el cuadro de texto dependiendo si quieres saber el cálculo para enviar o recibir dinero. Los bloques solo podrán ser llenados con números. Si deseas agregar un decimal (por ejemplo 10.89) debes hacerlo colocando un punto de esta forma: <strong>10.89</strong>
+                    Selecciona el modo con las pestañas superiores y llena el campo de texto. Los cálculos usan la comisión estándar de PayPal: <strong>5,4% + $0,30 USD</strong> por transacción.
                 </p>
-                <p class="text-sm mb-4" style="color: var(--color-text);">
-                    Por defecto colocamos los valores estándar de las comisiones de PayPal que son <strong>5,4% + un fijo de 0,3 USD</strong> por transacción.
-                </p>
-                
                 <h4 class="text-base font-bold mb-2" style="color: var(--color-text);">¿Monto Bruto y Monto Neto?</h4>
                 <p class="text-sm mb-2" style="color: var(--color-text);">
-                    <strong>El monto bruto</strong> es el dinero enviado o recibido sin contar ningún tipo de comisión. En pocas palabras, es lo que el pagador envía desde su cuenta sin aplicar descuentos. Por ejemplo: Si te envían 10 USD brutos, te llegarán solamente 9,16 USD netos.
+                    <strong>Bruto</strong> — el monto enviado sin descontar comisiones (lo que sale de la cuenta del pagador).
                 </p>
                 <p class="text-sm mb-4" style="color: var(--color-text);">
-                    <strong>El monto neto</strong> es el dinero enviado descontado todo tipo de comisiones. Es decir, lo que llega a destino luego de todos los "recortes". Por ejemplo: Si te envían 10 USD netos, realmente el que paga te estará enviando 10,89 USD brutos. La diferencia de los 0,89 son las comisiones de PayPal.
+                    <strong>Neto</strong> — lo que llega al destino después de descontar comisiones.
                 </p>
-                
-                <div class="p-3 rounded" style="background-color: rgba(245, 158, 11, 0.1); border-left: 4px solid #F59E0B;">
+                <div class="p-3 rounded" style="background-color: rgba(245,158,11,0.1); border-left: 4px solid #F59E0B;">
                     <p class="text-xs" style="color: var(--color-text);">
                         <i class="fas fa-info-circle mr-1"></i>
-                        <strong>(*) Importante:</strong> Esta calculadora no incluye ningún tipo de comisión relacionada a nuestro servicio. Es solo una herramienta de ayuda para el usuario que desea enviar o recibir dinero sin intermediarios. Los cálculos son referenciales.
+                        <strong>Nota:</strong> Esta calculadora no incluye comisiones de Ceiba21. Es una herramienta de referencia.
                     </p>
                 </div>
             </div>
         </div>
-        
+
     </div>
 </section>
 
 <script>
 const quotesData = {{ matrix.quotes|tojson }};
 
+const subtitles = {
+    receive: '¿Cuánto me llega después de comisiones?',
+    send:    '¿Cuánto debo enviar para que llegue X cantidad?'
+};
+
+function switchTab(tab) {
+    // Tabs
+    document.getElementById('tabReceive').classList.toggle('active', tab === 'receive');
+    document.getElementById('tabSend').classList.toggle('active', tab === 'send');
+
+    // Slider
+    const slider = document.getElementById('tabSlider');
+    slider.classList.toggle('send', tab === 'send');
+
+    // Panels
+    document.getElementById('panelReceive').classList.toggle('active', tab === 'receive');
+    document.getElementById('panelSend').classList.toggle('active', tab === 'send');
+
+    // Subtitle
+    document.getElementById('tabSubtitle').textContent = subtitles[tab];
+}
+
 function calculateReceive() {
     const bruto = parseFloat(document.getElementById('receiveInput').value) || 0;
     const currency = document.getElementById('receiveSelect').value;
-    
-    // Fórmula oficial de PayPal
+
     const commission = (bruto * 0.054) + 0.30;
-    const neto = bruto - commission;
-    
-    // Redondear neto a 2 decimales para evitar errores de precisión
-    const netoRedondeado = Math.round(neto * 100) / 100;
-    
-    document.getElementById('receiveSent').textContent = '$' + bruto.toFixed(2);
+    const neto = Math.round((bruto - commission) * 100) / 100;
+
+    document.getElementById('receiveSent').textContent       = '$' + bruto.toFixed(2);
     document.getElementById('receiveCommission').textContent = '$' + commission.toFixed(2);
-    document.getElementById('receiveNet').textContent = '$' + netoRedondeado.toFixed(2);
-    
+    document.getElementById('receiveNet').textContent        = '$' + neto.toFixed(2);
+
     if (currency !== 'USD') {
-        const paypalQuote = quotesData['PAYPAL'][currency];
-        // Usar el neto redondeado para la conversión
-        const convertedAmount = netoRedondeado * paypalQuote.value;
-        
+        const q = quotesData['PAYPAL'][currency];
         document.getElementById('receiveConvertedBox').classList.remove('hidden');
         document.getElementById('receiveCurrencyName').textContent = currency;
-        document.getElementById('receiveQuoteRate').textContent = paypalQuote.value.toFixed(2);
-        document.getElementById('receiveConverted').textContent = formatNumber(convertedAmount);
+        document.getElementById('receiveQuoteRate').textContent    = q.value.toFixed(2);
+        document.getElementById('receiveConverted').textContent    = formatNumber(neto * q.value);
     } else {
         document.getElementById('receiveConvertedBox').classList.add('hidden');
     }
@@ -255,23 +334,19 @@ function calculateReceive() {
 function calculateSend() {
     const neto = parseFloat(document.getElementById('sendInput').value) || 0;
     const currency = document.getElementById('sendSelect').value;
-    
-    // Fórmula oficial inversa de PayPal
-    const bruto = (neto + 0.30) / 0.946;
+
+    const bruto      = (neto + 0.30) / 0.946;
     const commission = bruto - neto;
-    
-    document.getElementById('sendTotal').textContent = '$' + bruto.toFixed(2);
+
+    document.getElementById('sendTotal').textContent      = '$' + bruto.toFixed(2);
     document.getElementById('sendCommission').textContent = '$' + commission.toFixed(2);
-    
+
     if (currency !== 'USD') {
-        const paypalQuote = quotesData['PAYPAL'][currency];
-        // El neto ya está redondeado porque viene del input
-        const convertedAmount = neto * paypalQuote.value;
-        
+        const q = quotesData['PAYPAL'][currency];
         document.getElementById('sendConvertedBox').classList.remove('hidden');
         document.getElementById('sendCurrencyName').textContent = currency;
-        document.getElementById('sendQuoteRate').textContent = paypalQuote.value.toFixed(2);
-        document.getElementById('sendConverted').textContent = formatNumber(convertedAmount);
+        document.getElementById('sendQuoteRate').textContent    = q.value.toFixed(2);
+        document.getElementById('sendConverted').textContent    = formatNumber(neto * q.value);
     } else {
         document.getElementById('sendConvertedBox').classList.add('hidden');
     }
@@ -284,7 +359,7 @@ function formatNumber(num) {
     }).format(num);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     calculateReceive();
     calculateSend();
 });
