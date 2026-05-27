@@ -62,6 +62,23 @@
             --yd: #E5C500;
             --b:  #1A1A1A;
             --bd: #2D2D2D;
+
+            /* Colores adaptativos */
+            --nav-text:    #1A1A1A;
+            --nav-bg:      #FFFFFF;
+            --nav-border:  #DEE2E6;
+            --stat-text:   #1A1A1A;
+            --body-text:   #374151;
+            --body-bg:     #F9FAFB;
+        }
+
+        [data-theme="dark"] {
+            --nav-text:    #E6EDF3;
+            --nav-bg:      #1A1A1A;
+            --nav-border:  #30363D;
+            --stat-text:   #F3F4F6;
+            --body-text:   #9CA3AF;
+            --body-bg:     #0D1117;
         }
 
         /* ─── Modo oscuro ────────────────────────────── */
@@ -81,20 +98,19 @@
 
         /* ─── Navbar público ─────────────────────────── */
         .site-nav {
-            background-color: white;
-            border-bottom: 1px solid #DEE2E6;
+            background-color: var(--nav-bg);
+            border-bottom: 1px solid var(--nav-border);
             position: sticky;
             top: 0;
             z-index: 100;
             transition: background-color 0.3s, border-color 0.3s;
         }
-        [data-theme="dark"] .site-nav {
-            background-color: #1A1A1A;
-            border-bottom-color: #30363D;
-        }
-        [data-theme="dark"] .site-nav a,
-        [data-theme="dark"] .site-nav span,
-        [data-theme="dark"] .site-nav button { color: #E6EDF3; }
+
+        /* Textos adaptativos */
+        .nav-text  { color: var(--nav-text); }
+        .stat-text { color: var(--stat-text); }
+
+        .nav-text:hover { color: var(--y); }
 
         /* ─── Botón login ────────────────────────────── */
         .btn-login {
@@ -191,28 +207,28 @@
                     <img src="{{ url_for('static', filename='img/favicon.svg') }}"
                          alt="Ceiba21" class="h-8 w-8">
                 </div>
-                <span class="text-2xl font-bold" style="color: #1A1A1A;">Ceiba21</span>
+                <span class="text-2xl font-bold nav-text">Ceiba21</span>
             </a>
 
             <!-- Menú desktop -->
             <div class="hidden md:flex items-center space-x-6">
-                <a href="{{ url_for('public.home') }}"       class="hover:opacity-70 transition" style="color:#1A1A1A;">Inicio</a>
-                <a href="{{ url_for('public.cotizaciones') }}" class="hover:opacity-70 transition" style="color:#1A1A1A;">Cotizaciones</a>
-                <a href="{{ url_for('public.calculadora') }}"  class="hover:opacity-70 transition" style="color:#1A1A1A;">Calculadora</a>
-                <a href="#"                                    class="hover:opacity-70 transition" style="color:#1A1A1A;">Servicios</a>
-                <a href="#"                                    class="hover:opacity-70 transition" style="color:#1A1A1A;">Tienda</a>
+                <a href="{{ url_for('public.home') }}"        class="nav-text nav-text-hover hover:opacity-70 transition">Inicio</a>
+                <a href="{{ url_for('public.cotizaciones') }}" class="nav-text nav-text-hover hover:opacity-70 transition">Cotizaciones</a>
+                <a href="{{ url_for('public.calculadora') }}"  class="nav-text nav-text-hover hover:opacity-70 transition">Calculadora</a>
+                <a href="#"                                    class="nav-text nav-text-hover hover:opacity-70 transition">Servicios</a>
+                <a href="#"                                    class="nav-text nav-text-hover hover:opacity-70 transition">Tienda</a>
             </div>
 
             <!-- Botones derecha -->
             <div class="hidden md:flex items-center space-x-3">
                 <button id="themeToggleNav" class="p-2 rounded-lg hover:bg-gray-100 transition" aria-label="Cambiar tema">
-                    <i class="fas fa-moon text-xl" id="themeIconNav" style="color:#1A1A1A;"></i>
+                    <i class="fas fa-moon text-xl nav-text" id="themeIconNav"></i>
                 </button>
 
                 {% if session.get('logged_in') %}
                 <a href="{{ url_for('dashboard.index') }}"
                    class="flex items-center space-x-2 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 transition"
-                   style="color:#F7D917;">
+                   style="color: #F7D917;">
                     <i class="fas fa-user-circle text-xl"></i>
                     <span>{{ session.get('username', 'Admin') }}</span>
                 </a>
@@ -229,7 +245,7 @@
             </div>
 
             <!-- Hamburger móvil -->
-            <button id="menuToggle" class="md:hidden text-2xl" style="color:#1A1A1A;">
+            <button id="menuToggle" class="md:hidden text-2xl nav-text">
                 <i class="fas fa-bars"></i>
             </button>
         </div>
@@ -238,14 +254,14 @@
         <div id="mobile-menu" class="hidden md:hidden pb-4 space-y-3">
             <div class="flex justify-center py-2">
                 <button id="themeToggleMobile" class="p-3 rounded-lg hover:bg-gray-100 transition" aria-label="Cambiar tema">
-                    <i class="fas fa-moon text-xl" id="themeIconMobile" style="color:#1A1A1A;"></i>
+                    <i class="fas fa-moon text-xl nav-text" id="themeIconMobile"></i>
                 </button>
             </div>
-            <a href="{{ url_for('public.home') }}"        class="block py-2" style="color:#1A1A1A;">Inicio</a>
-            <a href="{{ url_for('public.cotizaciones') }}" class="block py-2" style="color:#1A1A1A;">Cotizaciones</a>
-            <a href="{{ url_for('public.calculadora') }}"  class="block py-2" style="color:#1A1A1A;">Calculadora</a>
-            <a href="#"                                    class="block py-2" style="color:#1A1A1A;">Servicios</a>
-            <a href="#"                                    class="block py-2" style="color:#1A1A1A;">Tienda</a>
+            <a href="{{ url_for('public.home') }}"        class="block py-2 nav-text">Inicio</a>
+            <a href="{{ url_for('public.cotizaciones') }}" class="block py-2 nav-text">Cotizaciones</a>
+            <a href="{{ url_for('public.calculadora') }}"  class="block py-2 nav-text">Calculadora</a>
+            <a href="#"                                    class="block py-2 nav-text">Servicios</a>
+            <a href="#"                                    class="block py-2 nav-text">Tienda</a>
 
             {% if session.get('logged_in') %}
             <a href="{{ url_for('dashboard.index') }}" class="block py-2" style="color:#F7D917;">
@@ -383,11 +399,8 @@
             }
         });
 
-        const nav = document.querySelector('.site-nav');
-        if (nav) {
-            nav.style.backgroundColor = theme === 'dark' ? '#1A1A1A' : 'white';
-            nav.style.borderBottomColor = theme === 'dark' ? '#30363D' : '#DEE2E6';
-        }
+        // Las variables CSS manejan el navbar automáticamente
+        // No se necesita JS para cambiar colores del nav
     }
 
     const savedTheme  = localStorage.getItem('ceiba21-theme');
