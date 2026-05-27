@@ -228,21 +228,33 @@
 <!-- Stats -->
 <section class="py-16 bg-white">
     <div class="container mx-auto px-4">
-        <div class="grid md:grid-cols-4 gap-8 text-center">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-                <div class="text-5xl font-bold mb-2" style="color: #1A1A1A;">5+</div>
+                <div class="text-5xl font-bold mb-2 stat-number"
+                     style="color: #1A1A1A;"
+                     data-target="5"
+                     data-suffix="+">0+</div>
                 <p class="text-gray-600">Años de Experiencia</p>
             </div>
             <div>
-                <div class="text-5xl font-bold mb-2" style="color: #1A1A1A;">10K+</div>
+                <div class="text-5xl font-bold mb-2 stat-number"
+                     style="color: #1A1A1A;"
+                     data-target="10"
+                     data-suffix="K+">0K+</div>
                 <p class="text-gray-600">Clientes Satisfechos</p>
             </div>
             <div>
-                <div class="text-5xl font-bold mb-2" style="color: #1A1A1A;">20+</div>
+                <div class="text-5xl font-bold mb-2 stat-number"
+                     style="color: #1A1A1A;"
+                     data-target="20"
+                     data-suffix="+">0+</div>
                 <p class="text-gray-600">Métodos de Pago</p>
             </div>
             <div>
-                <div class="text-5xl font-bold mb-2" style="color: #1A1A1A;">24/7</div>
+                <div class="text-5xl font-bold mb-2 stat-number"
+                     style="color: #1A1A1A;"
+                     data-target="24"
+                     data-suffix="/7">0/7</div>
                 <p class="text-gray-600">Soporte Disponible</p>
             </div>
         </div>
@@ -258,15 +270,28 @@ function compartirCotizaciones() {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
-    const rows = document.querySelectorAll('#resumen-cotizaciones .space-y-2 > div');
+    // Leer directamente los datos del DOM por cada fila
+    const filas = document.querySelectorAll('#resumen-cotizaciones .space-y-1\\.5 > div, #resumen-cotizaciones .space-y-2 > div');
     let lineas = [];
-    rows.forEach(row => {
-        const cols = row.querySelectorAll('span');
-        if (cols.length >= 3) {
-            const metodo = cols[0].textContent.trim().replace(/\s+/g, ' ');
-            const ves    = cols[1].textContent.trim();
-            const cop    = cols[2].textContent.trim();
-            lineas.push(`• ${metodo}: ${ves} | ${cop}`);
+
+    filas.forEach(fila => {
+        const spans = fila.querySelectorAll('span');
+        if (spans.length >= 3) {
+            // El primer span tiene icono + nombre, limpiar el texto del icono
+            const nombreSpan = spans[0];
+            // Obtener solo el texto, ignorando el icono (elemento <i>)
+            const nombre = Array.from(nombreSpan.childNodes)
+                .filter(n => n.nodeType === 3) // solo nodos de texto
+                .map(n => n.textContent.trim())
+                .join('').trim() ||
+                nombreSpan.textContent.trim().replace(/\s+/g, ' ').trim();
+
+            const ves = spans[1].textContent.trim();
+            const cop = spans[2].textContent.trim();
+
+            if (nombre && ves !== '—' && cop !== '—') {
+                lineas.push(`• ${nombre}: ${ves} | ${cop}`);
+            }
         }
     });
 
@@ -309,5 +334,38 @@ function mostrarFeedback() {
     fb.classList.remove('hidden');
     setTimeout(() => fb.classList.add('hidden'), 3000);
 }
+
+// ── Contador animado para estadísticas ──────────────────
+const statObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting && !entry.target.dataset.animated) {
+            entry.target.dataset.animated = 'true';
+            animarContador(entry.target);
+        }
+    });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.stat-number').forEach(el => {
+    statObserver.observe(el);
+});
+
+function animarContador(el) {
+    const target  = parseInt(el.dataset.target);
+    const suffix  = el.dataset.suffix;
+    const duracion = 1800; // ms
+    const pasos   = 60;
+    const intervalo = duracion / pasos;
+    let actual = 0;
+
+    const timer = setInterval(() => {
+        actual += target / pasos;
+        if (actual >= target) {
+            actual = target;
+            clearInterval(timer);
+        }
+        el.textContent = Math.floor(actual) + suffix;
+    }, intervalo);
+}
+
 </script>
 {% endblock %}
