@@ -5,18 +5,19 @@
 {% block content %}
 
 <!-- Hero Section -->
-<section class="relative overflow-hidden" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%); min-height: 600px;">
-    <div class="container mx-auto px-4 py-20 relative z-10">
-        <div class="grid md:grid-cols-2 gap-12 items-center">
+<section class="relative overflow-hidden" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
+    <div class="container mx-auto px-4 pt-8 pb-6 md:py-20 relative z-10">
+        <div class="grid md:grid-cols-2 gap-6 md:gap-12 items-center">
 
             <!-- Texto izquierda -->
             <div>
-                <h1 class="text-5xl font-bold mb-6" style="color: white;">
-                    Cambia tus divisas de forma<br>
-                    <span style="color: #F7D917;">rápida y segura</span>
+                <h1 class="font-bold mb-3 md:mb-6"
+                    style="color: white; font-size: clamp(1.6rem, 5vw, 3.2rem); line-height: 1.2;">
+                    Cambia divisas<br>
+                    <span style="color: #F7D917;">rápido y seguro</span>
                 </h1>
-                <p class="text-xl mb-8" style="color: #E6EDF3;">
-                    Las mejores tasas del mercado para PayPal, Zelle, USDT y más. Más de 5 años de experiencia respaldándonos.
+                <p class="mb-4 md:mb-8 text-sm md:text-xl" style="color: #B4BCC5;">
+                    Las mejores tasas para PayPal, Zelle, USDT y más.
                 </p>
 
                 <!-- Botones solo en desktop -->
@@ -36,29 +37,29 @@
 
             <!-- Card Resumen de Cotizaciones -->
             <div id="resumen-cotizaciones">
-                <div class="rounded-xl p-5" style="background-color: #1e2533; border: 1px solid rgba(247, 217, 23, 0.25);">
+                <div class="rounded-xl p-4 md:p-5" style="background-color: #1e2533; border: 1px solid rgba(247, 217, 23, 0.25);">
 
                     <!-- Header -->
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center justify-between mb-3">
                         <div>
-                            <h3 class="text-lg font-bold" style="color: white;">Resumen de Cotizaciones</h3>
+                            <h3 class="font-bold text-base md:text-lg" style="color: white;">Resumen de Cotizaciones</h3>
                             <p class="text-xs mt-0.5" style="color: #8B949E;">
                                 <i class="fas fa-circle mr-1" style="color: #4ade80; font-size: 8px;"></i>
                                 Actualizado hoy
                             </p>
                         </div>
-                        <i class="fas fa-coins text-3xl" style="color: #F7D917;"></i>
+                        <i class="fas fa-coins text-2xl md:text-3xl" style="color: #F7D917;"></i>
                     </div>
 
                     <!-- Encabezados columnas -->
-                    <div class="flex items-center px-3 mb-2">
+                    <div class="flex items-center px-3 mb-1.5">
                         <span class="text-xs font-semibold uppercase tracking-wider" style="color: #8B949E; width: 44%;">Método</span>
                         <span class="text-xs font-semibold uppercase tracking-wider text-right" style="color: #8B949E; width: 28%;">Bs (VES)</span>
                         <span class="text-xs font-semibold uppercase tracking-wider text-right" style="color: #8B949E; width: 28%;">$ (COP)</span>
                     </div>
 
                     <!-- Filas desde BD -->
-                    <div class="space-y-2">
+                    <div class="space-y-1.5">
                         {% set icons = {
                             'paypal': 'fab fa-paypal',
                             'zelle':  'fas fa-dollar-sign',
@@ -68,15 +69,13 @@
                         } %}
 
                         {% for q in hero_quotes %}
-                        <div class="flex items-center px-3 py-2.5 rounded-lg"
+                        <div class="flex items-center px-3 py-2 rounded-lg"
                              style="background-color: rgba(255,255,255,0.05);">
-
                             <span class="flex items-center gap-2 text-sm" style="color: #B4BCC5; width: 44%;">
                                 <i class="{{ icons[q.code.lower()] if q.code.lower() in icons else 'fas fa-coins' }}"
                                    style="color: #F7D917; width: 14px;"></i>
                                 {{ q.name }}
                             </span>
-
                             <span class="font-bold text-sm text-right" style="color: white; width: 28%;">
                                 {% if q.ves > 0 %}
                                     {{ "%.2f"|format(q.ves) }} Bs
@@ -84,7 +83,6 @@
                                     <span style="color: #444;">—</span>
                                 {% endif %}
                             </span>
-
                             <span class="font-bold text-sm text-right" style="color: white; width: 28%;">
                                 {% if q.cop > 0 %}
                                     {{ "{:,.0f}".format(q.cop) }} $
@@ -94,14 +92,12 @@
                             </span>
                         </div>
                         {% else %}
-                        <p class="text-center py-4 text-sm" style="color: #8B949E;">
-                            Sin cotizaciones disponibles
-                        </p>
+                        <p class="text-center py-4 text-sm" style="color: #8B949E;">Sin cotizaciones disponibles</p>
                         {% endfor %}
                     </div>
 
                     <!-- Footer del card -->
-                    <div class="flex items-center justify-between mt-4 pt-3"
+                    <div class="flex items-center justify-between mt-3 pt-3"
                          style="border-top: 1px solid rgba(247,217,23,0.15);">
                         <a href="{{ url_for('public.cotizaciones') }}"
                            class="text-sm font-medium hover:opacity-80 transition"
