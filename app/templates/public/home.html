@@ -4,10 +4,12 @@
 
 {% block content %}
 
-<!-- Hero Section con NEGRO -->
+<!-- Hero Section -->
 <section class="relative overflow-hidden" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%); min-height: 600px;">
     <div class="container mx-auto px-4 py-20 relative z-10">
         <div class="grid md:grid-cols-2 gap-12 items-center">
+
+            <!-- Texto izquierda -->
             <div>
                 <h1 class="text-5xl font-bold mb-6" style="color: white;">
                     Cambia tus divisas de forma<br>
@@ -16,88 +18,152 @@
                 <p class="text-xl mb-8" style="color: #E6EDF3;">
                     Las mejores tasas del mercado para PayPal, Zelle, USDT y más. Más de 5 años de experiencia respaldándonos.
                 </p>
-                <div class="flex space-x-4">
-                    <a href="{{ url_for('public.cotizaciones') }}" style="background-color: #F7D917; color: #1A1A1A;" class="px-8 py-4 rounded-lg hover:opacity-90 transition font-bold text-lg">
+
+                <!-- Botones solo en desktop -->
+                <div class="hidden md:flex space-x-4">
+                    <a href="{{ url_for('public.cotizaciones') }}"
+                       style="background-color: #F7D917; color: #1A1A1A;"
+                       class="px-8 py-4 rounded-lg hover:opacity-90 transition font-bold text-lg">
                         <i class="fas fa-chart-line mr-2"></i> Ver Cotizaciones
                     </a>
-                    <a href="{{ url_for('public.calculadora') }}" style="background-color: transparent; border: 2px solid #F7D917; color: #F7D917;" class="px-8 py-4 rounded-lg hover:bg-opacity-10 transition font-bold text-lg">
+                    <a href="{{ url_for('public.calculadora') }}"
+                       style="background-color: transparent; border: 2px solid #F7D917; color: #F7D917;"
+                       class="px-8 py-4 rounded-lg hover:opacity-80 transition font-bold text-lg">
                         <i class="fas fa-calculator mr-2"></i> Calcular
                     </a>
                 </div>
             </div>
 
-            <div class="hidden md:block">
+            <!-- Card Resumen de Cotizaciones -->
+            <div id="resumen-cotizaciones">
+                <div class="rounded-xl p-5" style="background-color: #1e2533; border: 1px solid rgba(247, 217, 23, 0.25);">
 
-		<!-- Card de Cotizaciones -->
-		<div class="bg-gray-800 rounded-xl p-6" style="border: 1px solid rgba(247, 217, 23, 0.2);">
-		    <div class="flex items-center justify-between mb-4">
-		        <h3 class="text-xl font-bold" style="color: white;">Cotizaciones en Tiempo Real</h3>
-		        <i class="fas fa-coins text-3xl" style="color: #F7D917;"></i>
-		    </div>
-		    
-		    <div class="space-y-3">
-		        <div class="flex justify-between items-center p-3 rounded-lg" style="background-color: rgba(255,255,255,0.05);">
-		            <span style="color: #B4BCC5;">💰 PayPal</span>
-		            <span class="font-bold text-lg" style="color: white;">$0.909 USD</span>
-		        </div>
-		        <div class="flex justify-between items-center p-3 rounded-lg" style="background-color: rgba(255,255,255,0.05);">
-		            <span style="color: #B4BCC5;">💵 Zelle</span>
-		            <span class="font-bold text-lg" style="color: white;">$0.943 USD</span>
-		        </div>
-		        <div class="flex justify-between items-center p-3 rounded-lg" style="background-color: rgba(255,255,255,0.05);">
-		            <span style="color: #B4BCC5;">₿ USDT</span>
-		            <span class="font-bold text-lg" style="color: white;">$0.962 USD</span>
-		        </div>
-		    </div>
-		    
-		    <a href="{{ url_for('public.cotizaciones') }}" class="block mt-4 text-center" style="color: #F7D917;">
-		        Ver todas las tasas →
-		    </a>
-		</div>
+                    <!-- Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold" style="color: white;">Resumen de Cotizaciones</h3>
+                            <p class="text-xs mt-0.5" style="color: #8B949E;">
+                                <i class="fas fa-circle mr-1" style="color: #4ade80; font-size: 8px;"></i>
+                                Actualizado hoy
+                            </p>
+                        </div>
+                        <i class="fas fa-coins text-3xl" style="color: #F7D917;"></i>
+                    </div>
+
+                    <!-- Encabezados columnas -->
+                    <div class="flex items-center px-3 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider" style="color: #8B949E; width: 44%;">Método</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-right" style="color: #8B949E; width: 28%;">Bs (VES)</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-right" style="color: #8B949E; width: 28%;">$ (COP)</span>
+                    </div>
+
+                    <!-- Filas desde BD -->
+                    <div class="space-y-2">
+                        {% set icons = {
+                            'paypal': 'fab fa-paypal',
+                            'zelle':  'fas fa-dollar-sign',
+                            'usdt':   'fab fa-bitcoin',
+                            'zinli':  'fas fa-wallet',
+                            'wise':   'fas fa-credit-card'
+                        } %}
+
+                        {% for q in hero_quotes %}
+                        <div class="flex items-center px-3 py-2.5 rounded-lg"
+                             style="background-color: rgba(255,255,255,0.05);">
+
+                            <span class="flex items-center gap-2 text-sm" style="color: #B4BCC5; width: 44%;">
+                                <i class="{{ icons[q.code.lower()] if q.code.lower() in icons else 'fas fa-coins' }}"
+                                   style="color: #F7D917; width: 14px;"></i>
+                                {{ q.name }}
+                            </span>
+
+                            <span class="font-bold text-sm text-right" style="color: white; width: 28%;">
+                                {% if q.ves > 0 %}
+                                    {{ "%.2f"|format(q.ves) }} Bs
+                                {% else %}
+                                    <span style="color: #444;">—</span>
+                                {% endif %}
+                            </span>
+
+                            <span class="font-bold text-sm text-right" style="color: white; width: 28%;">
+                                {% if q.cop > 0 %}
+                                    {{ "{:,.0f}".format(q.cop) }} $
+                                {% else %}
+                                    <span style="color: #444;">—</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% else %}
+                        <p class="text-center py-4 text-sm" style="color: #8B949E;">
+                            Sin cotizaciones disponibles
+                        </p>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Footer del card -->
+                    <div class="flex items-center justify-between mt-4 pt-3"
+                         style="border-top: 1px solid rgba(247,217,23,0.15);">
+                        <a href="{{ url_for('public.cotizaciones') }}"
+                           class="text-sm font-medium hover:opacity-80 transition"
+                           style="color: #F7D917;">
+                            Ver todas las tasas →
+                        </a>
+                        <button onclick="compartirCotizaciones()"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-80 transition"
+                                style="background-color: rgba(247,217,23,0.12); color: #F7D917; border: 1px solid rgba(247,217,23,0.3);">
+                            <i class="fas fa-share-alt"></i>
+                            <span>Compartir</span>
+                        </button>
+                    </div>
+
+                    <!-- Feedback copiado -->
+                    <div id="compartirFeedback"
+                         class="hidden mt-2 text-center text-xs py-1.5 rounded"
+                         style="background-color: rgba(34,197,94,0.15); color: #4ade80;">
+                        ✓ Cotizaciones copiadas al portapapeles
+                    </div>
+                </div>
             </div>
+
         </div>
     </div>
 </section>
 
-<!-- Features Section -->
+<!-- Features -->
 <section class="py-20 bg-white">
     <div class="container mx-auto px-4">
         <div class="text-center mb-16">
             <h2 class="text-4xl font-bold text-gray-800 mb-4">¿Por qué elegir Ceiba21?</h2>
             <p class="text-gray-600 text-lg">Confianza, rapidez y las mejores tasas del mercado</p>
         </div>
-        
         <div class="grid md:grid-cols-4 gap-8">
-            <!-- Feature 1 -->
             <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                     style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
                     <i class="fas fa-bolt text-white text-2xl"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2">Transacciones Rápidas</h3>
                 <p class="text-gray-600 text-sm">Procesamos tu cambio en minutos, no en días</p>
             </div>
-            
-            <!-- Feature 2 -->
             <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
-                <div class="bg-gradient-to-r from-green-500 to-teal-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                     style="background: linear-gradient(135deg, #10b981, #14b8a6);">
                     <i class="fas fa-shield-alt text-white text-2xl"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2">100% Seguro</h3>
                 <p class="text-gray-600 text-sm">Tus datos y transacciones están protegidos</p>
             </div>
-            
-            <!-- Feature 3 -->
             <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
-                <div class="bg-gradient-to-r from-yellow-500 to-orange-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                     style="background: linear-gradient(135deg, #F7D917, #E5C500);">
                     <i class="fas fa-star text-white text-2xl"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2">Mejores Tasas</h3>
                 <p class="text-gray-600 text-sm">Tasas competitivas actualizadas en tiempo real</p>
             </div>
-            
-            <!-- Feature 4 -->
             <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
-                <div class="bg-gradient-to-r from-pink-500 to-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                     style="background: linear-gradient(135deg, #ec4899, #ef4444);">
                     <i class="fas fa-headset text-white text-2xl"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2">Soporte 24/7</h3>
@@ -114,7 +180,6 @@
             <h2 class="text-4xl font-bold text-gray-800 mb-4">Métodos de Pago Aceptados</h2>
             <p class="text-gray-600 text-lg">Trabajamos con las plataformas más populares</p>
         </div>
-        
         <div class="grid grid-cols-2 md:grid-cols-6 gap-6">
             <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition text-center">
                 <i class="fab fa-paypal text-blue-600 text-4xl mb-2"></i>
@@ -144,46 +209,109 @@
     </div>
 </section>
 
-<!-- CTA Section -->
-<section class="py-20 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+<!-- CTA -->
+<section class="py-20 text-white" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
     <div class="container mx-auto px-4 text-center">
         <h2 class="text-4xl font-bold mb-6">¿Listo para empezar?</h2>
-        <p class="text-xl mb-8 text-gray-200">Únete a miles de clientes satisfechos</p>
+        <p class="text-xl mb-8" style="color: #B4BCC5;">Únete a miles de clientes satisfechos</p>
         <div class="flex justify-center space-x-4">
-            <a href="{{ url_for('public.calculadora') }}" 
-               class="bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold hover:bg-gray-100 transition shadow-lg">
+            <a href="{{ url_for('public.calculadora') }}"
+               class="px-8 py-4 rounded-lg font-bold hover:opacity-90 transition shadow-lg"
+               style="background-color: #F7D917; color: #1A1A1A;">
                 <i class="fas fa-calculator mr-2"></i> Calcular Cambio
             </a>
-            <a href="#" 
-               class="border-2 border-white text-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-indigo-600 transition">
+            <a href="#"
+               class="px-8 py-4 rounded-lg font-bold transition"
+               style="border: 2px solid #F7D917; color: #F7D917;">
                 <i class="fas fa-envelope mr-2"></i> Contáctanos
             </a>
         </div>
     </div>
 </section>
 
-<!-- Stats Section -->
+<!-- Stats -->
 <section class="py-16 bg-white">
     <div class="container mx-auto px-4">
         <div class="grid md:grid-cols-4 gap-8 text-center">
             <div>
-                <div class="text-5xl font-bold text-indigo-600 mb-2">5+</div>
+                <div class="text-5xl font-bold mb-2" style="color: #1A1A1A;">5+</div>
                 <p class="text-gray-600">Años de Experiencia</p>
             </div>
             <div>
-                <div class="text-5xl font-bold text-indigo-600 mb-2">10K+</div>
+                <div class="text-5xl font-bold mb-2" style="color: #1A1A1A;">10K+</div>
                 <p class="text-gray-600">Clientes Satisfechos</p>
             </div>
             <div>
-                <div class="text-5xl font-bold text-indigo-600 mb-2">20+</div>
+                <div class="text-5xl font-bold mb-2" style="color: #1A1A1A;">20+</div>
                 <p class="text-gray-600">Métodos de Pago</p>
             </div>
             <div>
-                <div class="text-5xl font-bold text-indigo-600 mb-2">24/7</div>
+                <div class="text-5xl font-bold mb-2" style="color: #1A1A1A;">24/7</div>
                 <p class="text-gray-600">Soporte Disponible</p>
             </div>
         </div>
     </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function compartirCotizaciones() {
+    const fecha = new Date().toLocaleDateString('es-VE', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    const rows = document.querySelectorAll('#resumen-cotizaciones .space-y-2 > div');
+    let lineas = [];
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('span');
+        if (cols.length >= 3) {
+            const metodo = cols[0].textContent.trim().replace(/\s+/g, ' ');
+            const ves    = cols[1].textContent.trim();
+            const cop    = cols[2].textContent.trim();
+            lineas.push(`• ${metodo}: ${ves} | ${cop}`);
+        }
+    });
+
+    const texto = [
+        `🌳 *Ceiba21 — Cotizaciones del día*`,
+        `📅 ${fecha}`,
+        ``,
+        `💱 *Tasas (Bs / COP)*`,
+        ...lineas,
+        ``,
+        `🔗 ceiba21.com`
+    ].join('\n');
+
+    if (navigator.share) {
+        navigator.share({ title: 'Cotizaciones Ceiba21', text: texto })
+            .catch(() => copiarAlPortapapeles(texto));
+    } else {
+        copiarAlPortapapeles(texto);
+    }
+}
+
+function copiarAlPortapapeles(texto) {
+    navigator.clipboard.writeText(texto).then(() => {
+        mostrarFeedback();
+    }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = texto;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        mostrarFeedback();
+    });
+}
+
+function mostrarFeedback() {
+    const fb = document.getElementById('compartirFeedback');
+    fb.classList.remove('hidden');
+    setTimeout(() => fb.classList.add('hidden'), 3000);
+}
+</script>
 {% endblock %}

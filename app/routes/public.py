@@ -8,6 +8,49 @@ public_bp = Blueprint('public', __name__)
 
 @public_bp.route('/')
 def home():
+    """Página principal con cotizaciones reales para el hero"""
+    matrix = QuoteService.get_quotes_matrix()
+
+    HERO_METHODS = ['paypal', 'zelle', 'usdt', 'zinli', 'wise']
+
+    hero_quotes = []
+    for pm in matrix['payment_methods']:
+        if pm['code'].lower() not in HERO_METHODS:
+            continue
+        row = {
+            'name': pm['name'],
+            'code': pm['code'],
+            'ves':  matrix['quotes'].get(pm['code'], {}).get('VES', {}).get('value', 0),
+            'cop':  matrix['quotes'].get(pm['code'], {}).get('COP', {}).get('value', 0),
+        }
+        hero_quotes.append(row)
+
+    order = {code: i for i, code in enumerate(HERO_METHODS)}
+    hero_quotes.sort(key=lambda x: order.get(x['code'].lower(), 99))
+
+    return render_template('public/home.html', hero_quotes=hero_quotes)
+    """Página principal con cotizaciones reales para el hero"""
+    matrix = QuoteService.get_quotes_matrix()
+
+    HERO_METHODS    = ['paypal', 'zelle', 'usdt', 'zinli', 'wise']
+
+
+    hero_quotes = []
+    for pm in matrix['payment_methods']:
+        if pm['code'].lower() not in HERO_METHODS:
+            continue
+        row = {
+            'name': pm['name'],
+            'code': pm['code'],
+            'ves':  matrix['quotes'].get(pm['code'], {}).get('VES', {}).get('value', 0),
+            'cop':  matrix['quotes'].get(pm['code'], {}).get('COP', {}).get('value', 0),
+        }
+        hero_quotes.append(row)
+
+    order = {code: i for i, code in enumerate(HERO_METHODS)}
+    hero_quotes.sort(key=lambda x: order.get(x['code'].lower(), 99))
+
+    return render_template('public/home.html', hero_quotes=hero_quotes)
     """Página principal"""
     return render_template('public/home.html')
 

@@ -4,159 +4,153 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Ceiba21 - Dashboard{% endblock %}</title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Tailwind CSS (CDN para desarrollo rápido) -->
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome para iconos -->
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
-        /* Estilos personalizados */
         .sidebar-link:hover {
-            background-color: #667eea;
-            color: white;
+            background-color: #F7D917;
+            color: #1A1A1A;
         }
         .sidebar-link.active {
-            background-color: #667eea;
-            color: white;
+            background-color: #F7D917;
+            color: #1A1A1A;
+            font-weight: 600;
+        }
+        .sidebar-link {
+            color: #374151;
+            transition: all 0.2s;
         }
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-100 font-sans">
-    
+
 <!-- Navbar Dashboard -->
-<nav class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+<nav class="text-white shadow-lg sticky top-0 z-50"
+     style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
     <div class="container mx-auto px-4">
         <div class="flex justify-between items-center py-4">
             <div class="flex items-center space-x-3">
-                <!-- Logo pequeño para dashboard -->
-                <img src="{{ url_for('static', filename='img/favicon.svg') }}" 
-                     alt="Ceiba21" 
-                     class="h-10 w-10 bg-white rounded-full p-1">
-                <h1 class="text-2xl font-bold">Ceiba21</h1>
+                <img src="{{ url_for('static', filename='img/favicon.svg') }}"
+                     alt="Ceiba21"
+                     class="h-10 w-10 rounded-full p-1"
+                     style="background-color: #F7D917;">
+                <h1 class="text-2xl font-bold" style="color: #F7D917;">Ceiba21</h1>
+                <span class="text-sm text-gray-400 hidden md:block">— Sistema de Cotizaciones</span>
             </div>
-            
-            <div class="flex items-center space-x-4">
-                <span class="text-sm">Sistema de Cotizaciones</span>
-                <div class="flex items-center space-x-3">
-                    <span class="text-sm">
-                        <i class="fas fa-user-circle mr-1"></i>
-                        {{ session.get('username', 'Admin') }}
-                    </span>
-                    <a href="{{ url_for('auth.logout') }}" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm">
-                        <i class="fas fa-sign-out-alt"></i> Salir
-                    </a>
-                </div>
-                <a href="/" class="bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition">
+
+            <div class="flex items-center space-x-3">
+                <span class="text-sm text-gray-300">
+                    <i class="fas fa-user-circle mr-1"></i>
+                    {{ session.get('username', 'Admin') }}
+                </span>
+                <a href="{{ url_for('auth.logout') }}"
+                   class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </a>
+                <a href="/"
+                   class="px-4 py-2 rounded-lg transition text-sm font-semibold"
+                   style="background-color: #F7D917; color: #1A1A1A;">
                     <i class="fas fa-home"></i> Inicio
                 </a>
             </div>
         </div>
     </div>
 </nav>
-    <div class="flex">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white h-screen shadow-lg sticky top-0">
-            <div class="p-6">
-                <h2 class="text-lg font-bold text-gray-700 mb-4">Dashboard</h2>
-                <nav class="space-y-2">
-                    <a href="{{ url_for('dashboard.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-                        <i class="fas fa-table"></i>
-                        <span>Tabla de Cotizaciones</span>
-                    </a>
-                    <a href="{{ url_for('dashboard.manage_rates') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'dashboard.manage_rates' %}active{% endif %}">
-                        <i class="fas fa-exchange-alt"></i>
-                        <span>Tasas de Cambio</span>
-                    </a>
-                    <a href="{{ url_for('dashboard.manage_currencies') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'dashboard.manage_currencies' %}active{% endif %}">
-                        <i class="fas fa-money-bill-wave"></i>
-                        <span>Monedas</span>
-                    </a>
-                    <a href="{{ url_for('dashboard.manage_payment_methods') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'dashboard.manage_payment_methods' %}active{% endif %}">
-                        <i class="fas fa-credit-card"></i>
-                        <span>Métodos de Pago</span>
-                    </a>
-                    <a href="{{ url_for('blacklist.dashboard') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition {% if request.endpoint and 'blacklist' in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-ban text-red-500"></i>
-                        <span>Blacklist</span>
-                    </a>
-                    <hr class="my-4">
-			<a href="{{ url_for('dashboard.telegram_publisher') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'dashboard.telegram_publisher' %}active{% endif %}">
-			    <i class="fab fa-telegram"></i>
-			    <span>Publicar en Telegram</span>
-			</a>
-                    <hr class="my-4">
-                    <a href="https://monitor.ceiba21.com" target="_blank" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Netdata</span>
-                        <i class="fas fa-external-link-alt text-xs ml-auto"></i>
-                    </a>
-                    <a href="https://temp.ceiba21.com/" target="_blank" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg transition">
-                        <i class="fas fa-thermometer-half"></i>
-                        <span>Temperatura</span>
-                        <i class="fas fa-external-link-alt text-xs ml-auto"></i>
-                    </a>
-                </nav>
-            </div>
-        </aside>
 
-        <!-- Contenido principal -->
-        <main class="flex-1 p-8">
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'error' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+<div class="flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-lg sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+        <div class="p-6">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Menú</h2>
+            <nav class="space-y-1">
+                <a href="{{ url_for('dashboard.index') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                    <i class="fas fa-table w-4"></i>
+                    <span>Cotizaciones</span>
+                </a>
+                <a href="{{ url_for('dashboard.manage_rates') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint == 'dashboard.manage_rates' %}active{% endif %}">
+                    <i class="fas fa-exchange-alt w-4"></i>
+                    <span>Tasas de Cambio</span>
+                </a>
+                <a href="{{ url_for('dashboard.manage_currencies') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint == 'dashboard.manage_currencies' %}active{% endif %}">
+                    <i class="fas fa-money-bill-wave w-4"></i>
+                    <span>Monedas</span>
+                </a>
+                <a href="{{ url_for('dashboard.manage_payment_methods') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint == 'dashboard.manage_payment_methods' %}active{% endif %}">
+                    <i class="fas fa-credit-card w-4"></i>
+                    <span>Métodos de Pago</span>
+                </a>
+                <a href="{{ url_for('blacklist.dashboard') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint and 'blacklist' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-ban w-4 text-red-500"></i>
+                    <span>Blacklist</span>
+                </a>
 
-            <!-- Contenido de cada página -->
-            {% block content %}{% endblock %}
-        </main>
-    </div>
-<!-- Botón de Modo Oscuro -->
-    <button id="themeToggle" class="theme-toggle" aria-label="Cambiar tema">
-        <i class="fas fa-moon text-2xl" id="themeIcon"></i>
-    </button>
+                <div class="pt-2 pb-1">
+                    <hr class="border-gray-200">
+                </div>
 
-    <script>
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const currentTheme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
-        
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        updateThemeIcon(currentTheme);
-        
-        document.getElementById('themeToggle').addEventListener('click', function() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const newTheme = current === 'dark' ? 'light' : 'dark';
-            
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
-        
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById('themeIcon');
-            if (theme === 'dark') {
-                icon.className = 'fas fa-sun text-2xl text-yellow-400';
-            } else {
-                icon.className = 'fas fa-moon text-2xl text-indigo-600';
-            }
-        }
-    </script>
-    
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                <a href="{{ url_for('dashboard.telegram_publisher') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint == 'dashboard.telegram_publisher' %}active{% endif %}">
+                    <i class="fab fa-telegram w-4"></i>
+                    <span>Publicar Telegram</span>
+                </a>
 
-    {% block extra_js %}{% endblock %}
+                <div class="pt-2 pb-1">
+                    <hr class="border-gray-200">
+                </div>
+
+                <a href="https://monitor.ceiba21.com" target="_blank"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg">
+                    <i class="fas fa-chart-line w-4"></i>
+                    <span>Netdata</span>
+                    <i class="fas fa-external-link-alt text-xs ml-auto text-gray-400"></i>
+                </a>
+                <a href="https://temp.ceiba21.com/" target="_blank"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg">
+                    <i class="fas fa-thermometer-half w-4"></i>
+                    <span>Temperatura</span>
+                    <i class="fas fa-external-link-alt text-xs ml-auto text-gray-400"></i>
+                </a>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="flex-1 p-8">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-lg
+                        {% if category == 'success' %}bg-green-100 text-green-800
+                        {% elif category == 'error' %}bg-red-100 text-red-800
+                        {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>
