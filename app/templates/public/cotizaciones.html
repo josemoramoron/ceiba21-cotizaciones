@@ -4,12 +4,14 @@
 
 {% block content %}
 
-<section class="py-12 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+<section class="py-8 md:py-12" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
     <div class="container mx-auto px-4 text-center">
-        <h1 class="text-4xl font-bold mb-4">
-            <i class="fas fa-chart-line mr-3"></i> Cotizaciones en Tiempo Real
+        <h1 class="font-bold mb-2 md:mb-4" style="color: white; font-size: clamp(1.4rem, 4vw, 2.5rem);">
+            <i class="fas fa-chart-line mr-2" style="color: #F7D917;"></i> Cotizaciones en Tiempo Real
         </h1>
-        <p class="text-xl text-gray-200">Actualizado constantemente para ofrecerte las mejores tasas</p>
+        <p class="text-sm md:text-xl" style="color: #B4BCC5;">
+            Actualizado constantemente para ofrecerte las mejores tasas
+        </p>
     </div>
 </section>
 
@@ -19,27 +21,27 @@
       <!-- Tasas de Cambio Base -->  
       <div class="mb-8">
 	    <div class="flex items-center justify-between mb-4">
-	        <h2 class="text-xl font-bold flex items-center" style="color: var(--ceiba-text);">
+	        <h2 class="text-xl font-bold flex items-center" style="color: var(--color-text);">
 	            <i class="fas fa-sync-alt mr-2" style="color: #F7D917;"></i> Tasas de Cambio Base
 	        </h2>
-	        <p class="text-sm" style="color: var(--ceiba-text-secondary);">
+	        <p class="text-sm" style="color: var(--color-text-secondary);">
 	            <i class="fas fa-clock mr-1"></i> Última actualización: {{ now.strftime('%d/%m/%Y %H:%M') }}
 	        </p>
 	    </div>
 	    
 	    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
 	        {% for rate in rates_list %}
-	        <div class="p-4 rounded-lg text-center" style="background-color: var(--ceiba-surface); border: 1px solid var(--ceiba-border);">
-	            <p class="text-xs mb-1" style="color: var(--ceiba-text-secondary);">1 USD =</p>
+	        <div class="p-4 rounded-lg text-center" style="background-color: var(--color-surface); border: 1px solid var(--color-border);">
+	            <p class="text-xs mb-1" style="color: var(--color-text-secondary);">1 USD =</p>
 	            <p class="text-2xl font-bold mb-1" style="color: #F7D917;">{{ "%.2f"|format(rate.rate) }}</p>
-	            <p class="text-sm" style="color: var(--ceiba-text-secondary);">{{ rate.code }}</p>
+	            <p class="text-sm" style="color: var(--color-text-secondary);">{{ rate.code }}</p>
 	        </div>
 	        {% endfor %}
 	    </div>
 	</div>
 
 	<!-- Tabla de Cotizaciones (SIN header redundante) -->
-	<div class="overflow-x-auto rounded-lg" style="background-color: var(--ceiba-surface); border: 1px solid var(--ceiba-border);">
+	<div class="overflow-x-auto rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border);">
 	    <table class="min-w-full">
 	        <thead style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
 	            <tr>
@@ -50,15 +52,15 @@
 	            </tr>
 	        </thead>
 
-	<tbody class="divide-y" style="background-color: var(--ceiba-surface);">
+	<tbody class="divide-y" style="background-color: var(--color-surface);">
             {% for pm in matrix.payment_methods %}
-            <tr class="hover-row" style="border-color: var(--ceiba-border); transition: all 0.2s;">
+            <tr class="hover-row" style="border-color: var(--color-border); transition: all 0.2s;">
                 <td class="px-6 py-4">
-                    <span class="font-semibold text-base" style="color: var(--ceiba-text);">{{ pm.name }}</span>
+                    <span class="font-semibold text-base" style="color: var(--color-text);">{{ pm.name }}</span>
                 </td>
                 {% for currency in active_currencies %}
                 <td class="px-6 py-4 text-right">
-                    <span class="font-bold text-base" style="color: var(--ceiba-text);">
+                    <span class="font-bold text-base" style="color: var(--color-text);">
                         {{ "{:,.2f}".format(matrix.quotes[pm.code][currency.code].value) }}
                     </span>
                 </td>
@@ -77,8 +79,9 @@
 
         <!-- CTA -->
         <div class="mt-8 text-center">
-            <a href="{{ url_for('public.calculadora') }}" 
-               class="inline-block bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-lg font-bold hover:from-indigo-700 hover:to-purple-700 transition shadow-lg">
+            <a href="#"
+               class="inline-block px-8 py-4 rounded-lg font-bold transition shadow-lg"
+               style="background-color: #F7D917; color: #1A1A1A;">
                 <i class="fas fa-calculator mr-2"></i> Calcular tu Cambio Ahora
             </a>
         </div>
