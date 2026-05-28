@@ -32,6 +32,11 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32.png') }}">
 
+    <!-- PWA manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#F7D917">
+    <meta name="mobile-web-app-capable" content="yes">
+
     <!-- Tailwind CSS con config de colores Ceiba21 -->
     <script>
         // Config ANTES de cargar Tailwind
@@ -259,9 +264,18 @@
             </div>
 
             <!-- Hamburger móvil -->
-            <button id="menuToggle" class="md:hidden text-2xl nav-text">
-                <i class="fas fa-bars"></i>
-            </button>
+            <div class="md:hidden flex items-center gap-2">
+                <!-- Botón instalar PWA (solo Android/Chrome, se oculta tras instalar) -->
+                <button id="btnInstallPwa"
+                        class="hidden items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition"
+                        style="background-color: #F7D917; color: #1A1A1A;">
+                    <i class="fas fa-download text-xs"></i>
+                    <span>Instalar</span>
+                </button>
+                <button id="menuToggle" class="text-2xl nav-text">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Menú móvil desplegable -->
@@ -466,6 +480,44 @@
 
     [btnTelegram, btnWhatsapp, btnChat].forEach(btn => {
         btn?.addEventListener('click', () => { if (menuOpen) mainBtn.click(); });
+    });
+</script>
+
+<!-- Script PWA -->
+<script>
+    let deferredPrompt = null;
+    const btnInstall   = document.getElementById('btnInstallPwa');
+
+    // Capturar el evento de instalación del navegador
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+
+        // Mostrar botón solo si no está instalada
+        if (!localStorage.getItem('pwaInstalled')) {
+            btnInstall.classList.remove('hidden');
+            btnInstall.classList.add('flex');
+        }
+    });
+
+    // Al hacer clic — disparar el prompt nativo
+    btnInstall?.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            localStorage.setItem('pwaInstalled', 'true');
+            btnInstall.classList.add('hidden');
+            btnInstall.classList.remove('flex');
+        }
+        deferredPrompt = null;
+    });
+
+    // Ocultar definitivamente tras instalar
+    window.addEventListener('appinstalled', () => {
+        localStorage.setItem('pwaInstalled', 'true');
+        btnInstall.classList.add('hidden');
+        btnInstall.classList.remove('flex');
     });
 </script>
 

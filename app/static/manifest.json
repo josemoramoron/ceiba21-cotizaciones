@@ -1,0 +1,28 @@
+{
+    "name": "Ceiba21 - Cambio de Divisas",
+    "short_name": "Ceiba21",
+    "description": "Cotizaciones y cambio de divisas en tiempo real",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1A1A1A",
+    "theme_color": "#F7D917",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/static/img/favicon-32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/img/favicon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/img/favicon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
