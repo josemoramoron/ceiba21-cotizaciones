@@ -14,113 +14,200 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <style>
+        /* ── Sidebar overlay (móvil) ── */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 40;
+        }
+        .sidebar-overlay.open { display: block; }
+
+        /* ── Sidebar drawer ── */
+        .sidebar-drawer {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 16rem;
+            background: #fff;
+            z-index: 50;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+            overflow-y: auto;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+        }
+        .sidebar-drawer.open { transform: translateX(0); }
+
+        /* Desktop: sidebar estático */
+        @media (min-width: 768px) {
+            .sidebar-drawer {
+                position: sticky;
+                top: 4rem;
+                transform: none !important;
+                height: calc(100vh - 4rem);
+                box-shadow: none;
+                border-right: 1px solid #DEE2E6;
+                flex-shrink: 0;
+            }
+            .sidebar-overlay { display: none !important; }
+            .sidebar-toggle  { display: none !important; }
+            .sidebar-close   { display: none !important; }
+        }
+
+        /* ── Barra de acción fija móvil (bottom) ── */
+        .dash-action-bar {
+            background: #fff;
+            border-top: 1px solid #DEE2E6;
+        }
+
+        /* ── Main padding bottom en móvil para la barra ── */
+        @media (max-width: 767px) {
+            .dash-main { padding-bottom: 5rem; }
+        }
+    </style>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-100 font-sans">
 
-<!-- Navbar Dashboard -->
+<!-- ── Navbar ── -->
 <nav class="text-white shadow-lg sticky top-0 z-50"
      style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
     <div class="container mx-auto px-4">
-        <div class="flex justify-between items-center py-4">
+        <div class="flex justify-between items-center py-3 md:py-4">
+
             <div class="flex items-center space-x-3">
+                <!-- Hamburger (solo móvil) -->
+                <button id="sidebarToggle" class="sidebar-toggle text-white mr-1 p-1 rounded-lg hover:bg-white hover:bg-opacity-10 transition"
+                        aria-label="Abrir menú">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+
                 <img src="{{ url_for('static', filename='img/favicon.svg') }}"
                      alt="Ceiba21"
-                     class="h-10 w-10 rounded-full p-1"
+                     class="h-9 w-9 rounded-full p-1"
                      style="background-color: #F7D917;">
-                <h1 class="text-2xl font-bold" style="color: #F7D917;">Ceiba21</h1>
+                <h1 class="text-xl md:text-2xl font-bold" style="color: #F7D917;">Ceiba21</h1>
                 <span class="text-sm text-gray-400 hidden md:block">— Sistema de Cotizaciones</span>
             </div>
 
-            <div class="flex items-center space-x-3">
-                <span class="text-sm text-gray-300">
+            <div class="flex items-center space-x-2 md:space-x-3">
+                <span class="text-sm text-gray-300 hidden md:block">
                     <i class="fas fa-user-circle mr-1"></i>
                     {{ session.get('username', 'Admin') }}
                 </span>
                 <a href="{{ url_for('auth.logout') }}"
-                   class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm">
-                    <i class="fas fa-sign-out-alt"></i> Salir
+                   class="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition text-sm">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="hidden md:inline"> Salir</span>
                 </a>
                 <a href="/"
-                   class="px-4 py-2 rounded-lg transition text-sm font-semibold"
+                   class="px-3 py-2 rounded-lg transition text-sm font-semibold"
                    style="background-color: #F7D917; color: #1A1A1A;">
-                    <i class="fas fa-home"></i> Inicio
+                    <i class="fas fa-home"></i>
+                    <span class="hidden md:inline"> Inicio</span>
                 </a>
             </div>
         </div>
     </div>
 </nav>
 
+<!-- ── Overlay (móvil) ── -->
+<div id="sidebarOverlay" class="sidebar-overlay"></div>
+
 <div class="flex">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-lg sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
-        <div class="p-6">
-            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Menú</h2>
+
+    <!-- ── Sidebar ── -->
+    <aside id="sidebarDrawer" class="sidebar-drawer w-64 bg-white">
+
+        <!-- Header del drawer (solo móvil) -->
+        <div class="sidebar-close flex items-center justify-between px-5 py-4 border-b border-gray-200"
+             style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
+            <div class="flex items-center gap-2">
+                <img src="{{ url_for('static', filename='img/favicon.svg') }}"
+                     alt="Ceiba21" class="h-7 w-7 rounded-full p-1"
+                     style="background-color: #F7D917;">
+                <span class="font-bold text-sm" style="color: #F7D917;">Ceiba21 Admin</span>
+            </div>
+            <button id="sidebarClose" class="text-gray-400 hover:text-white transition p-1">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-5">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Menú</h2>
             <nav class="space-y-1">
                 <a href="{{ url_for('dashboard.index') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-                    <i class="fas fa-table w-4"></i>
-                    <span>Cotizaciones</span>
+                    <i class="fas fa-table w-4"></i><span>Cotizaciones</span>
                 </a>
                 <a href="{{ url_for('dashboard.manage_rates') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.manage_rates' %}active{% endif %}">
-                    <i class="fas fa-exchange-alt w-4"></i>
-                    <span>Tasas de Cambio</span>
+                    <i class="fas fa-exchange-alt w-4"></i><span>Tasas de Cambio</span>
                 </a>
                 <a href="{{ url_for('dashboard.manage_currencies') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.manage_currencies' %}active{% endif %}">
-                    <i class="fas fa-money-bill-wave w-4"></i>
-                    <span>Monedas</span>
+                    <i class="fas fa-money-bill-wave w-4"></i><span>Monedas</span>
                 </a>
                 <a href="{{ url_for('dashboard.manage_payment_methods') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.manage_payment_methods' %}active{% endif %}">
-                    <i class="fas fa-credit-card w-4"></i>
-                    <span>Métodos de Pago</span>
+                    <i class="fas fa-credit-card w-4"></i><span>Métodos de Pago</span>
                 </a>
                 <a href="{{ url_for('blacklist.dashboard') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint and 'blacklist' in request.endpoint %}active{% endif %}">
-                    <i class="fas fa-ban w-4 text-red-500"></i>
-                    <span>Blacklist</span>
+                    <i class="fas fa-ban w-4 text-red-500"></i><span>Blacklist</span>
                 </a>
 
-                <div class="pt-2 pb-1">
-                    <hr class="border-gray-200">
-                </div>
+                <div class="pt-2 pb-1"><hr class="border-gray-200"></div>
 
                 <a href="{{ url_for('dashboard.telegram_publisher') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.telegram_publisher' %}active{% endif %}">
-                    <i class="fab fa-telegram w-4"></i>
-                    <span>Publicar Telegram</span>
+                    <i class="fab fa-telegram w-4"></i><span>Publicar Telegram</span>
                 </a>
 
-                <div class="pt-2 pb-1">
-                    <hr class="border-gray-200">
-                </div>
+                <div class="pt-2 pb-1"><hr class="border-gray-200"></div>
 
                 <a href="https://monitor.ceiba21.com" target="_blank"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg">
-                    <i class="fas fa-chart-line w-4"></i>
-                    <span>Netdata</span>
+                    <i class="fas fa-chart-line w-4"></i><span>Netdata</span>
                     <i class="fas fa-external-link-alt text-xs ml-auto text-gray-400"></i>
                 </a>
                 <a href="https://temp.ceiba21.com/" target="_blank"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg">
-                    <i class="fas fa-thermometer-half w-4"></i>
-                    <span>Temperatura</span>
+                    <i class="fas fa-thermometer-half w-4"></i><span>Temperatura</span>
                     <i class="fas fa-external-link-alt text-xs ml-auto text-gray-400"></i>
                 </a>
             </nav>
+
+            <!-- Acciones rápidas (solo visible en drawer móvil) -->
+            <div class="sidebar-close mt-6 pt-4 border-t border-gray-200 space-y-2">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Cuenta</p>
+                <div class="flex items-center gap-2 px-2 py-2 text-sm text-gray-600">
+                    <i class="fas fa-user-circle text-gray-400"></i>
+                    <span>{{ session.get('username', 'Admin') }}</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}"
+                   class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                </a>
+                <a href="/"
+                   class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                   style="background-color: #F7D917; color: #1A1A1A;">
+                    <i class="fas fa-home"></i> Ir al sitio
+                </a>
+            </div>
         </div>
     </aside>
 
-    <!-- Contenido principal -->
-    <main class="flex-1 p-8">
+    <!-- ── Contenido principal ── -->
+    <main class="flex-1 p-4 md:p-8 dash-main">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -137,6 +224,73 @@
         {% block content %}{% endblock %}
     </main>
 </div>
+
+<!-- ── Barra inferior móvil ── -->
+<div class="dash-action-bar md:hidden fixed bottom-0 left-0 right-0 z-40 flex"
+     style="padding-bottom: env(safe-area-inset-bottom);">
+    <a href="{{ url_for('dashboard.index') }}"
+       class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70"
+       style="color: {% if request.endpoint == 'dashboard.index' %}#1A1A1A{% else %}#6C757D{% endif %}; text-decoration:none;">
+        <i class="fas fa-table text-lg" style="color: {% if request.endpoint == 'dashboard.index' %}#F7D917{% else %}#9CA3AF{% endif %};"></i>
+        <span class="text-xs font-semibold">Cotizaciones</span>
+    </a>
+    <div style="width:1px; background:#DEE2E6; margin:8px 0;"></div>
+    <a href="{{ url_for('dashboard.manage_rates') }}"
+       class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70"
+       style="color: {% if request.endpoint == 'dashboard.manage_rates' %}#1A1A1A{% else %}#6C757D{% endif %}; text-decoration:none;">
+        <i class="fas fa-exchange-alt text-lg" style="color: {% if request.endpoint == 'dashboard.manage_rates' %}#F7D917{% else %}#9CA3AF{% endif %};"></i>
+        <span class="text-xs font-semibold">Tasas</span>
+    </a>
+    <div style="width:1px; background:#DEE2E6; margin:8px 0;"></div>
+    <a href="{{ url_for('blacklist.dashboard') }}"
+       class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70"
+       style="color: {% if request.endpoint and 'blacklist' in request.endpoint %}#1A1A1A{% else %}#6C757D{% endif %}; text-decoration:none;">
+        <i class="fas fa-ban text-lg" style="color: {% if request.endpoint and 'blacklist' in request.endpoint %}#F7D917{% else %}#9CA3AF{% endif %};"></i>
+        <span class="text-xs font-semibold">Blacklist</span>
+    </a>
+    <div style="width:1px; background:#DEE2E6; margin:8px 0;"></div>
+    <button onclick="document.getElementById('sidebarToggle').click()"
+            class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70 border-none bg-transparent"
+            style="color:#6C757D;">
+        <i class="fas fa-bars text-lg" style="color:#9CA3AF;"></i>
+        <span class="text-xs font-semibold">Menú</span>
+    </button>
+</div>
+
+<!-- Padding para que el contenido no quede bajo la barra -->
+<div class="md:hidden" style="height:64px;"></div>
+
+<script>
+    const toggle  = document.getElementById('sidebarToggle');
+    const close   = document.getElementById('sidebarClose');
+    const drawer  = document.getElementById('sidebarDrawer');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    function openSidebar() {
+        drawer.classList.add('open');
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+        drawer.classList.remove('open');
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    toggle?.addEventListener('click', openSidebar);
+    close?.addEventListener('click', closeSidebar);
+    overlay?.addEventListener('click', closeSidebar);
+
+    // Cerrar con ESC
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+
+    // Cerrar al navegar (links del drawer en móvil)
+    drawer.querySelectorAll('a[href]').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth < 768) closeSidebar();
+        });
+    });
+</script>
 
 {% block extra_js %}{% endblock %}
 </body>
