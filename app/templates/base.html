@@ -8,24 +8,11 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Ceiba21 Design System -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <style>
-        .sidebar-link:hover {
-            background-color: #F7D917;
-            color: #1A1A1A;
-        }
-        .sidebar-link.active {
-            background-color: #F7D917;
-            color: #1A1A1A;
-            font-weight: 600;
-        }
-        .sidebar-link {
-            color: #374151;
-            transition: all 0.2s;
-        }
-    </style>
 
     {% block extra_css %}{% endblock %}
 </head>
