@@ -17,7 +17,7 @@ from app.models.blacklist import BlacklistEntry, BlacklistCategory, BlacklistTyp
 from datetime import datetime
 from sqlalchemy import or_
 
-blacklist_bp = Blueprint('blacklist', __name__, url_prefix='/blacklist')
+blacklist_bp = Blueprint('blacklist', __name__, url_prefix='/dashboard/blacklist')
 
 
 # ==========================================
