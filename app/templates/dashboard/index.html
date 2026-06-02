@@ -2,100 +2,275 @@
 
 {% block title %}Dashboard - Tabla de Cotizaciones{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* ── Quick Action Cards ── */
+    .quick-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        text-align: center;
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .quick-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+    .quick-card .card-icon {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+    }
+    .quick-card .card-label {
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+    .quick-card .card-sub {
+        font-size: 0.72rem;
+        opacity: 0.82;
+        margin-top: 0.2rem;
+    }
+
+    /* Card colores Ceiba21 */
+    .card-ordenes  { background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%); border: 2px solid #F7D917; }
+    .card-ordenes:hover { border-color: #E5C500; }
+    .card-ordenes .card-icon { color: #F7D917; }
+    .card-ordenes .card-label, .card-ordenes .card-sub { color: #fff; }
+
+    .card-operadores { background: linear-gradient(135deg, #F7D917 0%, #E5C500 100%); }
+    .card-operadores .card-icon, .card-operadores .card-label, .card-operadores .card-sub { color: #1A1A1A !important; }
+
+    .card-telegram  { background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%); border: 2px solid #00B4D8; }
+    .card-telegram .card-icon { color: #00B4D8; }
+    .card-telegram .card-label, .card-telegram .card-sub { color: #fff; }
+
+    .card-tasas     { background: linear-gradient(135deg, #F7D917 0%, #FFD60A 100%); }
+    .card-tasas .card-icon, .card-tasas .card-label, .card-tasas .card-sub { color: #1A1A1A !important; }
+
+    /* ── Rates Strip ── */
+    .rates-strip {
+        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+        border-radius: 0.75rem;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #F7D917;
+    }
+    .rates-strip h3 {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #F7D917;
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .rate-chip {
+        background: rgba(247, 217, 23, 0.08);
+        border: 1px solid rgba(247, 217, 23, 0.25);
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+    }
+    .rate-chip .rate-label { font-size: 0.68rem; color: #8B949E; }
+    .rate-chip .rate-value { font-size: 1.05rem; font-weight: 800; color: #F7D917; }
+    .rates-link {
+        font-size: 0.78rem;
+        color: #F7D917;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-top: 0.6rem;
+        opacity: 0.85;
+        transition: opacity 0.15s;
+    }
+    .rates-link:hover { opacity: 1; }
+
+    /* ── Table ── */
+    .quotes-table-wrap {
+        border-radius: 0.75rem;
+        overflow: hidden;
+        border: 1px solid #DEE2E6;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .quotes-table thead tr {
+        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+    }
+    .quotes-table thead th {
+        padding: 0.85rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #fff;
+        white-space: nowrap;
+    }
+    .quotes-table thead th.col-sticky {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+    }
+    .quotes-table thead th.col-currency {
+        text-align: right;
+        color: #F7D917;
+    }
+    .currency-header .grip { font-size: 0.65rem; opacity: 0.45; margin-right: 0.3rem; }
+
+    .quotes-table tbody tr {
+        border-bottom: 1px solid #DEE2E6;
+        transition: background 0.15s;
+    }
+    .quotes-table tbody tr:hover { background: #FFFDE7; }
+    .quotes-table tbody td {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        color: #212529;
+        white-space: nowrap;
+    }
+    .quotes-table tbody td.col-sticky {
+        position: sticky;
+        left: 0;
+        background: #fff;
+        z-index: 5;
+        font-weight: 700;
+    }
+    .quotes-table tbody tr:hover td.col-sticky { background: #FFFDE7; }
+
+    .badge-manual  { background: #D1FAE5; color: #065F46; font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-weight: 600; }
+    .badge-formula { background: #DBEAFE; color: #1E40AF; font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-weight: 600; }
+
+    .td-value { text-align: right; font-weight: 600; color: #212529; }
+
+    /* ── Drag & Drop ── */
+    .currency-header { cursor: move; }
+    .dragging-column { opacity: 0.45; background: rgba(247, 217, 23, 0.15) !important; }
+    .drag-over { background: rgba(247, 217, 23, 0.2) !important; outline: 2px dashed #F7D917; }
+
+    /* ── Info Bar ── */
+    .info-bar {
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        background: #FFFDE7;
+        border-left: 4px solid #F7D917;
+        border-radius: 0 0.5rem 0.5rem 0;
+        font-size: 0.82rem;
+        color: #5a4a00;
+    }
+
+    /* ── Save Button ── */
+    .btn-save {
+        background: linear-gradient(135deg, #F7D917 0%, #E5C500 100%);
+        color: #1A1A1A;
+        font-weight: 700;
+        font-size: 0.875rem;
+        padding: 0.55rem 1.1rem;
+        border-radius: 0.5rem;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .btn-save:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(247, 217, 23, 0.45);
+    }
+
+    /* ── Section header ── */
+    .section-title { font-size: 1.35rem; font-weight: 800; color: #1A1A1A; }
+    .section-sub   { font-size: 0.85rem; color: #6C757D; margin-top: 0.15rem; }
+
+    .timestamp { font-size: 0.78rem; color: #6C757D; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="bg-white rounded-lg shadow-lg p-6">
-    <!-- Quick Actions -->
-    <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <a href="{{ url_for('operator.orders') }}" class="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition text-center">
-            <div class="text-3xl mb-2">📋</div>
-            <div class="font-semibold">Ver Órdenes</div>
-            <div class="text-xs opacity-80">Gestionar órdenes del bot</div>
+<div class="bg-white rounded-xl shadow-lg p-6">
+
+    <!-- ── Quick Actions ── -->
+    <div class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="{{ url_for('operator.orders') }}" class="quick-card card-ordenes">
+            <div class="card-icon">📋</div>
+            <div class="card-label">Ver Órdenes</div>
+            <div class="card-sub">Gestionar órdenes del bot</div>
         </a>
-        
-        <a href="{{ url_for('dashboard.operators') }}" class="bg-indigo-500 text-white p-4 rounded-lg hover:bg-indigo-600 transition text-center">
-            <div class="text-3xl mb-2">👨‍💼</div>
-            <div class="font-semibold">Operadores</div>
-            <div class="text-xs opacity-80">Gestionar operadores</div>
+        <a href="{{ url_for('dashboard.operators') }}" class="quick-card card-operadores">
+            <div class="card-icon">👨‍💼</div>
+            <div class="card-label">Operadores</div>
+            <div class="card-sub">Gestionar operadores</div>
         </a>
-        
-        <a href="{{ url_for('dashboard.telegram_publisher') }}" class="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition text-center">
-            <div class="text-3xl mb-2">📱</div>
-            <div class="font-semibold">Telegram</div>
-            <div class="text-xs opacity-80">Publicar cotizaciones</div>
+        <a href="{{ url_for('dashboard.telegram_publisher') }}" class="quick-card card-telegram">
+            <div class="card-icon">📱</div>
+            <div class="card-label">Telegram</div>
+            <div class="card-sub">Publicar cotizaciones</div>
         </a>
-        
-        <a href="{{ url_for('dashboard.manage_rates') }}" class="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition text-center">
-            <div class="text-3xl mb-2">💱</div>
-            <div class="font-semibold">Tasas</div>
-            <div class="text-xs opacity-80">Actualizar tasas</div>
+        <a href="{{ url_for('dashboard.manage_rates') }}" class="quick-card card-tasas">
+            <div class="card-icon">💱</div>
+            <div class="card-label">Tasas</div>
+            <div class="card-sub">Actualizar tasas</div>
         </a>
     </div>
 
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
+    <!-- ── Header ── -->
+    <div class="flex flex-wrap justify-between items-start gap-3 mb-5">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">Tabla de Cotizaciones</h2>
-            <p class="text-gray-600 mt-1">Sistema basado en USD como moneda base</p>
+            <h2 class="section-title">Tabla de Cotizaciones</h2>
+            <p class="section-sub">Sistema basado en USD como moneda base</p>
         </div>
-        <div class="flex space-x-3">
-            <button onclick="saveColumnOrder()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
-                <i class="fas fa-save"></i> Guardar Orden de Monedas
-            </button>
-        </div>
+        <button onclick="saveColumnOrder()" class="btn-save">
+            <i class="fas fa-save"></i> Guardar Orden de Monedas
+        </button>
     </div>
 
-    <!-- Tasas de Cambio Actuales -->
-    <div class="mb-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg">
-        <h3 class="text-sm font-bold text-gray-700 mb-2">💱 Tasas de Cambio Actuales (USD → Moneda)</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+    <!-- ── Rates Strip ── -->
+    <div class="rates-strip">
+        <h3><i class="fas fa-sync-alt mr-1"></i> Tasas de Cambio Actuales (USD → Moneda)</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {% for currency_code, rate in rates.items() %}
-            <div class="bg-white p-3 rounded-lg shadow-sm">
-                <span class="text-xs text-gray-600">1 USD =</span>
-                <p class="text-lg font-bold text-indigo-600">{{ "%.2f"|format(rate) }} {{ currency_code }}</p>
+            <div class="rate-chip">
+                <div class="rate-label">1 USD =</div>
+                <div class="rate-value">{{ "%.2f"|format(rate) }} {{ currency_code }}</div>
             </div>
             {% endfor %}
         </div>
-        <a href="{{ url_for('dashboard.manage_rates') }}" class="text-sm text-indigo-600 hover:text-indigo-800 mt-2 inline-block">
+        <a href="{{ url_for('dashboard.manage_rates') }}" class="rates-link">
             <i class="fas fa-edit"></i> Actualizar tasas
         </a>
     </div>
 
-    <!-- Tabla de Cotizaciones -->
-    <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
-        <table class="min-w-full bg-white">
-            <thead class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white sticky top-0">
+    <!-- ── Tabla ── -->
+    <div class="quotes-table-wrap overflow-x-auto">
+        <table class="quotes-table min-w-full bg-white">
+            <thead>
                 <tr>
-                    <th class="px-4 py-3 text-left sticky left-0 bg-gradient-to-r from-indigo-500 to-purple-500 z-10">Método de Pago</th>
-                    <th class="px-4 py-3 text-left">Tipo</th>
-                    <th class="px-4 py-3 text-left">Fórmula USD</th>
+                    <th class="col-sticky" style="text-align:left;">Método de Pago</th>
+                    <th style="text-align:left;">Tipo</th>
+                    <th style="text-align:left;">Fórmula USD</th>
                     {% for currency in matrix.currencies %}
-                    <th class="px-4 py-3 text-right currency-header" 
+                    <th class="col-currency currency-header"
                         data-currency="{{ currency.code }}"
                         data-currency-id="{{ currency.id }}">
-                        <div class="flex items-center justify-end space-x-2 cursor-move whitespace-nowrap">
-                            <i class="fas fa-grip-vertical text-xs opacity-50"></i>
-                            <span>{{ currency.code }}</span>
-                        </div>
+                        <span class="grip"><i class="fas fa-grip-vertical"></i></span>{{ currency.code }}
                     </th>
                     {% endfor %}
                 </tr>
             </thead>
-            
             <tbody>
                 {% for pm in matrix.payment_methods %}
-                <tr class="border-b hover:bg-gray-50 transition">
-                    <td class="px-4 py-3 font-semibold sticky left-0 bg-white z-10 whitespace-nowrap">
-                        {{ pm.name }}
-                    </td>
-                    <td class="px-4 py-3">
+                <tr>
+                    <td class="col-sticky">{{ pm.name }}</td>
+                    <td>
                         {% set first_quote = matrix.quotes[pm.code][matrix.currencies[0].code] %}
                         {% if first_quote.type == 'manual' %}
-                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded whitespace-nowrap">Manual</span>
+                        <span class="badge-manual">Manual</span>
                         {% else %}
-                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded whitespace-nowrap">Fórmula</span>
+                        <span class="badge-formula">Fórmula</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600 font-mono whitespace-nowrap">
+                    <td style="font-family: monospace; color: #6C757D; font-size:0.82rem;">
                         {% if first_quote.formula %}
                         {{ first_quote.formula }}
                         {% else %}
@@ -103,7 +278,7 @@
                         {% endif %}
                     </td>
                     {% for currency in matrix.currencies %}
-                    <td class="px-4 py-3 text-right font-semibold text-gray-800 whitespace-nowrap">
+                    <td class="td-value">
                         {{ "{:,.2f}".format(matrix.quotes[pm.code][currency.code].value) }}
                     </td>
                     {% endfor %}
@@ -113,88 +288,72 @@
         </table>
     </div>
 
-    <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
-        <p class="text-sm text-blue-800">
-            <i class="fas fa-arrows-alt-h"></i> 
-            Puedes hacer <strong>scroll horizontal</strong> en la tabla para ver todas las monedas. La columna "Método de Pago" permanece fija.
-        </p>
+    <!-- ── Info Bar ── -->
+    <div class="info-bar">
+        <i class="fas fa-arrows-alt-h mr-1"></i>
+        Puedes hacer <strong>scroll horizontal</strong> en la tabla para ver todas las monedas.
+        La columna "Método de Pago" permanece fija.
     </div>
 
-    <!-- Última actualización -->
-    <div class="mt-4 text-sm text-gray-600 text-right">
-        <i class="fas fa-clock"></i> Última actualización: {{ now.strftime('%d/%m/%Y %H:%M:%S') }}
+    <!-- ── Timestamp ── -->
+    <div class="mt-3 text-right timestamp">
+        <i class="fas fa-clock mr-1"></i> Última actualización: {{ now.strftime('%d/%m/%Y %H:%M:%S') }}
     </div>
+
 </div>
 
-<style>
-.currency-header {
-    cursor: move;
-}
-.dragging-column {
-    opacity: 0.5;
-    background-color: rgba(99, 102, 241, 0.2);
-}
-</style>
-
 <script>
-// Drag & Drop para reordenar columnas de monedas
+// Drag & Drop — reordenar columnas de monedas
 let draggedColumn = null;
-let draggedIndex = null;
+let draggedIndex  = null;
 
 const headers = document.querySelectorAll('.currency-header');
-const rows = document.querySelectorAll('tbody tr');
+const rows    = document.querySelectorAll('tbody tr');
 
-headers.forEach((header, index) => {
+headers.forEach((header) => {
     header.draggable = true;
-    
+
     header.addEventListener('dragstart', function(e) {
         draggedColumn = this;
-        draggedIndex = Array.from(headers).indexOf(this);
+        draggedIndex  = Array.from(headers).indexOf(this);
         this.classList.add('dragging-column');
         e.dataTransfer.effectAllowed = 'move';
     });
-    
-    header.addEventListener('dragend', function(e) {
+
+    header.addEventListener('dragend', function() {
         this.classList.remove('dragging-column');
         headers.forEach(h => h.classList.remove('drag-over'));
     });
-    
+
     header.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         return false;
     });
-    
-    header.addEventListener('dragenter', function(e) {
+
+    header.addEventListener('dragenter', function() {
         this.classList.add('drag-over');
     });
-    
-    header.addEventListener('dragleave', function(e) {
+
+    header.addEventListener('dragleave', function() {
         this.classList.remove('drag-over');
     });
-    
+
     header.addEventListener('drop', function(e) {
         e.stopPropagation();
         e.preventDefault();
-        
         const dropIndex = Array.from(headers).indexOf(this);
-        
         if (draggedIndex !== dropIndex) {
-            // Reordenar headers
             if (draggedIndex < dropIndex) {
                 this.parentNode.insertBefore(draggedColumn, this.nextSibling);
             } else {
                 this.parentNode.insertBefore(draggedColumn, this);
             }
-            
-            // Reordenar celdas de cada fila
             rows.forEach(row => {
                 const cells = Array.from(row.querySelectorAll('td'));
-                // Las primeras 3 columnas son: método, tipo, fórmula
                 const currencyCells = cells.slice(3);
-                const draggedCell = currencyCells[draggedIndex];
-                const targetCell = currencyCells[dropIndex];
-                
+                const draggedCell   = currencyCells[draggedIndex];
+                const targetCell    = currencyCells[dropIndex];
                 if (draggedIndex < dropIndex) {
                     targetCell.parentNode.insertBefore(draggedCell, targetCell.nextSibling);
                 } else {
@@ -202,35 +361,26 @@ headers.forEach((header, index) => {
                 }
             });
         }
-        
         return false;
     });
 });
 
 // Guardar orden de columnas
 function saveColumnOrder() {
-    const headers = Array.from(document.querySelectorAll('.currency-header'));
-    const order = headers.map(h => parseInt(h.dataset.currencyId));
-    
+    const hdrs  = Array.from(document.querySelectorAll('.currency-header'));
+    const order = hdrs.map(h => parseInt(h.dataset.currencyId));
     if (confirm('¿Guardar el orden actual de las monedas?\n\nEste orden se aplicará también en la página pública.')) {
         fetch('/dashboard/currencies/reorder', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ order: order })
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ order })
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
-            if (data.success) {
-                alert('✅ ' + data.message);
-                location.reload();
-            }
+            if (data.success) { alert('✅ ' + data.message); location.reload(); }
         })
-        .catch(error => {
-            alert('❌ Error al guardar el orden');
-            console.error(error);
-        });
+        .catch(() => alert('❌ Error al guardar el orden'));
     }
 }
 </script>
-
 {% endblock %}
