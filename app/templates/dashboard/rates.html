@@ -2,384 +2,352 @@
 
 {% block title %}Tasas de Cambio{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* ── Shared Ceiba21 tokens ── */
+    :root {
+        --c-yellow:      #F7D917;
+        --c-yellow-dark: #E5C500;
+        --c-dark:        #1A1A1A;
+        --c-dark2:       #2D2D2D;
+        --c-accent:      #00B4D8;
+    }
+
+    /* ── Page header ── */
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .page-title  { font-size:1.35rem; font-weight:800; color:var(--c-dark); }
+    .page-sub    { font-size:0.85rem; color:#6C757D; margin-top:0.15rem; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+        background: linear-gradient(135deg, var(--c-yellow) 0%, var(--c-yellow-dark) 100%);
+        color: var(--c-dark);
+        font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none;
+        cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
+        transition: transform 0.15s, box-shadow 0.15s; text-decoration:none;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+
+    .btn-back {
+        color: var(--c-yellow-dark); font-weight:600; font-size:0.875rem;
+        display:inline-flex; align-items:center; gap:0.4rem; text-decoration:none;
+        transition: color 0.15s;
+    }
+    .btn-back:hover { color: var(--c-dark); }
+
+    .btn-manual {
+        background:#10B981; color:#fff; font-size:0.8rem; font-weight:600;
+        padding:0.4rem 0.8rem; border-radius:0.45rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.35rem; transition:background 0.15s;
+    }
+    .btn-manual:hover { background:#059669; }
+
+    .btn-api {
+        background: linear-gradient(135deg, var(--c-dark) 0%, var(--c-dark2) 100%);
+        border:1.5px solid var(--c-yellow); color:var(--c-yellow);
+        font-size:0.8rem; font-weight:600;
+        padding:0.4rem 0.8rem; border-radius:0.45rem; border-style:solid; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.35rem; transition:all 0.15s;
+    }
+    .btn-api:hover { background:var(--c-yellow); color:var(--c-dark); }
+
+    /* ── Select all bar ── */
+    .select-bar {
+        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+        border:1px solid var(--c-yellow);
+        border-radius:0.65rem; padding:0.75rem 1.1rem;
+        display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:1rem;
+    }
+    .select-bar label { color:#fff; font-weight:600; font-size:0.875rem; cursor:pointer; display:flex; align-items:center; gap:0.5rem; }
+    .select-bar input[type=checkbox] { accent-color:var(--c-yellow); width:1.1rem; height:1.1rem; }
+    .select-bar span  { color:#8B949E; font-size:0.8rem; }
+
+    /* ── Rate row card ── */
+    .rate-card {
+        border:1px solid #DEE2E6; border-radius:0.65rem;
+        padding:1rem 1.1rem; margin-bottom:0.75rem;
+        display:flex; align-items:center; gap:1rem;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        background:#fff;
+    }
+    .rate-card:hover { border-color:var(--c-yellow); box-shadow:0 2px 10px rgba(247,217,23,0.15); }
+
+    .rate-card input[type=checkbox] { accent-color:var(--c-yellow); width:1.1rem; height:1.1rem; flex-shrink:0; }
+
+    .rate-label {
+        font-size:0.82rem; font-weight:600; color:#1A1A1A; margin-bottom:0.5rem;
+        display:flex; align-items:center; gap:0.35rem;
+    }
+    .rate-label i { color:var(--c-yellow); }
+
+    .rate-input {
+        width:16rem; padding:0.45rem 0.85rem;
+        border:1px solid #DEE2E6; border-radius:0.5rem; font-size:0.9rem;
+        transition:border-color 0.15s, box-shadow 0.15s;
+        outline:none;
+    }
+    .rate-input:focus { border-color:var(--c-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
+
+    .rate-meta { text-align:right; flex-shrink:0; }
+    .rate-meta p { font-size:0.72rem; color:#6C757D; margin-bottom:0.2rem; }
+
+    .badge-api    { background:#1A1A1A; color:var(--c-yellow); font-size:0.7rem; padding:0.2rem 0.55rem; border-radius:9999px; font-weight:600; }
+    .badge-manual-tag { background:#D1FAE5; color:#065F46; font-size:0.7rem; padding:0.2rem 0.55rem; border-radius:9999px; font-weight:600; }
+
+    /* ── Info bar ── */
+    .info-bar {
+        margin-top:1.25rem; padding:0.75rem 1rem;
+        background:#FFFDE7; border-left:4px solid var(--c-yellow);
+        border-radius:0 0.5rem 0.5rem 0; font-size:0.82rem; color:#5a4a00;
+    }
+
+    /* ── Progress modal ── */
+    .modal-header-icon { color:var(--c-yellow); }
+    #progressBar { background: linear-gradient(90deg, var(--c-yellow) 0%, var(--c-yellow-dark) 100%); }
+
+    /* ── Toast ── */
+    .toast-success { border-left-color:#10B981 !important; }
+    .toast-error   { border-left-color:#EF4444 !important; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="bg-white rounded-lg shadow-lg p-6">
-    <div class="flex justify-between items-center mb-6">
+<div class="bg-white rounded-xl shadow-lg p-6">
+
+    <!-- Header -->
+    <div class="page-header">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">Tasas de Cambio</h2>
-            <p class="text-gray-600 mt-1">Actualizar tasas USD → Monedas</p>
+            <h2 class="page-title">Tasas de Cambio</h2>
+            <p class="page-sub">Actualizar tasas USD → Monedas</p>
         </div>
-        <div class="flex space-x-3">
-            <button onclick="updateSelectedFromAPI()" 
-                    class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition flex items-center space-x-2">
-                <i class="fas fa-cloud-download-alt"></i>
-                <span>Actualizar Seleccionadas desde API</span>
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+            <button onclick="updateSelectedFromAPI()" class="btn-primary">
+                <i class="fas fa-cloud-download-alt"></i> Actualizar Seleccionadas desde API
             </button>
-            <a href="{{ url_for('dashboard.index') }}" class="text-indigo-600 hover:text-indigo-800 flex items-center">
-                <i class="fas fa-arrow-left mr-2"></i> Volver a la tabla
+            <a href="{{ url_for('dashboard.index') }}" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Volver a la tabla
             </a>
         </div>
     </div>
 
-    <!-- Controles de selección simplificados -->
-    <div class="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg flex justify-between items-center">
-        <label class="flex items-center space-x-2 cursor-pointer">
-            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" 
-                   class="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500">
-            <span class="font-medium text-gray-700">Seleccionar todas</span>
+    <!-- Select all bar -->
+    <div class="select-bar">
+        <label>
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+            Seleccionar todas
         </label>
-        <span id="selectedCount" class="text-sm text-gray-600">0 seleccionadas</span>
+        <span id="selectedCount">0 seleccionadas</span>
     </div>
 
+    <!-- Rate cards -->
     <form method="POST" id="ratesForm">
         {% for rate in rates %}
-        <div class="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition mb-3">
-            <div class="flex items-center space-x-4">
-                <!-- Checkbox -->
-                <div class="flex-shrink-0">
-                    <input type="checkbox" 
-                           class="rate-checkbox w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500" 
-                           data-currency="{{ rate.currency.code }}"
-                           onchange="updateSelectedCount()">
-                </div>
+        <div class="rate-card">
+            <input type="checkbox"
+                   class="rate-checkbox"
+                   data-currency="{{ rate.currency.code }}"
+                   onchange="updateSelectedCount()">
 
-                <!-- Información de la moneda -->
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-coins text-indigo-600"></i> 
-                        1 USD = ? {{ rate.currency.code }} ({{ rate.currency.name }})
-                    </label>
-                    <div class="flex space-x-2">
-                        <input 
-                            type="number" 
-                            step="0.0001" 
-                            name="rate_{{ rate.currency.code }}" 
-                            id="rate_{{ rate.currency.code }}"
-                            value="{{ rate.rate }}" 
-                            class="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                            required
-                        >
-                        <button 
-                            type="button"
-                            onclick="updateManually('{{ rate.currency.code }}')"
-                            class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition flex items-center space-x-2">
-                            <i class="fas fa-save"></i>
-                            <span>Manual</span>
-                        </button>
-                        <button 
-                            type="button"
-                            onclick="fetchSingleRate('{{ rate.currency.code }}')"
-                            class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition flex items-center space-x-2">
-                            <i class="fas fa-sync-alt"></i>
-                            <span>API</span>
-                        </button>
-                    </div>
+            <div style="flex:1;">
+                <div class="rate-label">
+                    <i class="fas fa-coins"></i>
+                    1 USD = ? {{ rate.currency.code }} ({{ rate.currency.name }})
                 </div>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                    <input type="number" step="0.0001"
+                           name="rate_{{ rate.currency.code }}"
+                           id="rate_{{ rate.currency.code }}"
+                           value="{{ rate.rate }}"
+                           class="rate-input" required>
+                    <button type="button" onclick="updateManually('{{ rate.currency.code }}')" class="btn-manual">
+                        <i class="fas fa-save"></i> Manual
+                    </button>
+                    <button type="button" onclick="fetchSingleRate('{{ rate.currency.code }}')" class="btn-api">
+                        <i class="fas fa-sync-alt"></i> API
+                    </button>
+                </div>
+            </div>
 
-                <!-- Metadata -->
-                <div class="text-right flex-shrink-0">
-                    <p class="text-xs text-gray-600">
-                        Tipo: 
-                        <span id="type_{{ rate.currency.code }}" class="{% if rate.source_type == 'api' %}bg-purple-100 text-purple-800{% else %}bg-green-100 text-green-800{% endif %} px-2 py-1 rounded text-xs">
-                            <i class="fas fa-{% if rate.source_type == 'api' %}cloud{% else %}hand-paper{% endif %}"></i> 
-                            {{ rate.source_type|upper }}
-                        </span>
-                    </p>
-                    <p class="text-xs text-gray-600 mt-1">
-                        Actualizado: <span id="time_{{ rate.currency.code }}">{{ rate.updated_at.strftime('%d/%m/%Y %H:%M') }}</span>
-                    </p>
-                </div>
+            <div class="rate-meta">
+                <p>Tipo:
+                    <span id="type_{{ rate.currency.code }}"
+                          class="{% if rate.source_type == 'api' %}badge-api{% else %}badge-manual-tag{% endif %}">
+                        <i class="fas fa-{% if rate.source_type == 'api' %}cloud{% else %}hand-paper{% endif %}"></i>
+                        {{ rate.source_type|upper }}
+                    </span>
+                </p>
+                <p>Actualizado: <span id="time_{{ rate.currency.code }}">{{ rate.updated_at.strftime('%d/%m/%Y %H:%M') }}</span></p>
             </div>
         </div>
         {% endfor %}
     </form>
 
-    <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
-        <p class="text-sm text-blue-800">
-            <i class="fas fa-info-circle"></i> 
-            <strong>Actualización Manual:</strong> Edita el valor y haz clic en "Manual" para guardar. 
-            <strong>Actualización API:</strong> Haz clic en "API" para obtener la tasa automáticamente.
-        </p>
+    <div class="info-bar">
+        <i class="fas fa-info-circle mr-1"></i>
+        <strong>Manual:</strong> Edita el valor y pulsa "Manual" para guardar.
+        <strong>API:</strong> Pulsa "API" para obtener la tasa automáticamente.
     </div>
 </div>
 
-<!-- Modal de progreso -->
+<!-- Modal Progreso -->
 <div id="progressModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">
-            <i class="fas fa-cloud-download-alt text-purple-600"></i> Actualizando Tasas
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-cloud-download-alt modal-header-icon"></i> Actualizando Tasas
         </h3>
         <div class="space-y-3">
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-sm text-gray-600">
                 <span id="progressText">Preparando...</span>
                 <span id="progressCount">0/0</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-4">
-                <div id="progressBar" class="bg-purple-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div id="progressBar" class="h-3 rounded-full transition-all duration-300" style="width:0%"></div>
             </div>
-            <div id="progressLog" class="mt-4 max-h-60 overflow-y-auto space-y-2 text-sm">
-                <!-- Los logs aparecerán aquí -->
-            </div>
+            <div id="progressLog" class="mt-3 max-h-56 overflow-y-auto space-y-1 text-sm"></div>
         </div>
-        <div class="flex justify-end mt-6">
+        <div class="flex justify-end mt-5">
             <button id="closeProgressBtn" onclick="closeProgressModal()" disabled
-                    class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="btn-primary opacity-50 cursor-not-allowed"
+                    style="opacity:0.5;">
                 Cerrar
             </button>
         </div>
     </div>
 </div>
 
-<!-- Notificación Toast -->
+<!-- Toast -->
 <div id="toast" class="hidden fixed top-20 right-4 bg-white rounded-lg shadow-2xl p-4 z-50 border-l-4 min-w-80">
-    <div class="flex items-center space-x-3">
-        <i id="toastIcon" class="text-2xl"></i>
+    <div class="flex items-center gap-3">
+        <i id="toastIcon" class="text-xl"></i>
         <div class="flex-1">
-            <p id="toastMessage" class="font-semibold"></p>
-            <p id="toastDetail" class="text-sm text-gray-600"></p>
+            <p id="toastMessage" class="font-semibold text-sm"></p>
+            <p id="toastDetail" class="text-xs text-gray-500 mt-0.5"></p>
         </div>
-        <button onclick="hideToast()" class="text-gray-400 hover:text-gray-600">
+        <button onclick="hideToast()" class="text-gray-400 hover:text-gray-600 text-xs">
             <i class="fas fa-times"></i>
         </button>
     </div>
 </div>
 
 <script>
-// Toast notification
 function showToast(message, detail, type = 'success') {
     const toast = document.getElementById('toast');
-    const icon = document.getElementById('toastIcon');
-    const messageEl = document.getElementById('toastMessage');
-    const detailEl = document.getElementById('toastDetail');
-    
-    // Configurar colores según tipo
-    if (type === 'success') {
-        toast.className = 'fixed top-20 right-4 bg-white rounded-lg shadow-2xl p-4 z-50 border-l-4 border-green-500 min-w-80';
-        icon.className = 'fas fa-check-circle text-2xl text-green-500';
-    } else if (type === 'error') {
-        toast.className = 'fixed top-20 right-4 bg-white rounded-lg shadow-2xl p-4 z-50 border-l-4 border-red-500 min-w-80';
-        icon.className = 'fas fa-exclamation-circle text-2xl text-red-500';
-    }
-    
-    messageEl.textContent = message;
-    detailEl.textContent = detail;
-    
+    const icon  = document.getElementById('toastIcon');
+    toast.className = `fixed top-20 right-4 bg-white rounded-lg shadow-2xl p-4 z-50 border-l-4 min-w-80 toast-${type}`;
+    icon.className  = type === 'success'
+        ? 'fas fa-check-circle text-xl text-green-500'
+        : 'fas fa-exclamation-circle text-xl text-red-500';
+    document.getElementById('toastMessage').textContent = message;
+    document.getElementById('toastDetail').textContent  = detail;
     toast.classList.remove('hidden');
-    
-    // Auto-ocultar después de 5 segundos
     setTimeout(hideToast, 5000);
 }
+function hideToast() { document.getElementById('toast').classList.add('hidden'); }
 
-function hideToast() {
-    document.getElementById('toast').classList.add('hidden');
-}
-
-// Actualización manual
-function updateManually(currencyCode) {
-    const input = document.getElementById(`rate_${currencyCode}`);
-    const newRate = input.value;
-    
-    if (!newRate || parseFloat(newRate) <= 0) {
-        showToast('Error', 'Ingresa una tasa válida', 'error');
-        return;
-    }
-    
-    // Crear formulario para enviar
+function updateManually(code) {
+    const val = document.getElementById(`rate_${code}`).value;
+    if (!val || parseFloat(val) <= 0) { showToast('Error', 'Ingresa una tasa válida', 'error'); return; }
     const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/dashboard/rates';
-    
-    const rateInput = document.createElement('input');
-    rateInput.type = 'hidden';
-    rateInput.name = `rate_${currencyCode}`;
-    rateInput.value = newRate;
-    
-    form.appendChild(rateInput);
-    document.body.appendChild(form);
-    
-    // Enviar
-    fetch('/dashboard/rates', {
-        method: 'POST',
-        body: new FormData(form)
-    })
-    .then(response => {
-        if (response.ok) {
-            showToast('✅ Tasa actualizada', `1 USD = ${parseFloat(newRate).toFixed(4)} ${currencyCode}`, 'success');
-            
-            // Actualizar badge a MANUAL
-            const badge = document.getElementById(`type_${currencyCode}`);
-            badge.className = 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs';
-            badge.innerHTML = '<i class="fas fa-hand-paper"></i> MANUAL';
-            
-            // Actualizar timestamp
+    form.method = 'POST'; form.action = '/dashboard/rates';
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = `rate_${code}`; inp.value = val;
+    form.appendChild(inp); document.body.appendChild(form);
+    fetch('/dashboard/rates', { method:'POST', body: new FormData(form) })
+    .then(r => {
+        if (r.ok) {
+            showToast('✅ Tasa actualizada', `1 USD = ${parseFloat(val).toFixed(4)} ${code}`, 'success');
+            const b = document.getElementById(`type_${code}`);
+            b.className = 'badge-manual-tag';
+            b.innerHTML = '<i class="fas fa-hand-paper"></i> MANUAL';
             const now = new Date();
-            document.getElementById(`time_${currencyCode}`).textContent = 
-                now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
-        } else {
-            showToast('Error', 'No se pudo actualizar la tasa', 'error');
-        }
-    })
-    .catch(error => {
-        showToast('Error', 'Error de conexión', 'error');
-    });
+            document.getElementById(`time_${code}`).textContent =
+                now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+        } else { showToast('Error','No se pudo actualizar','error'); }
+    }).catch(() => showToast('Error','Error de conexión','error'));
 }
 
-// Actualizar desde API (individual)
-function fetchSingleRate(currencyCode) {
-    const button = event.target.closest('button');
-    const originalHTML = button.innerHTML;
-    
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    
-    fetch(`/dashboard/api/fetch-rate/${currencyCode}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
+function fetchSingleRate(code) {
+    const btn = event.target.closest('button');
+    const orig = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    fetch(`/dashboard/api/fetch-rate/${code}`, { method:'POST', headers:{'Content-Type':'application/json'} })
+    .then(r => r.json())
     .then(data => {
         if (data.success) {
-            document.getElementById(`rate_${currencyCode}`).value = data.rate.toFixed(4);
-            showToast('✅ Tasa desde API', `1 USD = ${data.rate.toFixed(4)} ${currencyCode} (${data.provider})`, 'success');
-            
-            // Actualizar badge a API
-            const badge = document.getElementById(`type_${currencyCode}`);
-            badge.className = 'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs';
-            badge.innerHTML = '<i class="fas fa-cloud"></i> API';
-            
-            // Actualizar timestamp
+            document.getElementById(`rate_${code}`).value = data.rate.toFixed(4);
+            showToast('✅ Tasa desde API', `1 USD = ${data.rate.toFixed(4)} ${code} (${data.provider})`, 'success');
+            const b = document.getElementById(`type_${code}`);
+            b.className = 'badge-api'; b.innerHTML = '<i class="fas fa-cloud"></i> API';
             const now = new Date();
-            document.getElementById(`time_${currencyCode}`).textContent = 
-                now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
-            
-            button.disabled = false;
-            button.innerHTML = originalHTML;
-        } else {
-            showToast('Error API', data.error, 'error');
-            button.disabled = false;
-            button.innerHTML = originalHTML;
-        }
-    })
-    .catch(error => {
-        showToast('Error', 'Error de conexión', 'error');
-        button.disabled = false;
-        button.innerHTML = originalHTML;
-    });
+            document.getElementById(`time_${code}`).textContent =
+                now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+        } else { showToast('Error API', data.error, 'error'); }
+        btn.disabled = false; btn.innerHTML = orig;
+    }).catch(() => { showToast('Error','Error de conexión','error'); btn.disabled=false; btn.innerHTML=orig; });
 }
 
-// Selección de checkboxes
 function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.rate-checkbox');
-    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    const all = document.getElementById('selectAll').checked;
+    document.querySelectorAll('.rate-checkbox').forEach(cb => cb.checked = all);
     updateSelectedCount();
 }
-
 function updateSelectedCount() {
-    const checkboxes = document.querySelectorAll('.rate-checkbox:checked');
-    const count = checkboxes.length;
-    document.getElementById('selectedCount').textContent = `${count} seleccionada${count !== 1 ? 's' : ''}`;
-    
-    const allCheckboxes = document.querySelectorAll('.rate-checkbox');
-    document.getElementById('selectAll').checked = count === allCheckboxes.length;
+    const n = document.querySelectorAll('.rate-checkbox:checked').length;
+    const total = document.querySelectorAll('.rate-checkbox').length;
+    document.getElementById('selectedCount').textContent = `${n} seleccionada${n!==1?'s':''}`;
+    document.getElementById('selectAll').checked = (n === total);
 }
 
-// Actualizar múltiples desde API
 async function updateSelectedFromAPI() {
-    const checkboxes = document.querySelectorAll('.rate-checkbox:checked');
-    
-    if (checkboxes.length === 0) {
-        showToast('Aviso', 'Selecciona al menos una moneda', 'error');
-        return;
-    }
-    
-    const currencies = Array.from(checkboxes).map(cb => cb.dataset.currency);
-    
-    if (!confirm(`¿Actualizar ${currencies.length} moneda${currencies.length > 1 ? 's' : ''} desde API?\n\n${currencies.join(', ')}`)) {
-        return;
-    }
-    
+    const checked = document.querySelectorAll('.rate-checkbox:checked');
+    if (!checked.length) { showToast('Aviso','Selecciona al menos una moneda','error'); return; }
+    const currencies = Array.from(checked).map(cb => cb.dataset.currency);
+    if (!confirm(`¿Actualizar ${currencies.length} moneda${currencies.length>1?'s':''} desde API?\n\n${currencies.join(', ')}`)) return;
     showProgressModal();
-    
-    let successful = 0;
-    let failed = 0;
-    
-    for (let i = 0; i < currencies.length; i++) {
-        const currency = currencies[i];
-        updateProgress(i + 1, currencies.length, `Actualizando ${currency}...`);
-        
+    let ok=0, fail=0;
+    for (let i=0; i<currencies.length; i++) {
+        const c = currencies[i];
+        updateProgress(i+1, currencies.length, `Actualizando ${c}...`);
         try {
-            const response = await fetch(`/dashboard/api/fetch-rate/${currency}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'}
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                addProgressLog(`✅ ${currency}: ${data.rate.toFixed(4)} (${data.provider})`, 'success');
-                document.getElementById(`rate_${currency}`).value = data.rate.toFixed(4);
-                
-                // Actualizar badge
-                const badge = document.getElementById(`type_${currency}`);
-                badge.className = 'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs';
-                badge.innerHTML = '<i class="fas fa-cloud"></i> API';
-                
-                successful++;
-            } else {
-                addProgressLog(`❌ ${currency}: ${data.error}`, 'error');
-                failed++;
-            }
-        } catch (error) {
-            addProgressLog(`❌ ${currency}: Error de conexión`, 'error');
-            failed++;
-        }
-        
-        if (i < currencies.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
+            const r = await fetch(`/dashboard/api/fetch-rate/${c}`,{method:'POST',headers:{'Content-Type':'application/json'}});
+            const d = await r.json();
+            if (d.success) {
+                addProgressLog(`✅ ${c}: ${d.rate.toFixed(4)} (${d.provider})`, 'success');
+                document.getElementById(`rate_${c}`).value = d.rate.toFixed(4);
+                const b = document.getElementById(`type_${c}`);
+                b.className='badge-api'; b.innerHTML='<i class="fas fa-cloud"></i> API';
+                ok++;
+            } else { addProgressLog(`❌ ${c}: ${d.error}`,'error'); fail++; }
+        } catch { addProgressLog(`❌ ${c}: Error de conexión`,'error'); fail++; }
+        if (i < currencies.length-1) await new Promise(res=>setTimeout(res,500));
     }
-    
-    updateProgress(currencies.length, currencies.length, '✅ Proceso completado');
-    addProgressLog(`\n📊 Resumen: ${successful} exitosas, ${failed} fallidas`, 'info');
-    
-    document.getElementById('closeProgressBtn').disabled = false;
+    updateProgress(currencies.length, currencies.length,'✅ Proceso completado');
+    addProgressLog(`📊 Resumen: ${ok} exitosas, ${fail} fallidas`,'info');
+    const closeBtn = document.getElementById('closeProgressBtn');
+    closeBtn.disabled = false; closeBtn.style.opacity = '1';
 }
 
-// Modal de progreso
 function showProgressModal() {
     document.getElementById('progressModal').classList.remove('hidden');
     document.getElementById('progressLog').innerHTML = '';
-    document.getElementById('closeProgressBtn').disabled = true;
+    const btn = document.getElementById('closeProgressBtn');
+    btn.disabled=true; btn.style.opacity='0.5';
 }
-
-function closeProgressModal() {
-    document.getElementById('progressModal').classList.add('hidden');
-}
-
-function updateProgress(current, total, text) {
-    const percentage = (current / total) * 100;
-    document.getElementById('progressBar').style.width = percentage + '%';
+function closeProgressModal() { document.getElementById('progressModal').classList.add('hidden'); }
+function updateProgress(cur,tot,text) {
+    document.getElementById('progressBar').style.width = (cur/tot*100)+'%';
     document.getElementById('progressText').textContent = text;
-    document.getElementById('progressCount').textContent = `${current}/${total}`;
+    document.getElementById('progressCount').textContent = `${cur}/${tot}`;
 }
-
-function addProgressLog(message, type = 'info') {
+function addProgressLog(msg, type='info') {
     const log = document.getElementById('progressLog');
-    const entry = document.createElement('div');
-    
-    let colorClass = 'text-gray-700';
-    if (type === 'success') colorClass = 'text-green-700';
-    if (type === 'error') colorClass = 'text-red-700';
-    if (type === 'info') colorClass = 'text-blue-700';
-    
-    entry.className = `p-2 bg-gray-50 rounded ${colorClass}`;
-    entry.textContent = message;
-    
-    log.appendChild(entry);
-    log.scrollTop = log.scrollHeight;
+    const el = document.createElement('div');
+    el.className = `p-2 rounded text-xs ${type==='success'?'bg-green-50 text-green-700':type==='error'?'bg-red-50 text-red-700':'bg-gray-50 text-gray-600'}`;
+    el.textContent = msg;
+    log.appendChild(el); log.scrollTop = log.scrollHeight;
 }
-
 document.addEventListener('DOMContentLoaded', updateSelectedCount);
 </script>
 {% endblock %}

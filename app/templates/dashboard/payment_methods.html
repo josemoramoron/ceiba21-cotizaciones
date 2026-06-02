@@ -4,123 +4,155 @@
 
 {% block extra_css %}
 <style>
-.draggable {
-    cursor: move;
-}
-.dragging {
-    opacity: 0.5;
-    background-color: #e0e7ff;
-}
-.drag-over {
-    border-top: 3px solid #667eea;
-}
+    :root {
+        --c-yellow:      #F7D917;
+        --c-yellow-dark: #E5C500;
+        --c-dark:        #1A1A1A;
+        --c-dark2:       #2D2D2D;
+    }
+    .page-title { font-size:1.35rem; font-weight:800; color:var(--c-dark); }
+    .page-sub   { font-size:0.85rem; color:#6C757D; margin-top:0.15rem; }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--c-yellow) 0%, var(--c-yellow-dark) 100%);
+        color:var(--c-dark); font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        transition:transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+
+    /* ── Drag hint bar ── */
+    .drag-hint {
+        background:#FFFDE7; border-left:4px solid var(--c-yellow);
+        border-radius:0 0.5rem 0.5rem 0; padding:0.65rem 1rem;
+        font-size:0.82rem; color:#5a4a00; margin-bottom:1rem;
+    }
+
+    /* ── Table ── */
+    .pm-table-wrap { border-radius:0.75rem; overflow:hidden; border:1px solid #DEE2E6; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
+    .pm-table thead tr { background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%); }
+    .pm-table thead th { padding:0.85rem 1.1rem; font-size:0.78rem; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:0.04em; text-align:left; }
+    .pm-table thead th.th-center { text-align:center; }
+    .pm-table thead th.th-grip { width:3rem; color:#8B949E; }
+
+    .pm-table tbody tr { border-bottom:1px solid #DEE2E6; transition:background 0.15s; cursor:move; }
+    .pm-table tbody tr:hover { background:#FFFDE7; }
+    .pm-table tbody td { padding:0.75rem 1.1rem; font-size:0.875rem; color:#212529; }
+
+    .dragging  { opacity:0.45; background:rgba(247,217,23,0.1) !important; }
+    .drag-over-row { border-top:2.5px solid var(--c-yellow) !important; }
+
+    .grip-icon { color:#C9CDD4; font-size:0.9rem; }
+    .order-chip { background:#F3F4F6; color:#374151; font-size:0.75rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+    .code-badge { font-weight:800; color:var(--c-dark); background:var(--c-yellow); padding:0.15rem 0.5rem; border-radius:0.35rem; font-size:0.82rem; }
+
+    .badge-manual-val { background:#D1FAE5; color:#065F46; font-size:0.72rem; padding:0.2rem 0.55rem; border-radius:0.35rem; font-weight:600; }
+    .badge-formula-val { background:#DBEAFE; color:#1E40AF; font-size:0.72rem; padding:0.2rem 0.55rem; border-radius:0.35rem; font-weight:600; font-family:monospace; }
+
+    /* ── Action buttons ── */
+    .btn-formula-row { background: linear-gradient(135deg,#1A1A1A,#2D2D2D); border:1.5px solid var(--c-yellow); color:var(--c-yellow); font-size:0.78rem; font-weight:600; padding:0.3rem 0.7rem; border-radius:0.4rem; cursor:pointer; transition:all 0.15s; }
+    .btn-formula-row:hover { background:var(--c-yellow); color:var(--c-dark); }
+    .btn-edit-row   { background:#1A1A1A; color:#fff; font-size:0.78rem; padding:0.3rem 0.65rem; border-radius:0.4rem; border:none; cursor:pointer; transition:background 0.15s; }
+    .btn-edit-row:hover   { background:#2D2D2D; }
+    .btn-delete-row { background:#EF4444; color:#fff; font-size:0.78rem; padding:0.3rem 0.65rem; border-radius:0.4rem; border:none; cursor:pointer; transition:background 0.15s; }
+    .btn-delete-row:hover { background:#DC2626; }
+
+    /* ── Modals ── */
+    .modal-card { background:#fff; border-radius:0.85rem; box-shadow:0 20px 60px rgba(0,0,0,0.2); padding:1.75rem; width:100%; max-width:30rem; }
+    .modal-title { font-size:1.1rem; font-weight:800; color:var(--c-dark); margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem; }
+    .modal-title i { color:var(--c-yellow); }
+
+    .form-label { font-size:0.8rem; font-weight:600; color:#374151; margin-bottom:0.35rem; display:block; }
+    .form-input, .form-select {
+        width:100%; padding:0.5rem 0.85rem; border:1px solid #DEE2E6; border-radius:0.5rem;
+        font-size:0.9rem; transition:border-color 0.15s, box-shadow 0.15s; outline:none;
+    }
+    .form-input:focus, .form-select:focus { border-color:var(--c-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
+    .form-input:disabled { background:#F9FAFB; color:#9CA3AF; }
+    .form-input.mono { font-family:monospace; }
+    .form-hint { font-size:0.72rem; color:#6C757D; margin-top:0.25rem; }
+
+    .warning-bar { background:#FFFDE7; border-left:3px solid var(--c-yellow); border-radius:0 0.4rem 0.4rem 0; padding:0.65rem 0.85rem; font-size:0.8rem; color:#5a4a00; }
+
+    .btn-cancel { background:#F3F4F6; color:#374151; font-size:0.875rem; font-weight:600; padding:0.5rem 1rem; border-radius:0.5rem; border:none; cursor:pointer; transition:background 0.15s; }
+    .btn-cancel:hover { background:#E5E7EB; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-lg shadow-lg p-6">
+<div class="bg-white rounded-xl shadow-lg p-6">
+
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.25rem;">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">Métodos de Pago</h2>
-            <p class="text-gray-600 mt-1">Administrar métodos de pago y sus fórmulas</p>
+            <h2 class="page-title">Métodos de Pago</h2>
+            <p class="page-sub">Administrar métodos de pago y sus fórmulas</p>
         </div>
-        <button onclick="showAddModal()" class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-600 transition">
+        <button onclick="showAddModal()" class="btn-primary">
             <i class="fas fa-plus"></i> Agregar Método
         </button>
     </div>
 
-    <div class="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
-        <p class="text-sm text-blue-800">
-            <i class="fas fa-hand-paper"></i> 
-            <strong>Arrastra y suelta</strong> las filas para cambiar el orden de visualización
-        </p>
+    <div class="drag-hint">
+        <i class="fas fa-hand-paper mr-1"></i>
+        <strong>Arrastra y suelta</strong> las filas para cambiar el orden de visualización.
     </div>
 
-    <!-- Tabla de Métodos de Pago -->
-    <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-            <thead class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+    <!-- Table -->
+    <div class="pm-table-wrap overflow-x-auto">
+        <table class="pm-table min-w-full bg-white">
+            <thead>
                 <tr>
-                    <th class="px-6 py-3 text-left w-16">
-                        <i class="fas fa-grip-vertical"></i>
-                    </th>
-                    <th class="px-6 py-3 text-left">Orden</th>
-                    <th class="px-6 py-3 text-left">Código</th>
-                    <th class="px-6 py-3 text-left">Nombre</th>
-                    <th class="px-6 py-3 text-left">Fórmula USD</th>
-                    <th class="px-6 py-3 text-center">Acciones</th>
+                    <th class="th-grip"><i class="fas fa-grip-vertical"></i></th>
+                    <th>Orden</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Fórmula USD</th>
+                    <th class="th-center">Acciones</th>
                 </tr>
             </thead>
             <tbody id="sortable-tbody">
                 {% for pm in payment_methods %}
-                <tr class="border-b hover:bg-gray-50 transition draggable" 
-                    data-id="{{ pm.id }}" 
-                    draggable="true">
-                    <td class="px-6 py-4 text-gray-400">
-                        <i class="fas fa-grip-vertical"></i>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="bg-gray-100 px-3 py-1 rounded-full text-sm font-bold">
-                            #{{ pm.display_order }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="font-bold text-indigo-600">{{ pm.code }}</span>
-                    </td>
-                    <td class="px-6 py-4">{{ pm.name }}</td>
-                    <td class="px-6 py-4">
+                <tr class="draggable" data-id="{{ pm.id }}" draggable="true">
+                    <td><i class="fas fa-grip-vertical grip-icon"></i></td>
+                    <td><span class="order-chip">#{{ pm.display_order }}</span></td>
+                    <td><span class="code-badge">{{ pm.code }}</span></td>
+                    <td>{{ pm.name }}</td>
+                    <td>
                         {% set first_quote = pm.quotes[0] if pm.quotes else None %}
                         {% if first_quote %}
                             {% if first_quote.value_type == 'manual' %}
-                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                                Manual: {{ "%.4f"|format(first_quote.usd_value) }} USD
-                            </span>
+                            <span class="badge-manual-val">Manual: {{ "%.4f"|format(first_quote.usd_value) }} USD</span>
                             {% else %}
-                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-mono">
-                                {{ first_quote.usd_formula }}
-                            </span>
+                            <span class="badge-formula-val">{{ first_quote.usd_formula }}</span>
                             {% endif %}
                         {% else %}
-                        <span class="text-gray-400 text-xs">Sin cotizaciones</span>
+                        <span style="color:#9CA3AF; font-size:0.78rem;">Sin cotizaciones</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
-                        <div class="flex justify-center space-x-2">
-                            <!-- Botón Fórmula -->
-                            <button type="button"
-                                    data-pm-id="{{ pm.id }}" 
-                                    data-pm-code="{{ pm.code }}" 
+                    <td>
+                        <div style="display:flex; justify-content:center; gap:0.4rem; flex-wrap:wrap;">
+                            <button type="button" class="btn-formula-row btn-formula"
+                                    data-pm-id="{{ pm.id }}"
+                                    data-pm-code="{{ pm.code }}"
                                     data-pm-name="{{ pm.name }}"
-                                    {% set first_quote = pm.quotes[0] if pm.quotes else None %}
-                                    {% if first_quote %}
-                                    data-value-type="{{ first_quote.value_type }}"
-                                    data-usd-value="{{ first_quote.usd_value if first_quote.usd_value else '' }}"
-                                    data-usd-formula="{{ first_quote.usd_formula if first_quote.usd_formula else '' }}"
-                                    {% else %}
-                                    data-value-type="manual"
-                                    data-usd-value="1.0"
-                                    data-usd-formula=""
-                                    {% endif %}
-                                    class="btn-formula bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition text-sm">
+                                    {% set fq = pm.quotes[0] if pm.quotes else None %}
+                                    data-value-type="{{ fq.value_type if fq else 'manual' }}"
+                                    data-usd-value="{{ fq.usd_value if fq and fq.usd_value else '' }}"
+                                    data-usd-formula="{{ fq.usd_formula if fq and fq.usd_formula else '' }}">
                                 <i class="fas fa-calculator"></i> Fórmula
                             </button>
-                            
-                            <!-- Botón Editar -->
-                            <button type="button"
+                            <button type="button" class="btn-edit-row btn-edit"
                                     data-pm-id="{{ pm.id }}"
                                     data-pm-code="{{ pm.code }}"
                                     data-pm-name="{{ pm.name }}"
-                                    data-pm-order="{{ pm.display_order }}"
-                                    class="btn-edit bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm">
+                                    data-pm-order="{{ pm.display_order }}">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            
-                            <!-- Botón Eliminar -->
-                            <button type="button"
+                            <button type="button" class="btn-delete-row btn-delete"
                                     data-pm-id="{{ pm.id }}"
-                                    data-pm-code="{{ pm.code }}"
-                                    class="btn-delete bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition text-sm">
+                                    data-pm-code="{{ pm.code }}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -132,335 +164,192 @@
     </div>
 </div>
 
-<!-- Modal Agregar Método de Pago -->
+<!-- Modal Agregar -->
 <div id="addModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">
-            <i class="fas fa-plus-circle text-indigo-600"></i> Agregar Método de Pago
-        </h3>
+    <div class="modal-card">
+        <div class="modal-title"><i class="fas fa-plus-circle"></i> Agregar Método de Pago</div>
         <form method="POST" action="{{ url_for('dashboard.add_payment_method') }}">
-            <div class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+            <div style="display:flex; flex-direction:column; gap:1rem;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Código *</label>
-                        <input type="text" name="code" required maxlength="20" 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 uppercase"
-                               placeholder="CASHAPP">
+                        <label class="form-label">Código *</label>
+                        <input type="text" name="code" required maxlength="20" class="form-input" placeholder="CASHAPP" style="text-transform:uppercase;">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                        <input type="text" name="name" required maxlength="50" 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                               placeholder="CashApp">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" name="name" required maxlength="50" class="form-input" placeholder="CashApp">
                     </div>
                 </div>
-                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de valor</label>
-                    <select name="value_type" id="addValueType" onchange="toggleFormulaFields('add')"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <label class="form-label">Tipo de valor</label>
+                    <select name="value_type" id="addValueType" onchange="toggleFormulaFields('add')" class="form-select">
                         <option value="manual">Manual (valor fijo en USD)</option>
                         <option value="formula">Fórmula (calculado)</option>
                     </select>
                 </div>
-                
                 <div id="addManualField">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor en USD</label>
-                    <input type="number" name="usd_value" step="0.000001" value="1.0"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                    <p class="text-xs text-gray-500 mt-1">Ejemplo: 1.0 para REF (base)</p>
+                    <label class="form-label">Valor en USD</label>
+                    <input type="number" name="usd_value" step="0.000001" value="1.0" class="form-input" placeholder="1.0">
+                    <p class="form-hint">Ejemplo: 1.0 para REF (base)</p>
                 </div>
-                
                 <div id="addFormulaField" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fórmula en USD</label>
-                    <input type="text" name="usd_formula" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono"
-                           placeholder="1 / 1.1">
-                    <p class="text-xs text-gray-500 mt-1">Ejemplo: 1 / 1.1 (PayPal), 1 / 1.06 (Zelle)</p>
+                    <label class="form-label">Fórmula en USD</label>
+                    <input type="text" name="usd_formula" class="form-input mono" placeholder="1 / 1.1">
+                    <p class="form-hint">Ejemplo: 1 / 1.1 (PayPal), 1 / 1.06 (Zelle)</p>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideAddModal()" 
-                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
-                    Cancelar
-                </button>
-                <button type="submit" 
-                        class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-600 transition">
-                    <i class="fas fa-save"></i> Guardar
-                </button>
+            <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem;">
+                <button type="button" onclick="hideAddModal()" class="btn-cancel">Cancelar</button>
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Guardar</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Modal Editar Fórmula -->
+<!-- Modal Fórmula -->
 <div id="formulaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">
-            <i class="fas fa-calculator text-purple-600"></i> Editar Fórmula: <span id="formulaMethodName"></span>
-        </h3>
+    <div class="modal-card">
+        <div class="modal-title"><i class="fas fa-calculator"></i> Fórmula: <span id="formulaMethodName" style="color:#374151; font-weight:700;"></span></div>
         <form method="POST" id="formulaForm">
-            <div class="space-y-4">
+            <div style="display:flex; flex-direction:column; gap:1rem;">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de valor</label>
-                    <select name="value_type" id="formulaValueType" onchange="toggleFormulaFields('formula')"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    <label class="form-label">Tipo de valor</label>
+                    <select name="value_type" id="formulaValueType" onchange="toggleFormulaFields('formula')" class="form-select">
                         <option value="manual">Manual (valor fijo en USD)</option>
                         <option value="formula">Fórmula (calculado)</option>
                     </select>
                 </div>
-                
                 <div id="formulaManualField">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor en USD</label>
-                    <input type="number" name="usd_value" id="formulaUsdValue" step="0.000001"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    <label class="form-label">Valor en USD</label>
+                    <input type="number" name="usd_value" id="formulaUsdValue" step="0.000001" class="form-input">
                 </div>
-                
                 <div id="formulaFormulaField" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fórmula en USD</label>
-                    <input type="text" name="usd_formula" id="formulaUsdFormula"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono"
-                           placeholder="1 / 1.1">
-                    <p class="text-xs text-gray-500 mt-1">Operaciones: +, -, *, /, ( )</p>
+                    <label class="form-label">Fórmula en USD</label>
+                    <input type="text" name="usd_formula" id="formulaUsdFormula" class="form-input mono" placeholder="1 / 1.1">
+                    <p class="form-hint">Operaciones: +, -, *, /, ( )</p>
                 </div>
-                
-                <div class="p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                    <p class="text-sm text-yellow-800">
-                        <i class="fas fa-exclamation-triangle"></i> 
-                        Al cambiar la fórmula, se recalcularán todas las cotizaciones de este método.
-                    </p>
+                <div class="warning-bar">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Al cambiar la fórmula se recalcularán todas las cotizaciones de este método.
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideFormulaModal()" 
-                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
-                    Cancelar
-                </button>
-                <button type="submit" 
-                        class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition">
-                    <i class="fas fa-save"></i> Actualizar Fórmula
-                </button>
+            <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem;">
+                <button type="button" onclick="hideFormulaModal()" class="btn-cancel">Cancelar</button>
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Actualizar Fórmula</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Modal Editar (nombre y orden) -->
+<!-- Modal Editar -->
 <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">
-            <i class="fas fa-edit text-blue-600"></i> Editar Método de Pago
-        </h3>
+    <div class="modal-card" style="max-width:24rem;">
+        <div class="modal-title"><i class="fas fa-edit"></i> Editar Método de Pago</div>
         <form method="POST" id="editForm">
-            <div class="space-y-4">
+            <div style="display:flex; flex-direction:column; gap:1rem;">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Código</label>
-                    <input type="text" id="editCode" disabled 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
+                    <label class="form-label">Código</label>
+                    <input type="text" id="editCode" disabled class="form-input">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                    <input type="text" name="name" id="editName" required maxlength="50" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label class="form-label">Nombre *</label>
+                    <input type="text" name="name" id="editName" required maxlength="50" class="form-input">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Orden *</label>
-                    <input type="number" name="display_order" id="editOrder" required min="1" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <p class="text-xs text-gray-500 mt-1">También puedes arrastrar y soltar en la tabla</p>
+                    <label class="form-label">Orden *</label>
+                    <input type="number" name="display_order" id="editOrder" required min="1" class="form-input">
+                    <p class="form-hint">También puedes arrastrar y soltar en la tabla</p>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideEditModal()" 
-                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
-                    Cancelar
-                </button>
-                <button type="submit" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
-                    <i class="fas fa-save"></i> Actualizar
-                </button>
+            <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem;">
+                <button type="button" onclick="hideEditModal()" class="btn-cancel">Cancelar</button>
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Actualizar</button>
             </div>
         </form>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// ============================================
-// DRAG & DROP PARA REORDENAR
-// ============================================
-let draggedElement = null;
-
+// ── Drag & Drop ──
+let dragged = null;
 const tbody = document.getElementById('sortable-tbody');
-const rows = tbody.querySelectorAll('.draggable');
 
-rows.forEach(row => {
-    row.addEventListener('dragstart', function(e) {
-        draggedElement = this;
-        this.classList.add('dragging');
-    });
-    
-    row.addEventListener('dragend', function(e) {
-        this.classList.remove('dragging');
-        saveNewOrder();
-    });
-    
-    row.addEventListener('dragover', function(e) {
+tbody.querySelectorAll('.draggable').forEach(row => {
+    row.addEventListener('dragstart', function() { dragged = this; this.classList.add('dragging'); });
+    row.addEventListener('dragend',   function() { this.classList.remove('dragging'); tbody.querySelectorAll('.drag-over-row').forEach(r=>r.classList.remove('drag-over-row')); saveNewOrder(); });
+    row.addEventListener('dragover',  function(e) {
         e.preventDefault();
-        const afterElement = getDragAfterElement(tbody, e.clientY);
-        if (afterElement == null) {
-            tbody.appendChild(draggedElement);
-        } else {
-            tbody.insertBefore(draggedElement, afterElement);
-        }
+        tbody.querySelectorAll('.drag-over-row').forEach(r=>r.classList.remove('drag-over-row'));
+        const after = getDragAfterElement(tbody, e.clientY);
+        if (after == null) tbody.appendChild(dragged); else tbody.insertBefore(dragged, after);
     });
 });
 
 function getDragAfterElement(container, y) {
-    const draggableElements = [...container.querySelectorAll('.draggable:not(.dragging)')];
-    
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
-        }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
+    return [...container.querySelectorAll('.draggable:not(.dragging)')]
+        .reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height/2;
+            return (offset < 0 && offset > closest.offset) ? {offset, element:child} : closest;
+        }, {offset: Number.NEGATIVE_INFINITY}).element;
 }
 
 function saveNewOrder() {
-    const rows = tbody.querySelectorAll('.draggable');
-    const order = Array.from(rows).map(row => parseInt(row.dataset.id));
-    
+    const order = Array.from(tbody.querySelectorAll('.draggable')).map(r => parseInt(r.dataset.id));
     fetch('/dashboard/payment-methods/reorder', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ order: order })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        }
-    });
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order})
+    }).then(r=>r.json()).then(d=>{ if(d.success) location.reload(); });
 }
 
-// ============================================
-// MODAL AGREGAR
-// ============================================
-function showAddModal() {
-    document.getElementById('addModal').classList.remove('hidden');
-}
-
-function hideAddModal() {
-    document.getElementById('addModal').classList.add('hidden');
-}
+// ── Modals ──
+function showAddModal()    { document.getElementById('addModal').classList.remove('hidden'); }
+function hideAddModal()    { document.getElementById('addModal').classList.add('hidden'); }
+function hideFormulaModal(){ document.getElementById('formulaModal').classList.add('hidden'); }
+function hideEditModal()   { document.getElementById('editModal').classList.add('hidden'); }
 
 function toggleFormulaFields(prefix) {
-    const valueType = document.getElementById(prefix + 'ValueType').value;
-    const manualField = document.getElementById(prefix + 'ManualField');
-    const formulaField = document.getElementById(prefix + 'FormulaField');
-    
-    if (valueType === 'manual') {
-        manualField.classList.remove('hidden');
-        formulaField.classList.add('hidden');
-    } else {
-        manualField.classList.add('hidden');
-        formulaField.classList.remove('hidden');
-    }
+    const t = document.getElementById(prefix+'ValueType').value;
+    document.getElementById(prefix+'ManualField').classList.toggle('hidden',  t!=='manual');
+    document.getElementById(prefix+'FormulaField').classList.toggle('hidden', t!=='formula');
 }
 
-// ============================================
-// MODAL EDITAR (Nombre y Orden)
-// ============================================
-document.querySelectorAll('.btn-edit').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const id = this.dataset.pmId;
-        const code = this.dataset.pmCode;
-        const name = this.dataset.pmName;
-        const order = this.dataset.pmOrder;
-        
-        document.getElementById('editCode').value = code;
-        document.getElementById('editName').value = name;
-        document.getElementById('editOrder').value = order;
-        document.getElementById('editForm').action = `/dashboard/payment-methods/${id}/edit`;
-        document.getElementById('editModal').classList.remove('hidden');
-    });
-});
-
-function hideEditModal() {
-    document.getElementById('editModal').classList.add('hidden');
-}
-
-// ============================================
-// MODAL FÓRMULA
-// ============================================
 document.querySelectorAll('.btn-formula').forEach(btn => {
     btn.addEventListener('click', function() {
-        const id = this.dataset.pmId;
-        const name = this.dataset.pmName;
-        const valueType = this.dataset.valueType;
-        const usdValue = this.dataset.usdValue;
-        const usdFormula = this.dataset.usdFormula;
-        
-        document.getElementById('formulaMethodName').textContent = name;
-        document.getElementById('formulaForm').action = `/dashboard/payment-methods/${id}/formula`;
-        
-        // Configurar tipo
-        const valueTypeSelect = document.getElementById('formulaValueType');
-        valueTypeSelect.value = valueType;
-        
-        // Mostrar campos según tipo
-        if (valueType === 'manual') {
-            document.getElementById('formulaManualField').classList.remove('hidden');
-            document.getElementById('formulaFormulaField').classList.add('hidden');
-            document.getElementById('formulaUsdValue').value = usdValue || '1.0';
-        } else {
-            document.getElementById('formulaManualField').classList.add('hidden');
-            document.getElementById('formulaFormulaField').classList.remove('hidden');
-            document.getElementById('formulaUsdFormula').value = usdFormula || '';
-        }
-        
+        document.getElementById('formulaMethodName').textContent = this.dataset.pmName;
+        document.getElementById('formulaForm').action = `/dashboard/payment-methods/${this.dataset.pmId}/formula`;
+        const sel = document.getElementById('formulaValueType');
+        sel.value = this.dataset.valueType;
+        document.getElementById('formulaUsdValue').value   = this.dataset.usdValue || '1.0';
+        document.getElementById('formulaUsdFormula').value = this.dataset.usdFormula || '';
+        toggleFormulaFields('formula');
         document.getElementById('formulaModal').classList.remove('hidden');
     });
 });
 
-function hideFormulaModal() {
-    document.getElementById('formulaModal').classList.add('hidden');
-}
+document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('editCode').value  = this.dataset.pmCode;
+        document.getElementById('editName').value  = this.dataset.pmName;
+        document.getElementById('editOrder').value = this.dataset.pmOrder;
+        document.getElementById('editForm').action = `/dashboard/payment-methods/${this.dataset.pmId}/edit`;
+        document.getElementById('editModal').classList.remove('hidden');
+    });
+});
 
-// ============================================
-// ELIMINAR
-// ============================================
 document.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', function() {
-        const id = this.dataset.pmId;
-        const code = this.dataset.pmCode;
-        
-        if (confirm(`¿Eliminar ${code}?\n\nSe eliminarán todas sus cotizaciones.`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/dashboard/payment-methods/${id}/delete`;
-            document.body.appendChild(form);
-            form.submit();
+        if (confirm(`¿Eliminar ${this.dataset.pmCode}?\n\nSe eliminarán todas sus cotizaciones.`)) {
+            const f = document.createElement('form');
+            f.method='POST'; f.action=`/dashboard/payment-methods/${this.dataset.pmId}/delete`;
+            document.body.appendChild(f); f.submit();
         }
     });
 });
 
-// ============================================
-// CERRAR MODALES CON ESC
-// ============================================
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        hideAddModal();
-        hideEditModal();
-        hideFormulaModal();
-    }
+document.addEventListener('keydown', e => {
+    if (e.key==='Escape') { hideAddModal(); hideFormulaModal(); hideEditModal(); }
 });
 </script>
 {% endblock %}
