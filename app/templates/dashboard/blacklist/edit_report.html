@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Editar Reporte #{{ entry.id }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Shared Blacklist Styles ── */
+    .page-title { font-size:1.35rem; font-weight:800; color:var(--color-secondary); }
+    .page-sub   { font-size:0.85rem; color:var(--color-text-secondary); margin-top:0.15rem; }
+
+    .btn-back {
+        color: var(--color-primary-dark); font-weight:600; font-size:0.875rem;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:color 0.15s;
+    }
+    .btn-back:hover { color: var(--color-secondary); }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: var(--color-secondary); font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+
+    .btn-danger {
+        background:#EF4444; color:#fff; font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-danger:hover { background:#DC2626; }
+
+    .btn-secondary {
+        background:#F3F4F6; color:#374151; font-weight:600; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-secondary:hover { background:#E5E7EB; }
+
+    .btn-warning {
+        background:#F59E0B; color:#fff; font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-warning:hover { background:#D97706; }
+
+    /* Form elements */
+    .section-card {
+        background:#fff; border:1px solid var(--color-border);
+        border-radius:0.75rem; padding:1.5rem; margin-bottom:1.25rem;
+    }
+    .section-title {
+        font-size:0.9rem; font-weight:700; color:var(--color-secondary);
+        margin-bottom:1rem; display:flex; align-items:center; gap:0.45rem;
+        padding-bottom:0.65rem; border-bottom:1px solid var(--color-border);
+    }
+    .section-title i { color:var(--color-primary); }
+
+    .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0.85rem; }
+    .form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.85rem; }
+    @media(max-width:640px) { .form-grid-2, .form-grid-3 { grid-template-columns:1fr; } }
+
+    .form-label { font-size:0.8rem; font-weight:600; color:#374151; margin-bottom:0.35rem; display:block; }
+    .required-star { color:#EF4444; }
+    .form-input, .form-select, .form-textarea {
+        width:100%; padding:0.5rem 0.85rem; border:1px solid var(--color-border);
+        border-radius:0.5rem; font-size:0.875rem; outline:none; background:#fff;
+        transition:border-color 0.15s, box-shadow 0.15s; color:var(--color-text);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        border-color:var(--color-primary); box-shadow:0 0 0 3px rgba(247,217,23,0.2);
+    }
+    .form-textarea { resize:vertical; min-height:5rem; }
+    .form-hint { font-size:0.72rem; color:var(--color-text-secondary); margin-top:0.25rem; }
+
+    .section-divider { border:none; border-top:1px solid var(--color-border); margin:0.5rem 0 1.25rem; }
+
+    /* Status badges */
+    .status-active   { background:#FEE2E2; color:#991B1B; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+    .status-appealed { background:#FEF3C7; color:#92400E; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+    .status-revoked  { background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+
+    .info-bar  { background:#EFF6FF; border-left:4px solid var(--color-info); border-radius:0 0.5rem 0.5rem 0; padding:0.65rem 0.85rem; font-size:0.8rem; color:#1E40AF; }
+    .warn-bar  { background:#FFFDE7; border-left:4px solid var(--color-primary); border-radius:0 0.5rem 0.5rem 0; padding:0.65rem 0.85rem; font-size:0.8rem; color:#5a4a00; }
+
+    .form-footer { display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--color-border); }
+
+    /* Table */
+    .bl-table-wrap { background:#fff; border:1px solid var(--color-border); border-radius:0.75rem; overflow:hidden; }
+    .bl-table { width:100%; border-collapse:collapse; }
+    .bl-table thead tr { background:linear-gradient(135deg,#1A1A1A 0%,#2D2D2D 100%); }
+    .bl-table thead th { padding:0.8rem 1rem; font-size:0.75rem; font-weight:700; color:#fff; text-align:left; text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; }
+    .bl-table tbody tr { border-bottom:1px solid var(--color-border); transition:background 0.15s; }
+    .bl-table tbody tr:hover { background:#FFFDE7; }
+    .bl-table tbody tr:last-child { border-bottom:none; }
+    .bl-table tbody td { padding:0.75rem 1rem; font-size:0.875rem; color:var(--color-text); vertical-align:middle; }
+
+    .id-badge { background:#1A1A1A; color:var(--color-primary); font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:0.35rem; }
+    .cat-badge { background:#EF4444; color:#fff; font-size:0.7rem; font-weight:700; padding:0.25rem 0.6rem; border-radius:0.4rem; }
+
+    .btn-ver {
+        background:#fff; border:1px solid var(--color-border);
+        color:var(--color-secondary); font-size:0.78rem; font-weight:600;
+        padding:0.3rem 0.7rem; border-radius:0.4rem; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.3rem;
+        text-decoration:none; transition:all 0.15s;
+    }
+    .btn-ver:hover { border-color:var(--color-primary); background:var(--color-primary); }
+
+    .empty-state { text-align:center; padding:3rem 1rem; color:var(--color-text-secondary); }
+    .empty-state i { font-size:2.5rem; margin-bottom:0.75rem; display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-lg p-6">
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+        <div>
+            <h2 class="page-title"><i class="fas fa-edit" style="color:#1A1A1A; margin-right:0.4rem;"></i>Editar Reporte #{{ entry.id }}</h2>
+            <p class="page-sub">Modificar información del reporte</p>
+        </div>
+        <a href="{{ url_for('blacklist.view_report', blacklist_id=entry.id) }}" class="btn-back"><i class="fas fa-arrow-left"></i> Cancelar</a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-ban"></i> Datos del Bloqueo</div>
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Razón del Bloqueo <span class="required-star">*</span></label>
+                <input type="text" name="reason" required class="form-input" value="{{ entry.reason }}">
+            </div>
+            <div style="max-width:220px;">
+                <label class="form-label">Severidad</label>
+                <select name="severity" class="form-select">
+                    {% for i in range(1, 6) %}
+                    <option value="{{ i }}" {% if entry.severity == i %}selected{% endif %}>
+                        {{ i }} — {% if i == 1 %}Baja{% elif i == 2 %}Media-Baja{% elif i == 3 %}Media{% elif i == 4 %}Media-Alta{% else %}Crítica{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-user"></i> Datos del Usuario</div>
+            <div class="form-grid-2">
+                <div>
+                    <label class="form-label">Nombre Completo</label>
+                    <input type="text" name="full_name" class="form-input" value="{{ entry.full_name or '' }}">
+                </div>
+                <div></div>
+                <div>
+                    <label class="form-label">País</label>
+                    <input type="text" name="country" class="form-input" value="{{ entry.country or '' }}">
+                </div>
+                <div>
+                    <label class="form-label">Estado / Región</label>
+                    <input type="text" name="state" class="form-input" value="{{ entry.state or '' }}">
+                </div>
+                <div>
+                    <label class="form-label">Tipo de Transacción</label>
+                    <input type="text" name="transaction_type" class="form-input" placeholder="Ej: PayPal → VES" value="{{ entry.transaction_type or '' }}">
+                </div>
+                <div>
+                    <label class="form-label">Datos Bancarios</label>
+                    <input type="text" name="bank_info" class="form-input" value="{{ entry.bank_info or '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-sticky-note"></i> Notas y Evidencia</div>
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Notas Detalladas</label>
+                <textarea name="detailed_notes" class="form-textarea">{{ entry.detailed_notes or '' }}</textarea>
+            </div>
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Información Adicional</label>
+                <textarea name="additional_info" class="form-textarea">{{ entry.additional_info or '' }}</textarea>
+            </div>
+            {% if entry.photo_url %}
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Foto Actual</label>
+                <img src="{{ entry.photo_url }}" alt="Evidencia" style="max-width:240px; border-radius:0.5rem; border:1px solid var(--color-border); display:block; margin-top:0.5rem;">
+            </div>
+            {% endif %}
+            <div class="form-grid-2">
+                <div>
+                    <label class="form-label">{% if entry.photo_url %}Cambiar{% else %}Agregar{% endif %} Foto</label>
+                    <input type="file" name="photo" accept="image/*" class="form-input">
+                    <p class="form-hint">Se optimizará automáticamente</p>
+                </div>
+                <div>
+                    <label class="form-label">Enlaces Maliciosos</label>
+                    <textarea name="scam_links" class="form-textarea" placeholder="Un enlace por línea">{{ entry.scam_links or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-user-shield"></i> Reporte</div>
+            <div style="max-width:320px;">
+                <label class="form-label">Reportado por</label>
+                <input type="text" name="reporter_name" class="form-input" value="{{ entry.reporter_name or 'ceiba21' }}">
+            </div>
+        </div>
+
+        <div class="form-footer">
+            <a href="{{ url_for('blacklist.view_report', blacklist_id=entry.id) }}" class="btn-secondary"><i class="fas fa-times"></i> Cancelar</a>
+            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Guardar Cambios</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

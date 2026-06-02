@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Apelaciones - Blacklist{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Shared Blacklist Styles ── */
+    .page-title { font-size:1.35rem; font-weight:800; color:var(--color-secondary); }
+    .page-sub   { font-size:0.85rem; color:var(--color-text-secondary); margin-top:0.15rem; }
+
+    .btn-back {
+        color: var(--color-primary-dark); font-weight:600; font-size:0.875rem;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:color 0.15s;
+    }
+    .btn-back:hover { color: var(--color-secondary); }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: var(--color-secondary); font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+
+    .btn-danger {
+        background:#EF4444; color:#fff; font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-danger:hover { background:#DC2626; }
+
+    .btn-secondary {
+        background:#F3F4F6; color:#374151; font-weight:600; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-secondary:hover { background:#E5E7EB; }
+
+    .btn-warning {
+        background:#F59E0B; color:#fff; font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-warning:hover { background:#D97706; }
+
+    /* Form elements */
+    .section-card {
+        background:#fff; border:1px solid var(--color-border);
+        border-radius:0.75rem; padding:1.5rem; margin-bottom:1.25rem;
+    }
+    .section-title {
+        font-size:0.9rem; font-weight:700; color:var(--color-secondary);
+        margin-bottom:1rem; display:flex; align-items:center; gap:0.45rem;
+        padding-bottom:0.65rem; border-bottom:1px solid var(--color-border);
+    }
+    .section-title i { color:var(--color-primary); }
+
+    .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0.85rem; }
+    .form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.85rem; }
+    @media(max-width:640px) { .form-grid-2, .form-grid-3 { grid-template-columns:1fr; } }
+
+    .form-label { font-size:0.8rem; font-weight:600; color:#374151; margin-bottom:0.35rem; display:block; }
+    .required-star { color:#EF4444; }
+    .form-input, .form-select, .form-textarea {
+        width:100%; padding:0.5rem 0.85rem; border:1px solid var(--color-border);
+        border-radius:0.5rem; font-size:0.875rem; outline:none; background:#fff;
+        transition:border-color 0.15s, box-shadow 0.15s; color:var(--color-text);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        border-color:var(--color-primary); box-shadow:0 0 0 3px rgba(247,217,23,0.2);
+    }
+    .form-textarea { resize:vertical; min-height:5rem; }
+    .form-hint { font-size:0.72rem; color:var(--color-text-secondary); margin-top:0.25rem; }
+
+    .section-divider { border:none; border-top:1px solid var(--color-border); margin:0.5rem 0 1.25rem; }
+
+    /* Status badges */
+    .status-active   { background:#FEE2E2; color:#991B1B; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+    .status-appealed { background:#FEF3C7; color:#92400E; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+    .status-revoked  { background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+
+    .info-bar  { background:#EFF6FF; border-left:4px solid var(--color-info); border-radius:0 0.5rem 0.5rem 0; padding:0.65rem 0.85rem; font-size:0.8rem; color:#1E40AF; }
+    .warn-bar  { background:#FFFDE7; border-left:4px solid var(--color-primary); border-radius:0 0.5rem 0.5rem 0; padding:0.65rem 0.85rem; font-size:0.8rem; color:#5a4a00; }
+
+    .form-footer { display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--color-border); }
+
+    /* Table */
+    .bl-table-wrap { background:#fff; border:1px solid var(--color-border); border-radius:0.75rem; overflow:hidden; }
+    .bl-table { width:100%; border-collapse:collapse; }
+    .bl-table thead tr { background:linear-gradient(135deg,#1A1A1A 0%,#2D2D2D 100%); }
+    .bl-table thead th { padding:0.8rem 1rem; font-size:0.75rem; font-weight:700; color:#fff; text-align:left; text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; }
+    .bl-table tbody tr { border-bottom:1px solid var(--color-border); transition:background 0.15s; }
+    .bl-table tbody tr:hover { background:#FFFDE7; }
+    .bl-table tbody tr:last-child { border-bottom:none; }
+    .bl-table tbody td { padding:0.75rem 1rem; font-size:0.875rem; color:var(--color-text); vertical-align:middle; }
+
+    .id-badge { background:#1A1A1A; color:var(--color-primary); font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:0.35rem; }
+    .cat-badge { background:#EF4444; color:#fff; font-size:0.7rem; font-weight:700; padding:0.25rem 0.6rem; border-radius:0.4rem; }
+
+    .btn-ver {
+        background:#fff; border:1px solid var(--color-border);
+        color:var(--color-secondary); font-size:0.78rem; font-weight:600;
+        padding:0.3rem 0.7rem; border-radius:0.4rem; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.3rem;
+        text-decoration:none; transition:all 0.15s;
+    }
+    .btn-ver:hover { border-color:var(--color-primary); background:var(--color-primary); }
+
+    .empty-state { text-align:center; padding:3rem 1rem; color:var(--color-text-secondary); }
+    .empty-state i { font-size:2.5rem; margin-bottom:0.75rem; display:block; }
+</style>
+<style>
+    /* Modal nativo (sin Bootstrap) */
+    .modal-overlay {
+        display:none; position:fixed; inset:0;
+        background:rgba(0,0,0,0.55); z-index:1000;
+        align-items:center; justify-content:center;
+    }
+    .modal-overlay.open { display:flex; }
+    .modal-box {
+        background:#fff; border-radius:0.85rem;
+        box-shadow:0 20px 60px rgba(0,0,0,0.25);
+        padding:1.75rem; width:100%; max-width:32rem;
+        margin:1rem;
+    }
+    .modal-title { font-size:1.05rem; font-weight:800; color:var(--color-secondary); margin-bottom:1.25rem; }
+    .appeal-text { background:#F9FAFB; border:1px solid var(--color-border); border-radius:0.5rem; padding:0.85rem; font-size:0.85rem; color:var(--color-text); margin-bottom:1rem; }
+    .modal-footer { display:flex; justify-content:flex-end; gap:0.65rem; margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--color-border); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-lg p-6">
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+        <div>
+            <h2 class="page-title"><i class="fas fa-gavel" style="color:#D97706; margin-right:0.4rem;"></i>Apelaciones Pendientes</h2>
+            <p class="page-sub">Revisar y resolver apelaciones de usuarios</p>
+        </div>
+        <a href="{{ url_for('blacklist.dashboard') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Volver</a>
+    </div>
+
+    <div class="bl-table-wrap" style="overflow-x:auto;">
+        <table class="bl-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Reporte</th>
+                    <th>Apelante</th>
+                    <th>Email</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if appeals %}
+                    {% for appeal in appeals %}
+                    <tr>
+                        <td><span class="id-badge">#{{ appeal.id }}</span></td>
+                        <td>
+                            <a href="{{ url_for('blacklist.view_report', blacklist_id=appeal.blacklist_id) }}"
+                               style="color:var(--color-primary-dark); font-weight:600; text-decoration:none;">
+                                Reporte #{{ appeal.blacklist_id }}
+                            </a>
+                        </td>
+                        <td style="font-weight:600;">{{ appeal.appellant_name }}</td>
+                        <td style="font-size:0.82rem; color:var(--color-text-secondary);">{{ appeal.appellant_email }}</td>
+                        <td style="font-size:0.78rem; color:var(--color-text-secondary);">{{ appeal.submitted_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            <button class="btn-warning btn-sm" onclick="openModal('modal-{{ appeal.id }}')"
+                                    style="font-size:0.78rem; padding:0.3rem 0.7rem;">
+                                <i class="fas fa-gavel"></i> Revisar
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal para esta apelación -->
+                    <div class="modal-overlay" id="modal-{{ appeal.id }}">
+                        <div class="modal-box">
+                            <div class="modal-title"><i class="fas fa-gavel" style="color:#D97706; margin-right:0.4rem;"></i>Revisar Apelación #{{ appeal.id }}</div>
+                            <p style="font-size:0.8rem; font-weight:600; color:var(--color-text-secondary); margin-bottom:0.35rem;">Texto de la apelación:</p>
+                            <div class="appeal-text">{{ appeal.appeal_text }}</div>
+                            <form method="POST" action="{{ url_for('blacklist.review_appeal', appeal_id=appeal.id) }}">
+                                <div style="margin-bottom:1rem;">
+                                    <label class="form-label">Decisión</label>
+                                    <select name="decision" class="form-select" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="approved">Aprobar (Desbloquear)</option>
+                                        <option value="rejected">Rechazar (Mantener bloqueo)</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom:1rem;">
+                                    <label class="form-label">Razón de la decisión</label>
+                                    <textarea name="decision_reason" class="form-textarea" rows="3" required></textarea>
+                                </div>
+                                <div>
+                                    <label class="form-label">Notas internas (opcional)</label>
+                                    <textarea name="review_notes" class="form-textarea" rows="2"></textarea>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn-secondary" onclick="closeModal('modal-{{ appeal.id }}')">Cancelar</button>
+                                    <button type="submit" class="btn-warning"><i class="fas fa-gavel"></i> Enviar Decisión</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle" style="color:#10B981;"></i>
+                                <p>No hay apelaciones pendientes</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+</script>
+{% endblock %}

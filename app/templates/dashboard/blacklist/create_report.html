@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Crear Reporte - Blacklist{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Shared Blacklist Styles ── */
+    .page-title { font-size:1.35rem; font-weight:800; color:var(--color-secondary); }
+    .page-sub   { font-size:0.85rem; color:var(--color-text-secondary); margin-top:0.15rem; }
+
+    .btn-back {
+        color: var(--color-primary-dark); font-weight:600; font-size:0.875rem;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:color 0.15s;
+    }
+    .btn-back:hover { color: var(--color-secondary); }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: var(--color-secondary); font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+
+    .btn-danger {
+        background:#EF4444; color:#fff; font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-danger:hover { background:#DC2626; }
+
+    .btn-secondary {
+        background:#F3F4F6; color:#374151; font-weight:600; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-secondary:hover { background:#E5E7EB; }
+
+    .btn-warning {
+        background:#F59E0B; color:#fff; font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.4rem;
+        text-decoration:none; transition:background 0.15s;
+    }
+    .btn-warning:hover { background:#D97706; }
+
+    /* Form elements */
+    .section-card {
+        background:#fff; border:1px solid var(--color-border);
+        border-radius:0.75rem; padding:1.5rem; margin-bottom:1.25rem;
+    }
+    .section-title {
+        font-size:0.9rem; font-weight:700; color:var(--color-secondary);
+        margin-bottom:1rem; display:flex; align-items:center; gap:0.45rem;
+        padding-bottom:0.65rem; border-bottom:1px solid var(--color-border);
+    }
+    .section-title i { color:var(--color-primary); }
+
+    .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0.85rem; }
+    .form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.85rem; }
+    @media(max-width:640px) { .form-grid-2, .form-grid-3 { grid-template-columns:1fr; } }
+
+    .form-label { font-size:0.8rem; font-weight:600; color:#374151; margin-bottom:0.35rem; display:block; }
+    .required-star { color:#EF4444; }
+    .form-input, .form-select, .form-textarea {
+        width:100%; padding:0.5rem 0.85rem; border:1px solid var(--color-border);
+        border-radius:0.5rem; font-size:0.875rem; outline:none; background:#fff;
+        transition:border-color 0.15s, box-shadow 0.15s; color:var(--color-text);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        border-color:var(--color-primary); box-shadow:0 0 0 3px rgba(247,217,23,0.2);
+    }
+    .form-textarea { resize:vertical; min-height:5rem; }
+    .form-hint { font-size:0.72rem; color:var(--color-text-secondary); margin-top:0.25rem; }
+
+    .section-divider { border:none; border-top:1px solid var(--color-border); margin:0.5rem 0 1.25rem; }
+
+    /* Status badges */
+    .status-active   { background:#FEE2E2; color:#991B1B; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+    .status-appealed { background:#FEF3C7; color:#92400E; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+    .status-revoked  { background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:9999px; }
+
+    .info-bar  { background:#EFF6FF; border-left:4px solid var(--color-info); border-radius:0 0.5rem 0.5rem 0; padding:0.65rem 0.85rem; font-size:0.8rem; color:#1E40AF; }
+    .warn-bar  { background:#FFFDE7; border-left:4px solid var(--color-primary); border-radius:0 0.5rem 0.5rem 0; padding:0.65rem 0.85rem; font-size:0.8rem; color:#5a4a00; }
+
+    .form-footer { display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--color-border); }
+
+    /* Table */
+    .bl-table-wrap { background:#fff; border:1px solid var(--color-border); border-radius:0.75rem; overflow:hidden; }
+    .bl-table { width:100%; border-collapse:collapse; }
+    .bl-table thead tr { background:linear-gradient(135deg,#1A1A1A 0%,#2D2D2D 100%); }
+    .bl-table thead th { padding:0.8rem 1rem; font-size:0.75rem; font-weight:700; color:#fff; text-align:left; text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; }
+    .bl-table tbody tr { border-bottom:1px solid var(--color-border); transition:background 0.15s; }
+    .bl-table tbody tr:hover { background:#FFFDE7; }
+    .bl-table tbody tr:last-child { border-bottom:none; }
+    .bl-table tbody td { padding:0.75rem 1rem; font-size:0.875rem; color:var(--color-text); vertical-align:middle; }
+
+    .id-badge { background:#1A1A1A; color:var(--color-primary); font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:0.35rem; }
+    .cat-badge { background:#EF4444; color:#fff; font-size:0.7rem; font-weight:700; padding:0.25rem 0.6rem; border-radius:0.4rem; }
+
+    .btn-ver {
+        background:#fff; border:1px solid var(--color-border);
+        color:var(--color-secondary); font-size:0.78rem; font-weight:600;
+        padding:0.3rem 0.7rem; border-radius:0.4rem; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.3rem;
+        text-decoration:none; transition:all 0.15s;
+    }
+    .btn-ver:hover { border-color:var(--color-primary); background:var(--color-primary); }
+
+    .empty-state { text-align:center; padding:3rem 1rem; color:var(--color-text-secondary); }
+    .empty-state i { font-size:2.5rem; margin-bottom:0.75rem; display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-lg p-6">
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+        <div>
+            <h2 class="page-title"><i class="fas fa-file-alt" style="color:#EF4444; margin-right:0.4rem;"></i>Crear Nuevo Reporte</h2>
+            <p class="page-sub">Registrar un usuario en la lista negra</p>
+        </div>
+        <a href="{{ url_for('blacklist.dashboard') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Volver</a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <!-- Identificadores -->
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-user"></i> Identificadores del Usuario</div>
+            <p class="form-hint" style="margin-bottom:1rem;">Proporciona al menos un identificador. El sistema completará automáticamente los demás si el usuario existe.</p>
+            <div class="form-grid-2">
+                <div>
+                    <label class="form-label">ID de Usuario</label>
+                    <input type="number" name="user_id" class="form-input" placeholder="Ej: 123">
+                    <p class="form-hint">ID del usuario en el sistema</p>
+                </div>
+                <div>
+                    <label class="form-label">Telegram ID</label>
+                    <input type="number" name="telegram_id" class="form-input" placeholder="Ej: 123456789">
+                    <p class="form-hint">ID numérico de Telegram</p>
+                </div>
+                <div>
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" name="phone" class="form-input" placeholder="Ej: +58414...">
+                    <p class="form-hint">Número con código de país</p>
+                </div>
+                <div>
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-input" placeholder="usuario@ejemplo.com">
+                </div>
+                <div>
+                    <label class="form-label">DNI / Cédula</label>
+                    <input type="text" name="dni" class="form-input" placeholder="V-12345678">
+                </div>
+                <div>
+                    <label class="form-label">Nombre Completo</label>
+                    <input type="text" name="full_name" class="form-input" placeholder="Juan Pérez">
+                </div>
+                <div>
+                    <label class="form-label">País</label>
+                    <input type="text" name="country" class="form-input" placeholder="Venezuela">
+                </div>
+                <div>
+                    <label class="form-label">Estado / Región</label>
+                    <input type="text" name="state" class="form-input" placeholder="Distrito Capital">
+                </div>
+            </div>
+        </div>
+
+        <!-- Transacción -->
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-exchange-alt"></i> Información de Transacción</div>
+            <div class="form-grid-2">
+                <div>
+                    <label class="form-label">Tipo de Transacción</label>
+                    <input type="text" name="transaction_type" class="form-input" placeholder="Ej: PayPal → VES">
+                    <p class="form-hint">Método origen → Moneda destino</p>
+                </div>
+                <div>
+                    <label class="form-label">Datos Bancarios</label>
+                    <input type="text" name="bank_info" class="form-input" placeholder="Banco: XXXX, Cuenta: XXXXXXXX">
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label class="form-label">Información Adicional</label>
+                    <textarea name="additional_info" class="form-textarea" placeholder="Cualquier información relevante adicional..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalles del Bloqueo -->
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-ban"></i> Detalles del Bloqueo</div>
+            <div class="form-grid-3" style="margin-bottom:1rem;">
+                <div>
+                    <label class="form-label">Categoría <span class="required-star">*</span></label>
+                    <select name="category" required class="form-select">
+                        {% for cat in categories %}
+                        <option value="{{ cat.value }}">{{ cat.value.replace('_', ' ').title() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Tipo de Bloqueo <span class="required-star">*</span></label>
+                    <select name="block_type" id="block_type" required class="form-select">
+                        <option value="PERMANENT">Permanente</option>
+                        <option value="TEMPORARY">Temporal</option>
+                        <option value="SUSPENDED">Suspendido</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Severidad (1-5) <span class="required-star">*</span></label>
+                    <select name="severity" required class="form-select">
+                        <option value="1">1 - Baja</option>
+                        <option value="2">2 - Media-Baja</option>
+                        <option value="3" selected>3 - Media</option>
+                        <option value="4">4 - Media-Alta</option>
+                        <option value="5">5 - Crítica</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="expires_at_field" style="display:none; margin-bottom:1rem;">
+                <label class="form-label">Fecha de Expiración</label>
+                <input type="date" name="expires_at" class="form-input" style="max-width:220px;">
+                <p class="form-hint">Solo para bloqueos temporales</p>
+            </div>
+
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Razón del Bloqueo <span class="required-star">*</span></label>
+                <input type="text" name="reason" required maxlength="500" class="form-input" placeholder="Ej: Envió comprobante falso en orden ORD-20250101-001">
+                <p class="form-hint">Descripción breve y clara (máx. 500 caracteres)</p>
+            </div>
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Notas Detalladas</label>
+                <textarea name="detailed_notes" class="form-textarea" placeholder="Información adicional, contexto, evidencias..."></textarea>
+            </div>
+            <div>
+                <label class="form-label">Referencias de Órdenes</label>
+                <input type="text" name="order_references" class="form-input" placeholder="ORD-20250101-001, ORD-20250101-002">
+                <p class="form-hint">Referencias separadas por comas</p>
+            </div>
+        </div>
+
+        <!-- Evidencia -->
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-camera"></i> Evidencia Multimedia</div>
+            <div class="form-grid-2">
+                <div>
+                    <label class="form-label">Fotografía</label>
+                    <input type="file" name="photo" accept="image/*" class="form-input">
+                    <p class="form-hint">Se optimizará automáticamente (máx 800×800px, WebP)</p>
+                </div>
+                <div>
+                    <label class="form-label">Enlaces Maliciosos</label>
+                    <textarea name="scam_links" class="form-textarea" placeholder="http://sitio-estafa1.com&#10;http://sitio-estafa2.com"></textarea>
+                    <p class="form-hint">URLs separadas por líneas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporte -->
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-user-shield"></i> Información del Reporte</div>
+            <div style="max-width:320px;">
+                <label class="form-label">Reportado por</label>
+                <input type="text" name="reporter_name" value="ceiba21" class="form-input">
+                <p class="form-hint">Nombre o identificador de quien reporta</p>
+            </div>
+            <hr class="section-divider" style="margin-top:1.25rem;">
+            <div>
+                <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
+                    <input type="checkbox" name="run_fraud_check" style="accent-color:var(--color-primary); margin-top:0.15rem;">
+                    <div>
+                        <span style="font-size:0.875rem; font-weight:600; color:var(--color-text);">Ejecutar verificación de fraude con APIs externas</span>
+                        <p class="form-hint" style="margin-top:0.15rem;">Verifica números de teléfono, emails y otros identificadores contra listas conocidas de estafadores.</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-footer">
+            <a href="{{ url_for('blacklist.dashboard') }}" class="btn-secondary"><i class="fas fa-times"></i> Cancelar</a>
+            <button type="submit" class="btn-danger"><i class="fas fa-ban"></i> Crear Reporte</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('block_type').addEventListener('change', function() {
+    const field = document.getElementById('expires_at_field');
+    const input = field.querySelector('input');
+    if (this.value === 'TEMPORARY') { field.style.display = 'block'; input.required = true; }
+    else { field.style.display = 'none'; input.required = false; }
+});
+</script>
+{% endblock %}

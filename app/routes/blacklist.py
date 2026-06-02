@@ -40,7 +40,7 @@ def dashboard():
     pending_appeals = BlacklistService.get_pending_appeals()
     
     return render_template(
-        'blacklist/dashboard.html',
+        'dashboard/blacklist/dashboard.html',
         reports=reports,
         stats=stats,
         pending_appeals=pending_appeals,
@@ -118,7 +118,7 @@ def create_report():
             flash(message, 'error')
     
     return render_template(
-        'blacklist/create_report.html',
+        'dashboard/blacklist/create_report.html',
         categories=BlacklistCategory,
         types=BlacklistType
     )
@@ -152,7 +152,7 @@ def search():
     )
     
     return render_template(
-        'blacklist/search_results.html',
+        'dashboard/blacklist/search_results.html',
         results=results,
         search_params=request.args
     )
@@ -179,7 +179,7 @@ def view_report(blacklist_id):
         return redirect(url_for('blacklist.dashboard'))
     
     return render_template(
-        'blacklist/report_detail.html',
+        'dashboard/blacklist/report_detail.html',
         entry=entry,
         statuses=BlacklistStatus,
         types=BlacklistType
@@ -231,7 +231,7 @@ def appeals_list():
     appeals = BlacklistService.get_pending_appeals()
     
     return render_template(
-        'blacklist/appeals_list.html',
+        'dashboard/blacklist/appeals_list.html',
         appeals=appeals
     )
 
@@ -250,7 +250,7 @@ def view_appeal(appeal_id):
         return redirect(url_for('blacklist.appeals_list'))
     
     return render_template(
-        'blacklist/appeal_detail.html',
+        'dashboard/blacklist/appeal_detail.html',
         appeal=appeal
     )
 
@@ -390,7 +390,7 @@ def edit_report(blacklist_id):
             flash('Error al actualizar reporte', 'error')
     
     return render_template(
-        'blacklist/edit_report.html',
+        'dashboard/blacklist/edit_report.html',
         entry=entry,
         categories=BlacklistCategory,
         types=BlacklistType
@@ -435,7 +435,7 @@ def user_profile(identifier_type, identifier_value):
     revoked_count = sum(1 for r in all_reports if r.status == BlacklistStatus.REVOKED)
     
     return render_template(
-        'blacklist/user_profile.html',
+        'dashboard/blacklist/user_profile.html',
         reports=all_reports,
         identifier_type=identifier_type,
         identifier_value=identifier_value,
