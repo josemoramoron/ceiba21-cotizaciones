@@ -29,6 +29,9 @@ class PaypalPayment(BaseModel):
     El sistema parsea los correos de service@intl.paypal.com con
     asunto 'Ha recibido un pago' y registra los datos aquí.
 
+    La lógica de cálculo de valor a pagar está en:
+        app/services/calculator_service.py -> calcular_pago_paypal_recibido()
+
     Attributes:
         email_message_id: ID único del mensaje Gmail (evita duplicados)
         cuenta_destino: Cuenta Gmail que recibió el correo original
@@ -47,7 +50,7 @@ class PaypalPayment(BaseModel):
         moneda_pago_local: Moneda en que se pagará al cliente
         estado: Estado del pago
         notas: Notas manuales del operador
-        procesado_por: WebUser que procesó el pago
+        procesado_por: Operador que procesó el pago
     """
 
     __tablename__ = 'paypal_payments'
@@ -186,8 +189,9 @@ class PaypalPayment(BaseModel):
     def monto_base_calculo(self) -> Optional[float]:
         """
         Retorna el monto base para calcular el valor a pagar.
-        - Si es comercial: usa importe_neto (después de comisión PayPal)
-        - Si es personal: usa importe_bruto (no hay comisión)
+
+        - Comercial (G&S): usa importe_neto (después de comisión PayPal)
+        - Personal (F&F): usa importe_bruto (no hay comisión)
 
         Returns:
             float con el monto base, o None si no está disponible
@@ -209,90 +213,50 @@ class PaypalPayment(BaseModel):
         """
         return self.moneda == 'USD'
 
-    def calcular_valor_pagar(
+    def aplicar_calculo(
         self,
-        currency_code: str,
-        web_user_id: Optional[int] = None
-    ) -> Optional[float]:
+        resultado: dict,
+        operador_id: Optional[int] = None
+    ) -> None:
         """
-        Calcula el valor a pagar al cliente en la moneda local indicada.
-        Busca la cotización PayPal vigente para esa moneda.
+        Aplica el resultado de CalculatorService al modelo y actualiza estado.
+
+        Este método solo guarda el snapshot — el cálculo lo hace el service.
+        Solo cambia el estado a PROCESADO si estaba en PENDIENTE o MANUAL.
 
         Args:
-            currency_code: Código de moneda local (VES, COP, BRL, etc.)
-            web_user_id: ID del WebUser que está procesando
-
-        Returns:
-            float con el valor calculado, o None si no hay cotización
+            resultado: Dict retornado por CalculatorService.calcular_pago_paypal_recibido()
+            operador_id: ID del Operator que aplica el cálculo
 
         Example:
-            >>> pago.calcular_valor_pagar('VES', current_user.id)
-            414.96
+            >>> resultado = CalculatorService.calcular_pago_paypal_recibido(40.0, 'VES')
+            >>> pago.aplicar_calculo(resultado, operador_id=1)
         """
-        from app.models.quote import Quote
-        from app.models.payment_method import PaymentMethod
-        from app.models.currency import Currency
+        self.cotizacion_id = resultado['cotizacion_id']
+        self.tasa_aplicada = resultado['tasa_aplicada']
+        self.valor_a_pagar = resultado['valor_a_pagar']
+        self.moneda_pago_local = resultado['moneda_local']
 
-        # Buscar método de pago PayPal
-        paypal_method = PaymentMethod.query.filter_by(code='PAYPAL').first()
-        if not paypal_method:
-            # Intentar con nombre si el código es diferente
-            paypal_method = PaymentMethod.query.filter(
-                PaymentMethod.name.ilike('%paypal%')
-            ).first()
-
-        if not paypal_method:
-            return None
-
-        # Buscar moneda destino
-        currency = Currency.query.filter_by(code=currency_code.upper()).first()
-        if not currency:
-            return None
-
-        # Buscar cotización vigente
-        quote = Quote.query.filter_by(
-            payment_method_id=paypal_method.id,
-            currency_id=currency.id
-        ).first()
-
-        if not quote or not quote.final_value:
-            return None
-
-        # Monto base × tasa
-        monto_base = self.monto_base_calculo
-        if not monto_base:
-            return None
-
-        # final_value de Quote es el valor de 1 USD en moneda local
-        tasa = float(quote.final_value)
-        valor = round(monto_base * tasa, 2)
-
-        # Guardar snapshot
-        self.cotizacion_id = quote.id
-        self.tasa_aplicada = tasa
-        self.valor_a_pagar = valor
-        self.moneda_pago_local = currency_code.upper()
+        # Solo avanza a procesado si estaba en estado inicial
         if self.estado in (PaypalPaymentStatus.PENDIENTE, PaypalPaymentStatus.MANUAL):
             self.estado = PaypalPaymentStatus.PROCESADO
 
-        if web_user_id:
-            self.procesado_por = web_user_id
-
-        return valor
+        if operador_id:
+            self.procesado_por = operador_id
 
     def to_dict(self, include_relationships: bool = False) -> Dict[str, Any]:
         """
         Serializar pago a diccionario.
 
         Args:
-            include_relationships: Si True incluye datos de cotización
+            include_relationships: Si True incluye datos de cotización y operador
 
         Returns:
             Dict con todos los campos del pago
         """
         data = super().to_dict()
 
-        # Campos calculados
+        # Campos calculados (propiedades, no columnas)
         data['monto_base_calculo'] = self.monto_base_calculo
         data['es_moneda_soportada'] = self.es_moneda_soportada
 
@@ -301,6 +265,7 @@ class PaypalPayment(BaseModel):
 
         if include_relationships and self.procesado_por_usuario:
             data['procesado_por_nombre'] = self.procesado_por_usuario.full_name
+
         return data
 
     @classmethod
@@ -342,11 +307,11 @@ class PaypalPayment(BaseModel):
         """Obtener todos los pagos pendientes de procesar."""
         return cls.query.filter_by(
             estado=PaypalPaymentStatus.PENDIENTE
-        ).order_by(cls.fecha_pago.desc()).all()
+        ).order_by(cls.id.desc()).all()
 
     @classmethod
     def get_manuales(cls) -> list:
         """Obtener pagos en moneda no USD que requieren llenado manual."""
         return cls.query.filter_by(
             estado=PaypalPaymentStatus.MANUAL
-        ).order_by(cls.fecha_pago.desc()).all()
+        ).order_by(cls.id.desc()).all()

@@ -449,10 +449,11 @@ async function calcularValor() {
     result.classList.add('show');
 
     try {
+        // solo_calcular: true — consulta sin persistir nada en BD
         const r = await fetch(`/dashboard/paypal/api/calcular/${PAGO_ID}`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ moneda })
+            body: JSON.stringify({ moneda, solo_calcular: true })
         });
         const d = await r.json();
 

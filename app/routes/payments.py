@@ -10,6 +10,7 @@ from app.models import db
 from app.models.paypal_payment import PaypalPayment, PaypalPaymentStatus
 from app.models.currency import Currency
 from app.services.payment_ingestion_service import PaymentIngestionService
+from app.services.calculator_service import CalculatorService
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,6 @@ def index():
     Lista de pagos PayPal con filtros por estado.
     GET /dashboard/paypal/
     """
-    # Filtros opcionales por query string
     estado = request.args.get('estado', '')
     page = request.args.get('page', 1, type=int)
     per_page = 25
@@ -41,11 +41,9 @@ def index():
 
     pagos = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    # Resumen de conteos por estado para los badges del header
     service = PaymentIngestionService()
     resumen = service.obtener_resumen()
 
-    # Monedas activas para el desplegable de cálculo
     monedas = Currency.query.filter_by(active=True).order_by(
         Currency.display_order
     ).all()
@@ -89,9 +87,6 @@ def api_ingestar():
     """
     Dispara la ingesta manual de correos PayPal.
     POST /dashboard/paypal/api/ingestar
-
-    Returns:
-        JSON con resultado de la ingesta
     """
     try:
         service = PaymentIngestionService()
@@ -112,13 +107,12 @@ def api_ingestar():
 def api_calcular(pago_id: int):
     """
     Calcula el valor a pagar para una moneda local seleccionada.
-    Similar a la calculadora PayPal existente.
+
+    Con solo_calcular=true solo retorna el resultado sin persistir nada.
+    Con solo_calcular=false (o ausente) aplica y guarda el cálculo.
 
     POST /dashboard/paypal/api/calcular/<id>
-    Body JSON: {"moneda": "VES"}
-
-    Returns:
-        JSON con el valor calculado y la tasa aplicada
+    Body JSON: {"moneda": "VES", "solo_calcular": true}
     """
     pago = PaypalPayment.query.get_or_404(pago_id)
 
@@ -127,27 +121,32 @@ def api_calcular(pago_id: int):
         return jsonify({'error': 'Se requiere el campo moneda'}), 400
 
     moneda_code = data['moneda'].upper()
+    solo_calcular = data.get('solo_calcular', False)
+
+    monto_base = pago.monto_base_calculo
+    if not monto_base:
+        return jsonify({'error': 'No hay monto base para calcular'}), 400
 
     try:
-        valor = pago.calcular_valor_pagar(
-            moneda_code,
-            web_user_id=current_user.id
+        resultado = CalculatorService.calcular_pago_paypal_recibido(
+            monto_base=monto_base,
+            currency_code=moneda_code
         )
 
-        if valor is None:
-            return jsonify({
-                'error': f'No hay cotización PayPal activa para {moneda_code}'
-            }), 404
+        if 'error' in resultado:
+            return jsonify(resultado), 404
 
-        # Guardar los cambios calculados
-        db.session.commit()
+        if not solo_calcular:
+            # Aplica y persiste el cálculo en el modelo
+            pago.aplicar_calculo(resultado, operador_id=current_user.id)
+            db.session.commit()
 
         return jsonify({
             'success': True,
-            'valor_a_pagar': valor,
+            'valor_a_pagar': resultado['valor_a_pagar'],
             'moneda_local': moneda_code,
-            'tasa_aplicada': float(pago.tasa_aplicada) if pago.tasa_aplicada else None,
-            'monto_base': pago.monto_base_calculo,
+            'tasa_aplicada': resultado['tasa_aplicada'],
+            'monto_base': monto_base,
             'estado': pago.estado
         }), 200
 
@@ -161,7 +160,7 @@ def api_calcular(pago_id: int):
 @login_required
 def api_editar(pago_id: int):
     """
-    Edita campos editables de un pago (notas, estado, moneda, valor manual).
+    Edita campos del pago: notas, estado, moneda y valor manual.
 
     POST /dashboard/paypal/api/editar/<id>
     Body JSON: {
@@ -171,9 +170,6 @@ def api_editar(pago_id: int):
         "valor_a_pagar": 45000.00,
         "tasa_aplicada": 4500.00
     }
-
-    Returns:
-        JSON con el pago actualizado
     """
     pago = PaypalPayment.query.get_or_404(pago_id)
     data = request.get_json()
@@ -181,16 +177,7 @@ def api_editar(pago_id: int):
     if not data:
         return jsonify({'error': 'No se recibieron datos'}), 400
 
-    # Campos editables permitidos
-    campos_editables = [
-        'notas',
-        'estado',
-        'moneda_pago_local',
-        'valor_a_pagar',
-        'tasa_aplicada'
-    ]
-
-    # Validar estado si se envía
+    # Validar estado
     if 'estado' in data:
         estados_validos = [
             PaypalPaymentStatus.PENDIENTE,
@@ -203,15 +190,16 @@ def api_editar(pago_id: int):
             return jsonify({'error': f"Estado inválido: {data['estado']}"}), 400
 
     try:
-        # Actualizar solo campos permitidos
         pago.estado = data.get('estado', pago.estado)
         pago.notas = data.get('notas', pago.notas)
+
         if 'moneda_pago_local' in data:
             pago.moneda_pago_local = data['moneda_pago_local']
-        if 'valor_a_pagar' in data and data['valor_a_pagar']:
+        if 'valor_a_pagar' in data and data['valor_a_pagar'] is not None:
             pago.valor_a_pagar = float(data['valor_a_pagar'])
-        if 'tasa_aplicada' in data and data['tasa_aplicada']:
+        if 'tasa_aplicada' in data and data['tasa_aplicada'] is not None:
             pago.tasa_aplicada = float(data['tasa_aplicada'])
+
         pago.procesado_por = current_user.id
         db.session.commit()
 
@@ -233,9 +221,6 @@ def api_resumen():
     """
     Retorna resumen de pagos por estado.
     GET /dashboard/paypal/api/resumen
-
-    Returns:
-        JSON con conteos y montos por estado
     """
     try:
         service = PaymentIngestionService()
@@ -251,9 +236,6 @@ def api_test_gmail():
     """
     Prueba la conexión IMAP con Gmail.
     GET /dashboard/paypal/api/test-gmail
-
-    Returns:
-        JSON con estado de la conexión
     """
     try:
         from app.services.gmail_service import GmailService
