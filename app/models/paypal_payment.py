@@ -272,7 +272,8 @@ class PaypalPayment(BaseModel):
         self.tasa_aplicada = tasa
         self.valor_a_pagar = valor
         self.moneda_pago_local = currency_code.upper()
-        self.estado = PaypalPaymentStatus.PROCESADO
+        if self.estado in (PaypalPaymentStatus.PENDIENTE, PaypalPaymentStatus.MANUAL):
+            self.estado = PaypalPaymentStatus.PROCESADO
 
         if web_user_id:
             self.procesado_por = web_user_id
@@ -299,10 +300,7 @@ class PaypalPayment(BaseModel):
             data['cotizacion'] = self.cotizacion.to_dict()
 
         if include_relationships and self.procesado_por_usuario:
-            data['procesado_por_nombre'] = (
-                self.procesado_por_usuario.get_full_name()
-            )
-
+            data['procesado_por_nombre'] = self.procesado_por_usuario.full_name
         return data
 
     @classmethod

@@ -34,7 +34,7 @@ def index():
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
-    query = PaypalPayment.query.order_by(PaypalPayment.fecha_pago.desc())
+    query = PaypalPayment.query.order_by(PaypalPayment.id.desc())
 
     if estado:
         query = query.filter_by(estado=estado)
@@ -204,13 +204,16 @@ def api_editar(pago_id: int):
 
     try:
         # Actualizar solo campos permitidos
-        cambios = {
-            k: v for k, v in data.items()
-            if k in campos_editables
-        }
-        cambios['procesado_por'] = current_user.id
-
-        pago.update(**cambios)
+        pago.estado = data.get('estado', pago.estado)
+        pago.notas = data.get('notas', pago.notas)
+        if 'moneda_pago_local' in data:
+            pago.moneda_pago_local = data['moneda_pago_local']
+        if 'valor_a_pagar' in data and data['valor_a_pagar']:
+            pago.valor_a_pagar = float(data['valor_a_pagar'])
+        if 'tasa_aplicada' in data and data['tasa_aplicada']:
+            pago.tasa_aplicada = float(data['tasa_aplicada'])
+        pago.procesado_por = current_user.id
+        db.session.commit()
 
         return jsonify({
             'success': True,

@@ -45,3 +45,9 @@ Capas en orden estricto: Routes → Services → Models
 2. Propón la solución mínima sin cambiar nada innecesario
 3. Si requiere refactorizar dímelo primero y espera confirmación
 4. Muéstrame cómo reproducir el error antes de corregirlo
+
+## Reglas CSS
+- Nunca usar !important para resolver conflictos de tema
+- Colores adaptativos SIEMPRE mediante variables CSS en :root y [data-theme="dark"]
+- Nunca hardcodear colores con style="" en elementos que deben cambiar con el tema
+- Selectores siempre específicos (.site-nav, .nav-text) nunca genéricos (nav, body, a)
