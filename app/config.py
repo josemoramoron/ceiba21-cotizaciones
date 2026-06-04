@@ -24,6 +24,9 @@ class Config:
     TELEGRAM_CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
     ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
     ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'ceiba21admin')
+    GMAIL_IMAP_USER = os.getenv('GMAIL_IMAP_USER')
+    GMAIL_IMAP_PASSWORD = os.getenv('GMAIL_IMAP_PASSWORD')
+    DEFAULT_LOCAL_CURRENCY = os.getenv('DEFAULT_LOCAL_CURRENCY', 'VES')
 
 class DevelopmentConfig(Config):
     DEBUG = True

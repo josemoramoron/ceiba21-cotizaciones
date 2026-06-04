@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}Pagos PayPal{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --c-yellow:      #F7D917;
+        --c-yellow-dark: #E5C500;
+        --c-dark:        #1A1A1A;
+        --c-dark2:       #2D2D2D;
+        --c-green:       #10B981;
+        --c-red:         #EF4444;
+        --c-blue:        #3B82F6;
+        --c-orange:      #F59E0B;
+        --c-purple:      #8B5CF6;
+    }
+
+    /* ── Page header ── */
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .page-title  { font-size:1.35rem; font-weight:800; color:var(--c-dark); }
+    .page-sub    { font-size:0.85rem; color:#6C757D; margin-top:0.15rem; }
+
+    /* ── Stat cards ── */
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:0.75rem; margin-bottom:1.5rem; }
+    .stat-card {
+        background:#fff; border:1px solid #DEE2E6; border-radius:0.65rem;
+        padding:1rem; text-align:center; cursor:pointer;
+        transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+        text-decoration:none;
+    }
+    .stat-card:hover { border-color:var(--c-yellow); box-shadow:0 2px 10px rgba(247,217,23,0.2); transform:translateY(-1px); }
+    .stat-card.active { border-color:var(--c-yellow); background:#FFFDE7; }
+    .stat-num  { font-size:1.6rem; font-weight:800; color:var(--c-dark); line-height:1; }
+    .stat-label{ font-size:0.72rem; font-weight:600; color:#6C757D; margin-top:0.3rem; text-transform:uppercase; letter-spacing:0.05em; }
+    .stat-dot  { width:8px; height:8px; border-radius:50%; display:inline-block; margin-bottom:0.4rem; }
+
+    /* ── Botones ── */
+    .btn-primary {
+        background: linear-gradient(135deg, var(--c-yellow) 0%, var(--c-yellow-dark) 100%);
+        color: var(--c-dark); font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none;
+        cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
+        transition: transform 0.15s, box-shadow 0.15s; text-decoration:none;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+    .btn-ghost {
+        background:transparent; color:#6C757D; font-weight:600; font-size:0.875rem;
+        padding:0.55rem 1rem; border-radius:0.5rem; border:1px solid #DEE2E6;
+        cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
+        transition:all 0.15s; text-decoration:none;
+    }
+    .btn-ghost:hover { border-color:var(--c-dark); color:var(--c-dark); }
+
+    /* ── Tabla ── */
+    .table-wrap { overflow-x:auto; border-radius:0.65rem; border:1px solid #DEE2E6; }
+    table { width:100%; border-collapse:collapse; }
+    thead th {
+        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+        color:#fff; font-size:0.72rem; font-weight:700;
+        text-transform:uppercase; letter-spacing:0.06em;
+        padding:0.75rem 1rem; text-align:left; white-space:nowrap;
+    }
+    tbody tr { border-bottom:1px solid #F3F4F6; transition:background 0.1s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:#FAFAFA; }
+    tbody td { padding:0.85rem 1rem; font-size:0.875rem; color:#1A1A1A; vertical-align:middle; }
+
+    .td-pagador { font-weight:600; max-width:180px; }
+    .td-pagador small { display:block; font-weight:400; color:#6C757D; font-size:0.75rem; margin-top:0.1rem; }
+    .td-monto { font-weight:700; font-size:0.95rem; white-space:nowrap; }
+    .td-pagar { font-weight:700; color:var(--c-green); white-space:nowrap; }
+    .td-pagar.manual { color:var(--c-orange); }
+    .td-fecha { color:#6C757D; font-size:0.8rem; white-space:nowrap; }
+    .td-actions { white-space:nowrap; }
+
+    /* ── Badges de estado ── */
+    .badge {
+        display:inline-flex; align-items:center; gap:0.3rem;
+        font-size:0.7rem; font-weight:700; padding:0.25rem 0.6rem;
+        border-radius:9999px; text-transform:uppercase; letter-spacing:0.04em;
+        white-space:nowrap;
+    }
+    .badge-pendiente  { background:#FEF3C7; color:#92400E; }
+    .badge-procesado  { background:#D1FAE5; color:#065F46; }
+    .badge-pagado     { background:#DBEAFE; color:#1E40AF; }
+    .badge-revision   { background:#FCE7F3; color:#9D174D; }
+    .badge-manual     { background:#FFF3CD; color:#856404; }
+
+    /* ── Btn editar ── */
+    .btn-edit {
+        background: linear-gradient(135deg, var(--c-dark) 0%, var(--c-dark2) 100%);
+        border:1px solid var(--c-yellow); color:var(--c-yellow);
+        font-size:0.75rem; font-weight:600; padding:0.35rem 0.7rem;
+        border-radius:0.4rem; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.3rem;
+        transition:all 0.15s; text-decoration:none;
+    }
+    .btn-edit:hover { background:var(--c-yellow); color:var(--c-dark); }
+
+    /* ── Filtros ── */
+    .filter-bar {
+        display:flex; gap:0.5rem; flex-wrap:wrap;
+        margin-bottom:1rem; align-items:center;
+    }
+    .filter-btn {
+        font-size:0.8rem; font-weight:600; padding:0.4rem 0.9rem;
+        border-radius:9999px; border:1px solid #DEE2E6;
+        cursor:pointer; background:#fff; color:#6C757D; transition:all 0.15s;
+        text-decoration:none;
+    }
+    .filter-btn:hover  { border-color:var(--c-dark); color:var(--c-dark); }
+    .filter-btn.active { background:var(--c-dark); color:#fff; border-color:var(--c-dark); }
+
+    /* ── Spinner ── */
+    .spinner { display:none; }
+    .spinner.show { display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin { animation:spin 0.8s linear infinite; }
+
+    /* ── Toast ── */
+    #toast {
+        position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
+        background:#fff; border-radius:0.65rem; padding:0.75rem 1.1rem;
+        box-shadow:0 4px 20px rgba(0,0,0,0.15); border-left:4px solid var(--c-green);
+        font-size:0.875rem; font-weight:600; color:#1A1A1A;
+        display:none; align-items:center; gap:0.5rem; max-width:320px;
+        animation:slideIn 0.25s ease;
+    }
+    #toast.show { display:flex; }
+    #toast.error { border-left-color:var(--c-red); }
+    @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── Empty state ── */
+    .empty-state { text-align:center; padding:3rem 1rem; color:#6C757D; }
+    .empty-state i { font-size:2.5rem; margin-bottom:0.75rem; opacity:0.4; }
+
+    /* ── Paginación ── */
+    .pagination { display:flex; gap:0.35rem; flex-wrap:wrap; align-items:center; }
+    .page-btn {
+        padding:0.4rem 0.75rem; border-radius:0.4rem; font-size:0.82rem; font-weight:600;
+        border:1px solid #DEE2E6; background:#fff; color:#6C757D;
+        cursor:pointer; text-decoration:none; transition:all 0.15s;
+    }
+    .page-btn:hover { border-color:var(--c-dark); color:var(--c-dark); }
+    .page-btn.active { background:var(--c-dark); color:#fff; border-color:var(--c-dark); }
+    .page-btn.disabled { opacity:0.4; pointer-events:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-lg p-6">
+
+    <!-- ── Header ── -->
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">
+                <i class="fab fa-paypal mr-2" style="color:#003087;"></i>
+                Pagos PayPal
+            </h2>
+            <p class="page-sub">Pagos recibidos via Gmail — actualizados automáticamente cada 5 minutos</p>
+        </div>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+            <button onclick="ingestar()" id="btnIngestar" class="btn-primary">
+                <i class="fas fa-sync-alt" id="iconIngestar"></i>
+                <span id="lblIngestar">Verificar correos ahora</span>
+            </button>
+            <a href="{{ url_for('dashboard.index') }}" class="btn-ghost">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- ── Stat cards ── -->
+    <div class="stat-grid">
+        {% set total_pagos = pagos.total %}
+        {% for item in resumen.estados %}
+        <a href="{{ url_for('paypal_payments.index', estado=item.estado) }}"
+           class="stat-card {% if estado_filtro == item.estado %}active{% endif %}">
+            <div class="stat-dot"
+                 style="background:
+                 {% if item.estado == 'pendiente' %}#F59E0B
+                 {% elif item.estado == 'procesado' %}#10B981
+                 {% elif item.estado == 'pagado' %}#3B82F6
+                 {% elif item.estado == 'revision' %}#EC4899
+                 {% else %}#8B5CF6{% endif %};"></div>
+            <div class="stat-num">{{ item.total }}</div>
+            <div class="stat-label">{{ item.estado }}</div>
+        </a>
+        {% endfor %}
+        <a href="{{ url_for('paypal_payments.index') }}"
+           class="stat-card {% if not estado_filtro %}active{% endif %}">
+            <div class="stat-dot" style="background:#6C757D;"></div>
+            <div class="stat-num">{{ pagos.total }}</div>
+            <div class="stat-label">Todos</div>
+        </a>
+    </div>
+
+    <!-- ── Filtros ── -->
+    <div class="filter-bar">
+        <span style="font-size:0.8rem; font-weight:600; color:#6C757D;">Filtrar:</span>
+        <a href="{{ url_for('paypal_payments.index') }}"
+           class="filter-btn {% if not estado_filtro %}active{% endif %}">
+            Todos
+        </a>
+        <a href="{{ url_for('paypal_payments.index', estado='pendiente') }}"
+           class="filter-btn {% if estado_filtro == 'pendiente' %}active{% endif %}">
+            🟡 Pendiente
+        </a>
+        <a href="{{ url_for('paypal_payments.index', estado='procesado') }}"
+           class="filter-btn {% if estado_filtro == 'procesado' %}active{% endif %}">
+            🟢 Procesado
+        </a>
+        <a href="{{ url_for('paypal_payments.index', estado='pagado') }}"
+           class="filter-btn {% if estado_filtro == 'pagado' %}active{% endif %}">
+            🔵 Pagado
+        </a>
+        <a href="{{ url_for('paypal_payments.index', estado='manual') }}"
+           class="filter-btn {% if estado_filtro == 'manual' %}active{% endif %}">
+            🟠 Manual
+        </a>
+        <a href="{{ url_for('paypal_payments.index', estado='revision') }}"
+           class="filter-btn {% if estado_filtro == 'revision' %}active{% endif %}">
+            🔴 Revisión
+        </a>
+    </div>
+
+    <!-- ── Tabla ── -->
+    {% if pagos.items %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Pagador</th>
+                    <th>Monto</th>
+                    <th>Neto / Base</th>
+                    <th>Valor a pagar</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pagos.items %}
+                <tr>
+                    <td style="color:#9CA3AF; font-size:0.75rem; font-weight:600;">
+                        #{{ pago.id }}
+                    </td>
+                    <td class="td-pagador">
+                        {{ pago.pagador_nombre or '—' }}
+                        {% if pago.paypal_transaction_id %}
+                        <small>{{ pago.paypal_transaction_id }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="td-monto">
+                        {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }}{% endif %}
+                        {{ "%.2f"|format(pago.importe_bruto) }}
+                        <small style="color:#9CA3AF; font-weight:400;">{{ pago.moneda }}</small>
+                    </td>
+                    <td style="font-size:0.85rem;">
+                        {% if pago.importe_neto %}
+                            <span style="color:#10B981; font-weight:600;">
+                                ${{ "%.2f"|format(pago.importe_neto) }}
+                            </span>
+                            {% if pago.comision_paypal %}
+                            <small style="color:#EF4444; display:block;">
+                                -${{ "%.2f"|format(pago.comision_paypal) }} comisión
+                            </small>
+                            {% endif %}
+                        {% else %}
+                            <span style="color:#6C757D;">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-pagar {% if pago.estado == 'manual' %}manual{% endif %}">
+                        {% if pago.valor_a_pagar %}
+                            {{ "%.2f"|format(pago.valor_a_pagar) }}
+                            <small style="font-weight:400; color:#6C757D;">{{ pago.moneda_pago_local }}</small>
+                        {% else %}
+                            <span style="color:#F59E0B; font-size:0.8rem;">
+                                <i class="fas fa-clock"></i> Pendiente
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if pago.tipo_pago == 'comercial' %}
+                        <span class="badge" style="background:#EDE9FE; color:#5B21B6;">
+                            <i class="fas fa-store" style="font-size:0.6rem;"></i> G&S
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background:#E0F2FE; color:#0369A1;">
+                            <i class="fas fa-user-friends" style="font-size:0.6rem;"></i> F&F
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ pago.estado }}">
+                            {% if pago.estado == 'pendiente' %}<i class="fas fa-clock" style="font-size:0.6rem;"></i>
+                            {% elif pago.estado == 'procesado' %}<i class="fas fa-check" style="font-size:0.6rem;"></i>
+                            {% elif pago.estado == 'pagado' %}<i class="fas fa-check-double" style="font-size:0.6rem;"></i>
+                            {% elif pago.estado == 'revision' %}<i class="fas fa-exclamation" style="font-size:0.6rem;"></i>
+                            {% else %}<i class="fas fa-hand-paper" style="font-size:0.6rem;"></i>
+                            {% endif %}
+                            {{ pago.estado }}
+                        </span>
+                    </td>
+                    <td class="td-fecha">
+                        {% if pago.fecha_pago %}
+                            {{ pago.fecha_pago.strftime('%d/%m/%Y') }}
+                        {% elif pago.created_at %}
+                            {{ pago.created_at.strftime('%d/%m/%Y') }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="td-actions">
+                        <a href="{{ url_for('paypal_payments.detail', pago_id=pago.id) }}" class="btn-edit">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ── Paginación ── -->
+    {% if pagos.pages > 1 %}
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <span style="font-size:0.82rem; color:#6C757D;">
+            Mostrando {{ pagos.per_page * (pagos.page - 1) + 1 }}–{{ [pagos.per_page * pagos.page, pagos.total]|min }}
+            de {{ pagos.total }} pagos
+        </span>
+        <div class="pagination">
+            <a href="{{ url_for('paypal_payments.index', estado=estado_filtro, page=pagos.prev_num) if pagos.has_prev else '#' }}"
+               class="page-btn {% if not pagos.has_prev %}disabled{% endif %}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% for p in pagos.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                <a href="{{ url_for('paypal_payments.index', estado=estado_filtro, page=p) }}"
+                   class="page-btn {% if p == pagos.page %}active{% endif %}">{{ p }}</a>
+                {% else %}
+                <span class="page-btn disabled">…</span>
+                {% endif %}
+            {% endfor %}
+            <a href="{{ url_for('paypal_payments.index', estado=estado_filtro, page=pagos.next_num) if pagos.has_next else '#' }}"
+               class="page-btn {% if not pagos.has_next %}disabled{% endif %}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="fab fa-paypal" style="color:#003087;"></i>
+        <p class="font-semibold text-gray-600 mt-2">No hay pagos
+            {% if estado_filtro %}con estado "{{ estado_filtro }}"{% endif %}
+        </p>
+        <p class="text-sm mt-1">Presiona "Verificar correos ahora" para buscar pagos nuevos.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg"></span></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showToast(msg, error=false) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.toggle('error', error);
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+async function ingestar() {
+    const btn  = document.getElementById('btnIngestar');
+    const icon = document.getElementById('iconIngestar');
+    const lbl  = document.getElementById('lblIngestar');
+
+    btn.disabled = true;
+    icon.classList.add('spin');
+    lbl.textContent = 'Verificando...';
+
+    try {
+        const r = await fetch('/dashboard/paypal/api/ingestar', { method: 'POST' });
+        const d = await r.json();
+
+        if (d.success) {
+            if (d.procesados > 0) {
+                showToast(`✅ ${d.procesados} nuevo${d.procesados > 1 ? 's' : ''} pago${d.procesados > 1 ? 's' : ''} registrado${d.procesados > 1 ? 's' : ''}`);
+                setTimeout(() => location.reload(), 1800);
+            } else {
+                showToast('Sin correos nuevos de PayPal');
+            }
+        } else {
+            showToast(d.mensaje || 'Error al verificar', true);
+        }
+    } catch(e) {
+        showToast('Error de conexión', true);
+    } finally {
+        btn.disabled = false;
+        icon.classList.remove('spin');
+        lbl.textContent = 'Verificar correos ahora';
+    }
+}
+</script>
+{% endblock %}

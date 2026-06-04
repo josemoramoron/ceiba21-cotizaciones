@@ -99,7 +99,8 @@ def create_app(config_class=Config):
     from app.routes.bot_control import bot_control_bp
     from app.routes.operator_dashboard import operator_bp
     from app.routes.blacklist import blacklist_bp
-    
+    from app.routes.payments import paypal_payments_bp
+
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -107,9 +108,14 @@ def create_app(config_class=Config):
     app.register_blueprint(bot_control_bp)
     app.register_blueprint(operator_bp)
     app.register_blueprint(blacklist_bp)
-    
+    app.register_blueprint(paypal_payments_bp)
+
     # Crear tablas si no existen
     with app.app_context():
         db.create_all()
+
+     # Scheduler de ingesta PayPal cada 5 minutos               # ← AGREGAR
+    from app.services.payment_ingestion_service import inicializar_scheduler
+    inicializar_scheduler(app)    
     
     return app

@@ -1,0 +1,558 @@
+{% extends "base.html" %}
+
+{% block title %}Pago #{{ pago.id }} — {{ pago.pagador_nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --c-yellow:      #F7D917;
+        --c-yellow-dark: #E5C500;
+        --c-dark:        #1A1A1A;
+        --c-dark2:       #2D2D2D;
+        --c-green:       #10B981;
+        --c-red:         #EF4444;
+        --c-orange:      #F59E0B;
+    }
+
+    /* ── Page header ── */
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .page-title  { font-size:1.35rem; font-weight:800; color:var(--c-dark); }
+    .page-sub    { font-size:0.85rem; color:#6C757D; margin-top:0.15rem; }
+
+    /* ── Grid layout ── */
+    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+    @media (max-width:768px) { .detail-grid { grid-template-columns:1fr; } }
+
+    /* ── Cards ── */
+    .detail-card {
+        background:#fff; border:1px solid #DEE2E6; border-radius:0.65rem;
+        padding:1.25rem; margin-bottom:1.25rem;
+    }
+    .card-title {
+        font-size:0.72rem; font-weight:700; color:#6C757D;
+        text-transform:uppercase; letter-spacing:0.06em;
+        margin-bottom:1rem; display:flex; align-items:center; gap:0.4rem;
+    }
+    .card-title i { color:var(--c-yellow); }
+
+    /* ── Field row ── */
+    .field-row { display:flex; justify-content:space-between; align-items:flex-start; padding:0.5rem 0; border-bottom:1px solid #F3F4F6; gap:1rem; }
+    .field-row:last-child { border-bottom:none; }
+    .field-label { font-size:0.8rem; color:#6C757D; font-weight:500; flex-shrink:0; }
+    .field-value { font-size:0.875rem; color:#1A1A1A; font-weight:600; text-align:right; word-break:break-all; }
+
+    /* ── Monto highlight ── */
+    .monto-big {
+        font-size:2.2rem; font-weight:900; color:var(--c-dark);
+        line-height:1; margin:0.5rem 0;
+    }
+    .monto-label { font-size:0.8rem; color:#6C757D; font-weight:500; }
+
+    /* ── Calculadora ── */
+    .calc-section {
+        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+        border-radius:0.65rem; padding:1.25rem; margin-bottom:1.25rem;
+        border:2px solid var(--c-yellow);
+    }
+    .calc-title { color:var(--c-yellow); font-size:0.85rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.4rem; }
+
+    .calc-select {
+        width:100%; padding:0.65rem 1rem;
+        background:#fff; border:2px solid #DEE2E6; border-radius:0.5rem;
+        font-size:0.9rem; font-weight:600; color:var(--c-dark);
+        cursor:pointer; outline:none; transition:border-color 0.15s;
+        appearance:none; -webkit-appearance:none;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%231A1A1A' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:right 0.9rem center;
+        padding-right:2.5rem;
+    }
+    .calc-select:focus { border-color:var(--c-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
+
+    .calc-result {
+        background:rgba(247,217,23,0.1); border:1px solid rgba(247,217,23,0.3);
+        border-radius:0.5rem; padding:1rem; margin-top:0.75rem;
+        display:none;
+    }
+    .calc-result.show { display:block; }
+    .calc-result-num { font-size:1.8rem; font-weight:900; color:var(--c-yellow); line-height:1; }
+    .calc-result-sub { font-size:0.78rem; color:#B4BCC5; margin-top:0.3rem; }
+
+    /* ── Botones ── */
+    .btn-primary {
+        background: linear-gradient(135deg, var(--c-yellow) 0%, var(--c-yellow-dark) 100%);
+        color: var(--c-dark); font-weight:700; font-size:0.875rem;
+        padding:0.6rem 1.2rem; border-radius:0.5rem; border:none;
+        cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
+        transition: transform 0.15s, box-shadow 0.15s; width:100%; justify-content:center;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+    .btn-ghost {
+        background:transparent; color:#6C757D; font-weight:600; font-size:0.875rem;
+        padding:0.55rem 1rem; border-radius:0.5rem; border:1px solid #DEE2E6;
+        cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
+        transition:all 0.15s; text-decoration:none;
+    }
+    .btn-ghost:hover { border-color:var(--c-dark); color:var(--c-dark); }
+
+    .btn-estado {
+        font-size:0.8rem; font-weight:600; padding:0.4rem 0.85rem;
+        border-radius:0.4rem; border:1px solid #DEE2E6; background:#fff;
+        cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:0.3rem;
+    }
+    .btn-estado:hover { border-color:var(--c-dark); }
+    .btn-estado.active { background:var(--c-dark); color:#fff; border-color:var(--c-dark); }
+
+    /* ── Textarea notas ── */
+    .notes-input {
+        width:100%; padding:0.65rem 1rem;
+        border:2px solid #DEE2E6; border-radius:0.5rem;
+        font-size:0.875rem; color:var(--c-dark); resize:vertical; min-height:90px;
+        outline:none; transition:border-color 0.15s; font-family:inherit;
+    }
+    .notes-input:focus { border-color:var(--c-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
+
+    /* ── Badges ── */
+    .badge {
+        display:inline-flex; align-items:center; gap:0.3rem;
+        font-size:0.72rem; font-weight:700; padding:0.3rem 0.7rem;
+        border-radius:9999px; text-transform:uppercase; letter-spacing:0.04em;
+    }
+    .badge-pendiente  { background:#FEF3C7; color:#92400E; }
+    .badge-procesado  { background:#D1FAE5; color:#065F46; }
+    .badge-pagado     { background:#DBEAFE; color:#1E40AF; }
+    .badge-revision   { background:#FCE7F3; color:#9D174D; }
+    .badge-manual     { background:#FFF3CD; color:#856404; }
+
+    /* ── Toast ── */
+    #toast {
+        position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
+        background:#fff; border-radius:0.65rem; padding:0.75rem 1.1rem;
+        box-shadow:0 4px 20px rgba(0,0,0,0.15); border-left:4px solid var(--c-green);
+        font-size:0.875rem; font-weight:600; color:#1A1A1A;
+        display:none; align-items:center; gap:0.5rem; max-width:320px;
+    }
+    #toast.show { display:flex; }
+    #toast.error { border-left-color:var(--c-red); }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin { animation:spin 0.8s linear infinite; }
+
+    /* ── Divider ── */
+    .section-divider { border:none; border-top:2px dashed #F3F4F6; margin:0.5rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Header ── -->
+<div class="page-header">
+    <div>
+        <h2 class="page-title">
+            <i class="fab fa-paypal mr-2" style="color:#003087;"></i>
+            Pago #{{ pago.id }}
+        </h2>
+        <p class="page-sub">
+            {{ pago.pagador_nombre or 'Pagador desconocido' }}
+            {% if pago.paypal_transaction_id %}
+            · <span style="font-family:monospace;">{{ pago.paypal_transaction_id }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+        <span class="badge badge-{{ pago.estado }}">{{ pago.estado }}</span>
+        <a href="{{ url_for('paypal_payments.index') }}" class="btn-ghost">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="detail-grid">
+
+    <!-- ── Columna izquierda: datos del pago ── -->
+    <div>
+
+        <!-- Monto principal -->
+        <div class="detail-card" style="border-left:4px solid var(--c-yellow);">
+            <div class="card-title"><i class="fas fa-dollar-sign"></i> Montos del Pago</div>
+
+            <div style="text-align:center; padding:0.5rem 0 1rem;">
+                <div class="monto-label">Importe recibido</div>
+                <div class="monto-big">
+                    {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ "%.2f"|format(pago.importe_bruto) }}
+                </div>
+                <div class="monto-label">{{ pago.moneda }}</div>
+            </div>
+
+            {% if pago.comision_paypal %}
+            <hr class="section-divider">
+            <div class="field-row">
+                <span class="field-label">Comisión PayPal</span>
+                <span class="field-value" style="color:var(--c-red);">
+                    -${{ "%.2f"|format(pago.comision_paypal) }} {{ pago.moneda }}
+                </span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Neto (base de cálculo)</span>
+                <span class="field-value" style="color:var(--c-green);">
+                    ${{ "%.2f"|format(pago.importe_neto) }} {{ pago.moneda }}
+                </span>
+            </div>
+            {% endif %}
+
+            {% if pago.valor_a_pagar %}
+            <hr class="section-divider">
+            <div class="field-row">
+                <span class="field-label">Valor a pagar al cliente</span>
+                <span class="field-value" style="color:var(--c-green); font-size:1.05rem;">
+                    {{ "%.2f"|format(pago.valor_a_pagar) }} {{ pago.moneda_pago_local }}
+                </span>
+            </div>
+            {% if pago.tasa_aplicada %}
+            <div class="field-row">
+                <span class="field-label">Tasa aplicada</span>
+                <span class="field-value" style="font-size:0.8rem; color:#6C757D;">
+                    1 USD = {{ "%.2f"|format(pago.tasa_aplicada) }} {{ pago.moneda_pago_local }}
+                </span>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Datos del pagador -->
+        <div class="detail-card">
+            <div class="card-title"><i class="fas fa-user"></i> Datos del Pagador</div>
+            <div class="field-row">
+                <span class="field-label">Nombre</span>
+                <span class="field-value">{{ pago.pagador_nombre or '—' }}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Tipo de pago</span>
+                <span class="field-value">
+                    {% if pago.tipo_pago == 'comercial' %}
+                    <span style="background:#EDE9FE; color:#5B21B6; font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:9999px;">
+                        <i class="fas fa-store" style="font-size:0.6rem;"></i> Goods & Services
+                    </span>
+                    {% else %}
+                    <span style="background:#E0F2FE; color:#0369A1; font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:9999px;">
+                        <i class="fas fa-user-friends" style="font-size:0.6rem;"></i> Friends & Family
+                    </span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Fecha del pago</span>
+                <span class="field-value">
+                    {% if pago.fecha_pago %}{{ pago.fecha_pago.strftime('%d/%m/%Y') }}
+                    {% else %}—{% endif %}
+                </span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">ID transacción</span>
+                <span class="field-value" style="font-family:monospace; font-size:0.8rem;">
+                    {{ pago.paypal_transaction_id or '—' }}
+                </span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Cuenta destino</span>
+                <span class="field-value" style="font-size:0.8rem;">
+                    {{ pago.cuenta_destino or '—' }}
+                </span>
+            </div>
+            {% if pago.direccion_envio %}
+            <div class="field-row" style="flex-direction:column; gap:0.25rem;">
+                <span class="field-label">Dirección de envío</span>
+                <span style="font-size:0.8rem; color:#1A1A1A; line-height:1.5;">
+                    {{ pago.direccion_envio }}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- ── Columna derecha: calculadora + edición ── -->
+    <div>
+
+        <!-- Calculadora -->
+        {% if pago.es_moneda_soportada %}
+        <div class="calc-section">
+            <div class="calc-title">
+                <i class="fas fa-calculator"></i> Calcular valor a pagar
+            </div>
+
+            <label style="color:#B4BCC5; font-size:0.8rem; font-weight:600; display:block; margin-bottom:0.4rem;">
+                Moneda local del cliente
+            </label>
+            <select id="selectMoneda" class="calc-select" onchange="calcularValor()">
+                <option value="">— Selecciona moneda —</option>
+                {% for moneda in monedas %}
+                <option value="{{ moneda.code }}"
+                    {% if pago.moneda_pago_local == moneda.code %}selected{% endif %}>
+                    {{ moneda.code }} — {{ moneda.name }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <div id="calcResult" class="calc-result {% if pago.valor_a_pagar %}show{% endif %}">
+                <div style="color:#B4BCC5; font-size:0.75rem; font-weight:600; margin-bottom:0.3rem;">
+                    VALOR A PAGAR AL CLIENTE
+                </div>
+                <div class="calc-result-num" id="resultNum">
+                    {% if pago.valor_a_pagar %}{{ "%.2f"|format(pago.valor_a_pagar) }} {{ pago.moneda_pago_local }}{% endif %}
+                </div>
+                <div class="calc-result-sub" id="resultSub">
+                    {% if pago.tasa_aplicada %}
+                    Tasa: 1 USD = {{ "%.2f"|format(pago.tasa_aplicada) }} {{ pago.moneda_pago_local }}
+                    · Base: ${{ "%.2f"|format(pago.monto_base_calculo) if pago.monto_base_calculo else "—" }}
+                    {% endif %}
+                </div>
+            </div>
+
+            <button onclick="aplicarCalculo()" id="btnAplicar" class="btn-primary" style="margin-top:0.75rem;"
+                    {% if not pago.valor_a_pagar %}disabled{% endif %}>
+                <i class="fas fa-save" id="iconAplicar"></i>
+                <span id="lblAplicar">Guardar cálculo</span>
+            </button>
+        </div>
+        {% else %}
+        <div class="detail-card" style="border-left:4px solid var(--c-orange); background:#FFFBEB;">
+            <div class="card-title" style="color:var(--c-orange);"><i class="fas fa-exclamation-triangle"></i> Moneda no USD</div>
+            <p style="font-size:0.85rem; color:#6C757D; line-height:1.6;">
+                Este pago es en <strong>{{ pago.moneda }}</strong>. Ingresa el valor a pagar manualmente
+                en la sección de edición.
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Edición -->
+        <div class="detail-card">
+            <div class="card-title"><i class="fas fa-edit"></i> Editar pago</div>
+
+            <!-- Estado -->
+            <div style="margin-bottom:1rem;">
+                <label style="font-size:0.8rem; font-weight:600; color:#6C757D; display:block; margin-bottom:0.5rem;">Estado</label>
+                <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="estadoBtns">
+                    {% for est in ['pendiente', 'procesado', 'pagado', 'revision', 'manual'] %}
+                    <button class="btn-estado {% if pago.estado == est %}active{% endif %}"
+                            onclick="setEstado('{{ est }}')" data-estado="{{ est }}">
+                        {{ est }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Moneda y valor manual (para monedas no USD) -->
+            {% if not pago.es_moneda_soportada %}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+                <div>
+                    <label style="font-size:0.8rem; font-weight:600; color:#6C757D; display:block; margin-bottom:0.4rem;">Moneda local</label>
+                    <select id="editMoneda" class="calc-select" style="background:#fff; border:2px solid #DEE2E6;">
+                        <option value="">—</option>
+                        {% for moneda in monedas %}
+                        <option value="{{ moneda.code }}" {% if pago.moneda_pago_local == moneda.code %}selected{% endif %}>
+                            {{ moneda.code }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; font-weight:600; color:#6C757D; display:block; margin-bottom:0.4rem;">Valor a pagar</label>
+                    <input type="number" step="0.01" id="editValor"
+                           value="{{ pago.valor_a_pagar or '' }}"
+                           placeholder="0.00"
+                           style="width:100%; padding:0.6rem 0.9rem; border:2px solid #DEE2E6; border-radius:0.5rem; font-size:0.9rem; outline:none;">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Notas -->
+            <div style="margin-bottom:1rem;">
+                <label style="font-size:0.8rem; font-weight:600; color:#6C757D; display:block; margin-bottom:0.4rem;">
+                    <i class="fas fa-sticky-note" style="color:var(--c-yellow);"></i>
+                    Notas del operador
+                </label>
+                <textarea id="editNotas" class="notes-input"
+                          placeholder="Notas sobre el cliente o el pago...">{{ pago.notas or '' }}</textarea>
+            </div>
+
+            <button onclick="guardarEdicion()" id="btnGuardar" class="btn-primary">
+                <i class="fas fa-save" id="iconGuardar"></i>
+                <span id="lblGuardar">Guardar cambios</span>
+            </button>
+        </div>
+
+        <!-- Metadatos -->
+        <div class="detail-card" style="background:#FAFAFA;">
+            <div class="card-title"><i class="fas fa-info-circle"></i> Metadatos</div>
+            <div class="field-row">
+                <span class="field-label">Registrado</span>
+                <span class="field-value" style="font-size:0.8rem;">
+                    {% if pago.created_at %}{{ pago.created_at.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}
+                </span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Actualizado</span>
+                <span class="field-value" style="font-size:0.8rem;">
+                    {% if pago.updated_at %}{{ pago.updated_at.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}
+                </span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Message ID</span>
+                <span class="field-value" style="font-family:monospace; font-size:0.7rem; color:#9CA3AF; word-break:break-all;">
+                    {{ pago.email_message_id }}
+                </span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg"></span></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PAGO_ID = {{ pago.id }};
+let estadoActual = '{{ pago.estado }}';
+
+function showToast(msg, error=false) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.toggle('error', error);
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function setEstado(est) {
+    estadoActual = est;
+    document.querySelectorAll('.btn-estado').forEach(b => {
+        b.classList.toggle('active', b.dataset.estado === est);
+    });
+}
+
+// ── Calculadora: igual a la calculadora pública ──
+async function calcularValor() {
+    const moneda = document.getElementById('selectMoneda').value;
+    if (!moneda) return;
+
+    const result = document.getElementById('calcResult');
+    const num    = document.getElementById('resultNum');
+    const sub    = document.getElementById('resultSub');
+    const btn    = document.getElementById('btnAplicar');
+
+    num.textContent = '...';
+    result.classList.add('show');
+
+    try {
+        const r = await fetch(`/dashboard/paypal/api/calcular/${PAGO_ID}`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ moneda })
+        });
+        const d = await r.json();
+
+        if (d.success) {
+            num.textContent = `${d.valor_a_pagar.toFixed(2)} ${moneda}`;
+            sub.textContent = `Tasa: 1 USD = ${d.tasa_aplicada?.toFixed(2)} ${moneda} · Base: $${d.monto_base?.toFixed(2)}`;
+            btn.disabled = false;
+        } else {
+            num.textContent = d.error || 'Sin cotización disponible';
+            sub.textContent = '';
+            btn.disabled = true;
+        }
+    } catch(e) {
+        num.textContent = 'Error de conexión';
+        btn.disabled = true;
+    }
+}
+
+// ── Aplicar cálculo ──
+async function aplicarCalculo() {
+    const moneda = document.getElementById('selectMoneda').value;
+    if (!moneda) return;
+
+    const btn  = document.getElementById('btnAplicar');
+    const icon = document.getElementById('iconAplicar');
+    const lbl  = document.getElementById('lblAplicar');
+
+    btn.disabled = true; icon.classList.add('spin');
+    lbl.textContent = 'Guardando...';
+
+    try {
+        const r = await fetch(`/dashboard/paypal/api/calcular/${PAGO_ID}`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ moneda })
+        });
+        const d = await r.json();
+        if (d.success) {
+            showToast(`✅ Calculado: ${d.valor_a_pagar.toFixed(2)} ${moneda}`);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(d.error || 'Error al calcular', true);
+            btn.disabled = false;
+        }
+    } catch(e) {
+        showToast('Error de conexión', true);
+        btn.disabled = false;
+    } finally {
+        icon.classList.remove('spin');
+        lbl.textContent = 'Guardar cálculo';
+    }
+}
+
+// ── Guardar edición ──
+async function guardarEdicion() {
+    const btn  = document.getElementById('btnGuardar');
+    const icon = document.getElementById('iconGuardar');
+    const lbl  = document.getElementById('lblGuardar');
+
+    btn.disabled = true; icon.classList.add('spin');
+    lbl.textContent = 'Guardando...';
+
+    const payload = {
+        estado: estadoActual,
+        notas:  document.getElementById('editNotas').value.trim() || null
+    };
+
+    // Si hay campos manuales (moneda no USD)
+    const editMoneda = document.getElementById('editMoneda');
+    const editValor  = document.getElementById('editValor');
+    if (editMoneda && editMoneda.value) payload.moneda_pago_local = editMoneda.value;
+    if (editValor  && editValor.value)  payload.valor_a_pagar = parseFloat(editValor.value);
+
+    try {
+        const r = await fetch(`/dashboard/paypal/api/editar/${PAGO_ID}`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (d.success) {
+            showToast('✅ Cambios guardados');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(d.error || 'Error al guardar', true);
+            btn.disabled = false;
+        }
+    } catch(e) {
+        showToast('Error de conexión', true);
+        btn.disabled = false;
+    } finally {
+        icon.classList.remove('spin');
+        lbl.textContent = 'Guardar cambios';
+    }
+}
+
+// Si ya hay moneda seleccionada al cargar, muestra el resultado
+document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('selectMoneda');
+    if (sel && sel.value) calcularValor();
+});
+</script>
+{% endblock %}
