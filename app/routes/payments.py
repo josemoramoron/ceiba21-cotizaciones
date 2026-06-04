@@ -2,6 +2,7 @@
 Routes del Dashboard de Pagos PayPal.
 Solo orquestación — toda la lógica está en los services.
 """
+import imaplib
 import logging
 from datetime import timedelta
 from flask import Blueprint, render_template, request, jsonify
@@ -12,6 +13,7 @@ from app.models.paypal_payment import PaypalPayment, PaypalPaymentStatus
 from app.models.currency import Currency
 from app.services.payment_ingestion_service import PaymentIngestionService
 from app.services.calculator_service import CalculatorService
+from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +102,7 @@ def api_ingestar():
             web_user_id=current_user.id
         )
         return jsonify(resultado), 200
-    except Exception as e:
+    except (imaplib.IMAP4.error, OSError, SQLAlchemyError) as e:
         logger.error(f"Error en ingesta manual: {e}")
         return jsonify({
             'success': False,
@@ -156,10 +158,13 @@ def api_calcular(pago_id: int):
             'estado': pago.estado
         }), 200
 
-    except Exception as e:
+    except ValueError as e:
+        logger.warning(f"Valor inválido calculando pago {pago_id}: {e}")
+        return jsonify({'error': str(e)}), 400
+    except SQLAlchemyError as e:
         db.session.rollback()
-        logger.error(f"Error calculando pago {pago_id}: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error de base de datos calculando pago {pago_id}: {e}")
+        return jsonify({'error': 'Error de base de datos'}), 500
 
 
 @paypal_payments_bp.route('/api/editar/<int:pago_id>', methods=['POST'])
@@ -215,10 +220,13 @@ def api_editar(pago_id: int):
             'mensaje': 'Pago actualizado correctamente'
         }), 200
 
-    except Exception as e:
+    except ValueError as e:
+        logger.warning(f"Valor inválido editando pago {pago_id}: {e}")
+        return jsonify({'error': str(e)}), 400
+    except SQLAlchemyError as e:
         db.session.rollback()
-        logger.error(f"Error editando pago {pago_id}: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error de base de datos editando pago {pago_id}: {e}")
+        return jsonify({'error': 'Error de base de datos'}), 500
 
 
 @paypal_payments_bp.route('/api/resumen')
@@ -232,8 +240,9 @@ def api_resumen():
         service = PaymentIngestionService()
         resumen = service.obtener_resumen()
         return jsonify(resumen), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except SQLAlchemyError as e:
+        logger.error(f"Error de base de datos en api_resumen: {e}")
+        return jsonify({'error': 'Error de base de datos'}), 500
 
 
 @paypal_payments_bp.route('/api/test-gmail')
@@ -248,7 +257,7 @@ def api_test_gmail():
         gmail = GmailService()
         resultado = gmail.test_connection()
         return jsonify(resultado), 200
-    except Exception as e:
+    except (imaplib.IMAP4.error, OSError) as e:
         return jsonify({
             'success': False,
             'message': str(e)

@@ -340,8 +340,8 @@ class PaypalParserService:
 
             return resultado
 
-        except Exception as e:
-            logger.error(f"Error parseando correo {message_id}: {e}")
+        except (AttributeError, TypeError) as e:
+            logger.error(f"Error parseando estructura HTML del correo {message_id}: {e}")
             return None
 
     @staticmethod

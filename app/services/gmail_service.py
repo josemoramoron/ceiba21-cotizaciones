@@ -56,8 +56,8 @@ class GmailService:
         except imaplib.IMAP4.error as e:
             logger.error(f"Error autenticando Gmail IMAP: {e}")
             return False
-        except Exception as e:
-            logger.error(f"Error conectando Gmail IMAP: {e}")
+        except OSError as e:
+            logger.error(f"Error de red conectando a Gmail IMAP: {e}")
             return False
 
     def _disconnect(self) -> None:
@@ -66,7 +66,7 @@ class GmailService:
             try:
                 self._connection.close()
                 self._connection.logout()
-            except Exception:
+            except (imaplib.IMAP4.error, OSError):
                 pass
             finally:
                 self._connection = None
@@ -206,14 +206,14 @@ class GmailService:
                         'imap_uid': uid.decode() if isinstance(uid, bytes) else uid
                     })
 
-                except Exception as e:
+                except (UnicodeDecodeError, KeyError, AttributeError) as e:
                     logger.error(f"Error procesando correo UID {uid}: {e}")
                     continue
 
         except imaplib.IMAP4.error as e:
             logger.error(f"Error IMAP buscando correos: {e}")
-        except Exception as e:
-            logger.error(f"Error inesperado en get_new_paypal_payments: {e}")
+        except OSError as e:
+            logger.error(f"Error de red en get_new_paypal_payments: {e}")
         finally:
             self._disconnect()
 
@@ -240,7 +240,7 @@ class GmailService:
                 '\\Seen'
             )
             return status == 'OK'
-        except Exception as e:
+        except (imaplib.IMAP4.error, OSError) as e:
             logger.error(f"Error marcando correo {imap_uid} como leído: {e}")
             return False
         finally:
@@ -270,10 +270,10 @@ class GmailService:
                 'message': f'Conexión exitosa a {self.user}',
                 'inbox_count': count
             }
-        except Exception as e:
+        except (imaplib.IMAP4.error, OSError) as e:
             return {
                 'success': False,
-                'message': f'Error: {str(e)}',
+                'message': f'Error de conexión: {str(e)}',
                 'inbox_count': 0
             }
         finally:

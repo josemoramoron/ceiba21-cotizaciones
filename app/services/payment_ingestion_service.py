@@ -3,6 +3,7 @@ Servicio de Ingesta de Pagos PayPal.
 Orquesta la lectura de Gmail, parseo y almacenamiento en PostgreSQL.
 También gestiona el scheduler para ejecución automática cada 5 minutos.
 """
+import imaplib
 import logging
 from datetime import datetime
 from typing import Optional
@@ -12,6 +13,7 @@ from app.models import db
 from app.models.paypal_payment import PaypalPayment, PaypalPaymentStatus
 from app.services.gmail_service import GmailService
 from app.services.paypal_parser_service import PaypalParserService
+from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +78,8 @@ class PaymentIngestionService:
         # 1. Obtener correos nuevos de Gmail
         try:
             correos = self.gmail_service.get_new_paypal_payments()
-        except Exception as e:
-            logger.error(f"Error obteniendo correos de Gmail: {e}")
+        except (imaplib.IMAP4.error, OSError) as e:
+            logger.error(f"Error conectando a Gmail: {e}")
             resultado['mensaje'] = f"Error conectando a Gmail: {str(e)}"
             return resultado
 
@@ -114,7 +116,7 @@ class PaymentIngestionService:
                 # Marcar como leído independientemente del resultado
                 self.gmail_service.mark_as_read(correo['imap_uid'])
 
-            except Exception as e:
+            except (ValueError, SQLAlchemyError) as e:
                 logger.error(
                     f"Error procesando correo {correo.get('message_id', '?')}: {e}"
                 )
@@ -221,7 +223,7 @@ class PaymentIngestionService:
                         f"No hay cotización PayPal para {moneda_default}, "
                         f"pago queda pendiente"
                     )
-            except Exception as e:
+            except (ValueError, SQLAlchemyError) as e:
                 logger.warning(f"Error calculando cotización: {e}")
 
         # Guardar en base de datos
@@ -265,8 +267,8 @@ class PaymentIngestionService:
                 ],
                 'ultima_actualizacion': datetime.utcnow().isoformat()
             }
-        except Exception as e:
-            logger.error(f"Error obteniendo resumen: {e}")
+        except SQLAlchemyError as e:
+            logger.error(f"Error de base de datos en obtener_resumen: {e}")
             return {'estados': [], 'ultima_actualizacion': None}
 
 
@@ -300,7 +302,7 @@ def inicializar_scheduler(app) -> None:
                         logger.info(
                             f"Scheduler: {result['procesados']} pagos nuevos procesados"
                         )
-                except Exception as e:
+                except (imaplib.IMAP4.error, OSError, SQLAlchemyError) as e:
                     logger.error(f"Error en job de ingesta automática: {e}")
 
         scheduler.add_job(
@@ -323,5 +325,5 @@ def inicializar_scheduler(app) -> None:
             "Agrega 'APScheduler' a requirements.txt para habilitar "
             "la ingesta automática."
         )
-    except Exception as e:
+    except RuntimeError as e:
         logger.error(f"Error iniciando scheduler: {e}")
