@@ -320,7 +320,7 @@ class PaypalParserService:
 
             # ── 5. Cuenta destino (del header X-Forwarded-To) ─────────
             # No está en el HTML, se pasa desde el correo raw
-            resultado['cuenta_destino'] = None
+            resultado['cuenta_destino'] = None  # Se rellena en PaymentIngestionService
 
             # ── Validación mínima ─────────────────────────────────────
             if not resultado.get('importe_bruto'):
@@ -343,6 +343,48 @@ class PaypalParserService:
         except Exception as e:
             logger.error(f"Error parseando correo {message_id}: {e}")
             return None
+
+    @staticmethod
+    def extraer_nombre_destinatario(to_raw: str) -> Optional[str]:
+        """
+        Extrae el nombre del destinatario del header To: del correo.
+
+        El header viene en formato:
+            "Jhoisa Blanco Padilla <bjhoisa16@gmail.com>"
+        o simplemente:
+            "bjhoisa16@gmail.com"
+
+        Args:
+            to_raw: Valor del header To: del correo
+
+        Returns:
+            Nombre del destinatario, o la parte antes del @ si no hay nombre,
+            o None si el header está vacío
+
+        Example:
+            >>> extraer_nombre_destinatario("Jhoisa Blanco Padilla <bjhoisa16@gmail.com>")
+            "Jhoisa Blanco Padilla"
+            >>> extraer_nombre_destinatario("bjhoisa16@gmail.com")
+            "bjhoisa16"
+        """
+        if not to_raw:
+            return None
+
+        to_raw = to_raw.strip()
+
+        # Formato: "Nombre Completo <email@gmail.com>"
+        match = re.match(r'^"?([^"<]+)"?\s*<.+>$', to_raw)
+        if match:
+            nombre = match.group(1).strip()
+            if nombre:
+                return nombre
+
+        # Formato: solo email
+        match_email = re.match(r'^([^@]+)@', to_raw)
+        if match_email:
+            return match_email.group(1)
+
+        return to_raw
 
     def parse_cuenta_destino(self, raw_headers: str) -> Optional[str]:
         """

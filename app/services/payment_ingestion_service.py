@@ -161,6 +161,11 @@ class PaymentIngestionService:
             message_id
         )
 
+        if datos and correo.get('to_raw'):
+            # Guardar el header To: completo "Nombre <email@gmail.com>"
+            # El template separa nombre y email para mostrar/tooltip
+            datos['cuenta_destino'] = correo['to_raw'].strip()
+
         if not datos:
             logger.error(f"No se pudo parsear correo: {message_id}")
             return False

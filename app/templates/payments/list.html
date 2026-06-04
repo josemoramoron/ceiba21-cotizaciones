@@ -193,7 +193,7 @@
         <a href="{{ url_for('paypal_payments.index') }}"
            class="stat-card {% if not estado_filtro %}active{% endif %}">
             <div class="stat-dot" style="background:#6C757D;"></div>
-            <div class="stat-num">{{ pagos.total }}</div>
+            <div class="stat-num">{{ resumen.total_global }}</div>
             <div class="stat-label">Todos</div>
         </a>
     </div>
@@ -234,14 +234,15 @@
             <thead>
                 <tr>
                     <th>#</th>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Destinatario</th>
                     <th>Pagador</th>
                     <th>Monto</th>
                     <th>Neto / Base</th>
                     <th>Valor a pagar</th>
-                    <th>Tipo</th>
                     <th>Estado</th>
-                    <th>Fecha</th>
-                    <th></th>
+                    <th>Acción</th>
                 </tr>
             </thead>
             <tbody>
@@ -250,6 +251,44 @@
                     <td style="color:#9CA3AF; font-size:0.75rem; font-weight:600;">
                         #{{ pago.id }}
                     </td>
+                    <td class="td-fecha">
+                        {% set fecha_ref = pago.fecha_pago or pago.created_at %}
+                        {% if fecha_ref %}
+                            {{ (fecha_ref.replace(tzinfo=none) - timedelta(hours=5)).strftime('%d/%m/%Y') }}
+                            <small style="display:block; color:#9CA3AF;">
+                                {{ (fecha_ref.replace(tzinfo=none) - timedelta(hours=5)).strftime('%H:%M') }} COL
+                            </small>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if pago.tipo_pago == 'comercial' %}
+                        <span class="badge" style="background:#EDE9FE; color:#5B21B6;">
+                            <i class="fas fa-store" style="font-size:0.6rem;"></i> G&S
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background:#E0F2FE; color:#0369A1;">
+                            <i class="fas fa-user-friends" style="font-size:0.6rem;"></i> F&F
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:0.82rem; color:#374151; max-width:160px;">
+                        {% if pago.cuenta_destino %}
+                            {# Formato: "Nombre <email@gmail.com>" o solo "email@gmail.com" #}
+                            {% set dest = pago.cuenta_destino %}
+                            {% if '<' in dest and '>' in dest %}
+                                {% set dest_nombre = dest.split('<')[0].strip().strip('"') %}
+                                {% set dest_email = dest.split('<')[1].rstrip('>').strip() %}
+                            {% else %}
+                                {% set dest_nombre = dest.split('@')[0] %}
+                                {% set dest_email = dest %}
+                            {% endif %}
+                            <span title="{{ dest_email }}" style="cursor:default;">
+                                {{ dest_nombre }}
+                            </span>
+                        {% else %}
+                            <span style="color:#9CA3AF;">—</span>
+                        {% endif %}
+                    </td>
                     <td class="td-pagador">
                         {{ pago.pagador_nombre or '—' }}
                         {% if pago.paypal_transaction_id %}
@@ -257,8 +296,7 @@
                         {% endif %}
                     </td>
                     <td class="td-monto">
-                        {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }}{% endif %}
-                        {{ "%.2f"|format(pago.importe_bruto) }}
+                        {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ "%.2f"|format(pago.importe_bruto) }}
                         <small style="color:#9CA3AF; font-weight:400;">{{ pago.moneda }}</small>
                     </td>
                     <td style="font-size:0.85rem;">
@@ -286,17 +324,6 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if pago.tipo_pago == 'comercial' %}
-                        <span class="badge" style="background:#EDE9FE; color:#5B21B6;">
-                            <i class="fas fa-store" style="font-size:0.6rem;"></i> G&S
-                        </span>
-                        {% else %}
-                        <span class="badge" style="background:#E0F2FE; color:#0369A1;">
-                            <i class="fas fa-user-friends" style="font-size:0.6rem;"></i> F&F
-                        </span>
-                        {% endif %}
-                    </td>
-                    <td>
                         <span class="badge badge-{{ pago.estado }}">
                             {% if pago.estado == 'pendiente' %}<i class="fas fa-clock" style="font-size:0.6rem;"></i>
                             {% elif pago.estado == 'procesado' %}<i class="fas fa-check" style="font-size:0.6rem;"></i>
@@ -307,16 +334,9 @@
                             {{ pago.estado }}
                         </span>
                     </td>
-                    <td class="td-fecha">
-                        {% if pago.fecha_pago %}
-                            {{ pago.fecha_pago.strftime('%d/%m/%Y') }}
-                        {% elif pago.created_at %}
-                            {{ pago.created_at.strftime('%d/%m/%Y') }}
-                        {% else %}—{% endif %}
-                    </td>
                     <td class="td-actions">
-                        <a href="{{ url_for('paypal_payments.detail', pago_id=pago.id) }}" class="btn-edit">
-                            <i class="fas fa-edit"></i> Editar
+                        <a href="{{ url_for('paypal_payments.detail', pago_id=pago.id) }}" class="btn-edit" title="Ver / Editar">
+                            <i class="fas fa-eye"></i>
                         </a>
                     </td>
                 </tr>

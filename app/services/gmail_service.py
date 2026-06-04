@@ -185,6 +185,7 @@ class GmailService:
                     )
                     sender = msg.get('From', '')
                     date_str = msg.get('Date', '')
+                    to_raw = msg.get('To', '')
 
                     # Extraer HTML
                     html_body = self._get_email_body_html(msg)
@@ -199,6 +200,7 @@ class GmailService:
                         'message_id': message_id,
                         'subject': subject,
                         'sender': sender,
+                        'to_raw': to_raw,
                         'date': date_str,
                         'html_body': html_body,
                         'imap_uid': uid.decode() if isinstance(uid, bytes) else uid

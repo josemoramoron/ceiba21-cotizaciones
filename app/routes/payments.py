@@ -3,6 +3,7 @@ Routes del Dashboard de Pagos PayPal.
 Solo orquestación — toda la lógica está en los services.
 """
 import logging
+from datetime import timedelta
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 
@@ -48,13 +49,18 @@ def index():
         Currency.display_order
     ).all()
 
+    # Total global sin filtro para el stat card "Todos"
+    total_global = PaypalPayment.query.count()
+    resumen['total_global'] = total_global
+
     return render_template(
         'payments/list.html',
         pagos=pagos,
         estado_filtro=estado,
         resumen=resumen,
         monedas=monedas,
-        estados=PaypalPaymentStatus
+        estados=PaypalPaymentStatus,
+        timedelta=timedelta
     )
 
 
