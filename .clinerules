@@ -58,3 +58,8 @@ Capas en orden estricto: Routes → Services → Models
 - Colores adaptativos SIEMPRE mediante variables CSS en :root y [data-theme="dark"]
 - Nunca hardcodear colores con style="" en elementos que deben cambiar con el tema
 - Selectores siempre específicos (.site-nav, .nav-text) nunca genéricos (nav, body, a)
+
+## Reglas de refactorización
+- Antes de refactorizar un bloque que llama métodos de un Model,
+  leer el Model completo para verificar nombres exactos de métodos.
+- No asumir nombres de métodos — verificar siempre con grep o leyendo el archivo.

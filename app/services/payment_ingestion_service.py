@@ -13,6 +13,7 @@ from app.models import db
 from app.models.paypal_payment import PaypalPayment, PaypalPaymentStatus
 from app.services.gmail_service import GmailService
 from app.services.paypal_parser_service import PaypalParserService
+from app.services.calculator_service import CalculatorService
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
@@ -195,8 +196,13 @@ class PaymentIngestionService:
                 'DEFAULT_LOCAL_CURRENCY', 'VES'
             )
             try:
-                valor = pago.calcular_valor_pagar(moneda_default, web_user_id)
-                if not valor:
+                resultado = CalculatorService.calcular_pago_paypal_recibido(
+                    monto_base=float(pago.importe_neto or pago.importe_bruto),
+                    currency_code=moneda_default
+                )
+                if resultado:
+                    pago.aplicar_calculo(resultado, web_user_id)
+                else:
                     logger.warning(
                         f"No hay cotización PayPal para {moneda_default}, "
                         f"pago queda pendiente"
