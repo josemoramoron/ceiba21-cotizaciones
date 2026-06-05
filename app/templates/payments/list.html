@@ -157,7 +157,7 @@
     <div class="page-header">
         <div>
             <h2 class="page-title">
-                <i class="fab fa-paypal mr-2" style="color:#003087;"></i>
+                <i class="fab fa-paypal mr-2" style="color:var(--color-paypal);"></i>
                 Pagos PayPal
             </h2>
             <p class="page-sub">Pagos recibidos via Gmail — actualizados automáticamente cada 5 minutos</p>
@@ -192,7 +192,7 @@
         {% endfor %}
         <a href="{{ url_for('paypal_payments.index') }}"
            class="stat-card {% if not estado_filtro %}active{% endif %}">
-            <div class="stat-dot" style="background:#6C757D;"></div>
+            <div class="stat-dot" style="background:var(--color-text-secondary);"></div>
             <div class="stat-num">{{ resumen.total_global }}</div>
             <div class="stat-label">Todos</div>
         </a>
@@ -200,7 +200,7 @@
 
     <!-- ── Filtros ── -->
     <div class="filter-bar">
-        <span style="font-size:0.8rem; font-weight:600; color:#6C757D;">Filtrar:</span>
+        <span style="font-size:0.8rem; font-weight:600; color:var(--color-text-secondary);">Filtrar:</span>
         <a href="{{ url_for('paypal_payments.index') }}"
            class="filter-btn {% if not estado_filtro %}active{% endif %}">
             Todos
@@ -248,30 +248,30 @@
             <tbody>
                 {% for pago in pagos.items %}
                 <tr>
-                    <td style="color:#9CA3AF; font-size:0.75rem; font-weight:600;">
+                    <td style="color:var(--color-text-subtle); font-size:0.75rem; font-weight:600;">
                         #{{ pago.id }}
                     </td>
                     <td class="td-fecha">
                         {% set fecha_ref = pago.fecha_pago or pago.created_at %}
                         {% if fecha_ref %}
                             {{ (fecha_ref.replace(tzinfo=none) - timedelta(hours=5)).strftime('%d/%m/%Y') }}
-                            <small style="display:block; color:#9CA3AF;">
+                            <small style="display:block; color:var(--color-text-subtle);">
                                 {{ (fecha_ref.replace(tzinfo=none) - timedelta(hours=5)).strftime('%H:%M') }} COL
                             </small>
                         {% else %}—{% endif %}
                     </td>
                     <td>
                         {% if pago.tipo_pago == 'comercial' %}
-                        <span class="badge" style="background:#EDE9FE; color:#5B21B6;">
+                        <span class="badge" style="background:var(--color-gs-bg); color:var(--color-gs-text);">
                             <i class="fas fa-store" style="font-size:0.6rem;"></i> G&S
                         </span>
                         {% else %}
-                        <span class="badge" style="background:#E0F2FE; color:#0369A1;">
+                        <span class="badge" style="background:var(--color-ff-bg); color:var(--color-ff-text);">
                             <i class="fas fa-user-friends" style="font-size:0.6rem;"></i> F&F
                         </span>
                         {% endif %}
                     </td>
-                    <td style="font-size:0.82rem; color:#374151; max-width:160px;">
+                    <td style="font-size:0.82rem; color:var(--color-text-body); max-width:160px;">
                         {% if pago.cuenta_destino %}
                             {# Formato: "Nombre <email@gmail.com>" o solo "email@gmail.com" #}
                             {% set dest = pago.cuenta_destino %}
@@ -286,7 +286,7 @@
                                 {{ dest_nombre }}
                             </span>
                         {% else %}
-                            <span style="color:#9CA3AF;">—</span>
+                            <span style="color:var(--color-text-subtle);">—</span>
                         {% endif %}
                     </td>
                     <td class="td-pagador">
@@ -297,28 +297,28 @@
                     </td>
                     <td class="td-monto">
                         {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ "%.2f"|format(pago.importe_bruto) }}
-                        <small style="color:#9CA3AF; font-weight:400;">{{ pago.moneda }}</small>
+                        <small style="color:var(--color-text-subtle); font-weight:400;">{{ pago.moneda }}</small>
                     </td>
                     <td style="font-size:0.85rem;">
                         {% if pago.importe_neto %}
-                            <span style="color:#10B981; font-weight:600;">
+                            <span style="color:var(--color-success); font-weight:600;">
                                 ${{ "%.2f"|format(pago.importe_neto) }}
                             </span>
                             {% if pago.comision_paypal %}
-                            <small style="color:#EF4444; display:block;">
+                            <small style="color:var(--color-error); display:block;">
                                 -${{ "%.2f"|format(pago.comision_paypal) }} comisión
                             </small>
                             {% endif %}
                         {% else %}
-                            <span style="color:#6C757D;">—</span>
+                            <span style="color:var(--color-text-secondary);">—</span>
                         {% endif %}
                     </td>
                     <td class="td-pagar {% if pago.estado == 'manual' %}manual{% endif %}">
                         {% if pago.valor_a_pagar %}
                             {{ "%.2f"|format(pago.valor_a_pagar) }}
-                            <small style="font-weight:400; color:#6C757D;">{{ pago.moneda_pago_local }}</small>
+                            <small style="font-weight:400; color:var(--color-text-secondary);">{{ pago.moneda_pago_local }}</small>
                         {% else %}
-                            <span style="color:#F59E0B; font-size:0.8rem;">
+                            <span style="color:var(--color-warning); font-size:0.8rem;">
                                 <i class="fas fa-clock"></i> Pendiente
                             </span>
                         {% endif %}
@@ -348,7 +348,7 @@
     <!-- ── Paginación ── -->
     {% if pagos.pages > 1 %}
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; flex-wrap:wrap; gap:0.5rem;">
-        <span style="font-size:0.82rem; color:#6C757D;">
+        <span style="font-size:0.82rem; color:var(--color-text-secondary);">
             Mostrando {{ pagos.per_page * (pagos.page - 1) + 1 }}–{{ [pagos.per_page * pagos.page, pagos.total]|min }}
             de {{ pagos.total }} pagos
         </span>
@@ -375,7 +375,7 @@
 
     {% else %}
     <div class="empty-state">
-        <i class="fab fa-paypal" style="color:#003087;"></i>
+        <i class="fab fa-paypal" style="color:var(--color-paypal);"></i>
         <p class="font-semibold text-gray-600 mt-2">No hay pagos
             {% if estado_filtro %}con estado "{{ estado_filtro }}"{% endif %}
         </p>

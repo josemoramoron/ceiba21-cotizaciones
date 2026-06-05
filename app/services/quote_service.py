@@ -103,3 +103,20 @@ class QuoteService:
             QuoteService.recalculate_quote(quote)
         db.session.commit()
         return len(quotes)
+
+    @staticmethod
+    def get_by_method_and_currency(payment_method_id: int, currency_id: int):
+        """
+        Obtiene una cotización específica por método de pago y moneda.
+
+        Args:
+            payment_method_id: ID del método de pago
+            currency_id: ID de la moneda
+
+        Returns:
+            Quote si existe, None si no
+        """
+        return Quote.query.filter_by(
+            payment_method_id=payment_method_id,
+            currency_id=currency_id
+        ).first()

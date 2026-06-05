@@ -39,7 +39,7 @@
     .field-row { display:flex; justify-content:space-between; align-items:flex-start; padding:0.5rem 0; border-bottom:1px solid #F3F4F6; gap:1rem; }
     .field-row:last-child { border-bottom:none; }
     .field-label { font-size:0.8rem; color:#6C757D; font-weight:500; flex-shrink:0; }
-    .field-value { font-size:0.875rem; color:#1A1A1A; font-weight:600; text-align:right; word-break:break-all; }
+    .field-value { font-size:0.875rem; color:var(--color-secondary); font-weight:600; text-align:right; word-break:break-all; }
 
     /* ── Monto highlight ── */
     .monto-big {
@@ -58,7 +58,7 @@
 
     .calc-select {
         width:100%; padding:0.65rem 1rem;
-        background:#fff; border:2px solid #DEE2E6; border-radius:0.5rem;
+        background:#fff; border:2px solid var(--color-border); border-radius:0.5rem;
         font-size:0.9rem; font-weight:600; color:var(--c-dark);
         cursor:pointer; outline:none; transition:border-color 0.15s;
         appearance:none; -webkit-appearance:none;
@@ -75,7 +75,7 @@
     }
     .calc-result.show { display:block; }
     .calc-result-num { font-size:1.8rem; font-weight:900; color:var(--c-yellow); line-height:1; }
-    .calc-result-sub { font-size:0.78rem; color:#B4BCC5; margin-top:0.3rem; }
+    .calc-result-sub { font-size:0.78rem; color:var(--color-secondary-light); margin-top:0.3rem; }
 
     /* ── Botones ── */
     .btn-primary {
@@ -107,7 +107,7 @@
     /* ── Textarea notas ── */
     .notes-input {
         width:100%; padding:0.65rem 1rem;
-        border:2px solid #DEE2E6; border-radius:0.5rem;
+        border:2px solid var(--color-border); border-radius:0.5rem;
         font-size:0.875rem; color:var(--c-dark); resize:vertical; min-height:90px;
         outline:none; transition:border-color 0.15s; font-family:inherit;
     }
@@ -130,7 +130,7 @@
         position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
         background:#fff; border-radius:0.65rem; padding:0.75rem 1.1rem;
         box-shadow:0 4px 20px rgba(0,0,0,0.15); border-left:4px solid var(--c-green);
-        font-size:0.875rem; font-weight:600; color:#1A1A1A;
+        font-size:0.875rem; font-weight:600; color:var(--color-secondary);
         display:none; align-items:center; gap:0.5rem; max-width:320px;
     }
     #toast.show { display:flex; }
@@ -151,7 +151,7 @@
 <div class="page-header">
     <div>
         <h2 class="page-title">
-            <i class="fab fa-paypal mr-2" style="color:#003087;"></i>
+            <i class="fab fa-paypal mr-2" style="color:var(--color-paypal);"></i>
             Pago #{{ pago.id }}
         </h2>
         <p class="page-sub">
@@ -213,7 +213,7 @@
             {% if pago.tasa_aplicada %}
             <div class="field-row">
                 <span class="field-label">Tasa aplicada</span>
-                <span class="field-value" style="font-size:0.8rem; color:#6C757D;">
+                <span class="field-value" style="font-size:0.8rem; color:var(--color-text-secondary);">
                     1 USD = {{ "%.2f"|format(pago.tasa_aplicada) }} {{ pago.moneda_pago_local }}
                 </span>
             </div>
@@ -232,11 +232,11 @@
                 <span class="field-label">Tipo de pago</span>
                 <span class="field-value">
                     {% if pago.tipo_pago == 'comercial' %}
-                    <span style="background:#EDE9FE; color:#5B21B6; font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:9999px;">
+                    <span style="background:var(--color-gs-bg); color:var(--color-gs-text); font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:9999px;">
                         <i class="fas fa-store" style="font-size:0.6rem;"></i> Goods & Services
                     </span>
                     {% else %}
-                    <span style="background:#E0F2FE; color:#0369A1; font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:9999px;">
+                    <span style="background:var(--color-ff-bg); color:var(--color-ff-text); font-size:0.72rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:9999px;">
                         <i class="fas fa-user-friends" style="font-size:0.6rem;"></i> Friends & Family
                     </span>
                     {% endif %}
@@ -264,7 +264,7 @@
             {% if pago.direccion_envio %}
             <div class="field-row" style="flex-direction:column; gap:0.25rem;">
                 <span class="field-label">Dirección de envío</span>
-                <span style="font-size:0.8rem; color:#1A1A1A; line-height:1.5;">
+                <span style="font-size:0.8rem; color:var(--color-secondary); line-height:1.5;">
                     {{ pago.direccion_envio }}
                 </span>
             </div>
@@ -283,7 +283,7 @@
                 <i class="fas fa-calculator"></i> Calcular valor a pagar
             </div>
 
-            <label style="color:#B4BCC5; font-size:0.8rem; font-weight:600; display:block; margin-bottom:0.4rem;">
+            <label style="color:var(--color-secondary-light); font-size:0.8rem; font-weight:600; display:block; margin-bottom:0.4rem;">
                 Moneda local del cliente
             </label>
             <select id="selectMoneda" class="calc-select" onchange="calcularValor()">
@@ -297,7 +297,7 @@
             </select>
 
             <div id="calcResult" class="calc-result {% if pago.valor_a_pagar %}show{% endif %}">
-                <div style="color:#B4BCC5; font-size:0.75rem; font-weight:600; margin-bottom:0.3rem;">
+                <div style="color:var(--color-secondary-light); font-size:0.75rem; font-weight:600; margin-bottom:0.3rem;">
                     VALOR A PAGAR AL CLIENTE
                 </div>
                 <div class="calc-result-num" id="resultNum">
@@ -318,9 +318,9 @@
             </button>
         </div>
         {% else %}
-        <div class="detail-card" style="border-left:4px solid var(--c-orange); background:#FFFBEB;">
+        <div class="detail-card" style="border-left:4px solid var(--c-orange); background:var(--color-primary-light);">
             <div class="card-title" style="color:var(--c-orange);"><i class="fas fa-exclamation-triangle"></i> Moneda no USD</div>
-            <p style="font-size:0.85rem; color:#6C757D; line-height:1.6;">
+            <p style="font-size:0.85rem; color:var(--color-text-secondary); line-height:1.6;">
                 Este pago es en <strong>{{ pago.moneda }}</strong>. Ingresa el valor a pagar manualmente
                 en la sección de edición.
             </p>
@@ -333,7 +333,7 @@
 
             <!-- Estado -->
             <div style="margin-bottom:1rem;">
-                <label style="font-size:0.8rem; font-weight:600; color:#6C757D; display:block; margin-bottom:0.5rem;">Estado</label>
+                <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-secondary); display:block; margin-bottom:0.5rem;">Estado</label>
                 <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="estadoBtns">
                     {% for est in ['pendiente', 'procesado', 'pagado', 'revision', 'manual'] %}
                     <button class="btn-estado {% if pago.estado == est %}active{% endif %}"
@@ -348,8 +348,8 @@
             {% if not pago.es_moneda_soportada %}
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
                 <div>
-                    <label style="font-size:0.8rem; font-weight:600; color:#6C757D; display:block; margin-bottom:0.4rem;">Moneda local</label>
-                    <select id="editMoneda" class="calc-select" style="background:#fff; border:2px solid #DEE2E6;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-secondary); display:block; margin-bottom:0.4rem;">Moneda local</label>
+                    <select id="editMoneda" class="calc-select" style="background:#fff; border:2px solid var(--color-border);">
                         <option value="">—</option>
                         {% for moneda in monedas %}
                         <option value="{{ moneda.code }}" {% if pago.moneda_pago_local == moneda.code %}selected{% endif %}>
@@ -359,18 +359,18 @@
                     </select>
                 </div>
                 <div>
-                    <label style="font-size:0.8rem; font-weight:600; color:#6C757D; display:block; margin-bottom:0.4rem;">Valor a pagar</label>
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-secondary); display:block; margin-bottom:0.4rem;">Valor a pagar</label>
                     <input type="number" step="0.01" id="editValor"
                            value="{{ pago.valor_a_pagar or '' }}"
                            placeholder="0.00"
-                           style="width:100%; padding:0.6rem 0.9rem; border:2px solid #DEE2E6; border-radius:0.5rem; font-size:0.9rem; outline:none;">
+                           style="width:100%; padding:0.6rem 0.9rem; border:2px solid var(--color-border); border-radius:0.5rem; font-size:0.9rem; outline:none;">
                 </div>
             </div>
             {% endif %}
 
             <!-- Notas -->
             <div style="margin-bottom:1rem;">
-                <label style="font-size:0.8rem; font-weight:600; color:#6C757D; display:block; margin-bottom:0.4rem;">
+                <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-secondary); display:block; margin-bottom:0.4rem;">
                     <i class="fas fa-sticky-note" style="color:var(--c-yellow);"></i>
                     Notas del operador
                 </label>
@@ -385,7 +385,7 @@
         </div>
 
         <!-- Metadatos -->
-        <div class="detail-card" style="background:#FAFAFA;">
+        <div class="detail-card" style="background:var(--color-surface);">
             <div class="card-title"><i class="fas fa-info-circle"></i> Metadatos</div>
             <div class="field-row">
                 <span class="field-label">Registrado</span>
@@ -401,7 +401,7 @@
             </div>
             <div class="field-row">
                 <span class="field-label">Message ID</span>
-                <span class="field-value" style="font-family:monospace; font-size:0.7rem; color:#9CA3AF; word-break:break-all;">
+                <span class="field-value" style="font-family:monospace; font-size:0.7rem; color:var(--color-text-subtle); word-break:break-all;">
                     {{ pago.email_message_id }}
                 </span>
             </div>

@@ -19,6 +19,7 @@ from app.services.cache_service import CacheService
 # ✨ FASE 6: Contabilidad Automática
 from app.services.accounting_service import AccountingService
 from app.services.bot_service import BotService
+from app.services.operator_service import OperatorService
 
 __all__ = [
     # Servicios existentes
@@ -36,5 +37,7 @@ __all__ = [
     'CacheService',
     # Fase 6 - Contabilidad
     'AccountingService',
-    'BotService'
+    'BotService',
+    # Operadores
+    'OperatorService',
 ]

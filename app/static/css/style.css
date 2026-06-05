@@ -40,6 +40,19 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
+
+  /* Pagos PayPal */
+  --color-paypal:      #003087; /* Color de marca oficial PayPal — excepción documentada */
+
+  /* Badges tipo de pago */
+  --color-gs-bg:       #EDE9FE;
+  --color-gs-text:     #5B21B6;
+  --color-ff-bg:       #E0F2FE;
+  --color-ff-text:     #0369A1;
+
+  /* Textos secundarios adicionales */
+  --color-text-subtle: #9CA3AF;
+  --color-text-body:   #374151;
 }
 
 /* ── Modo oscuro (dashboard — aún no implementado) ── */
@@ -64,6 +77,19 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.6);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.7);
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.8);
+
+  /* Pagos PayPal */
+  --color-paypal:      #4D8FFF; /* Versión accesible en dark */
+
+  /* Badges tipo de pago */
+  --color-gs-bg:       #2D1F4E;
+  --color-gs-text:     #C4B5FD;
+  --color-ff-bg:       #0C2A3E;
+  --color-ff-text:     #7DD3FC;
+
+  /* Textos secundarios adicionales */
+  --color-text-subtle: #6B7280;
+  --color-text-body:   #D1D5DB;
 }
 
 /* ── Body base (solo transición, sin !important) ── */

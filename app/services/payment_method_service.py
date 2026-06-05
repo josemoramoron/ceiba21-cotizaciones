@@ -10,7 +10,25 @@ class PaymentMethodService:
     def get_all():
         """Obtener todos los métodos de pago"""
         return PaymentMethod.query.order_by(PaymentMethod.display_order).all()
-    
+
+    @staticmethod
+    def get_active_ordered(limit: int = None):
+        """
+        Obtiene los métodos de pago activos ordenados por display_order.
+
+        Args:
+            limit: Número máximo de resultados (None = todos)
+
+        Returns:
+            Lista de PaymentMethod activos y ordenados
+        """
+        query = PaymentMethod.query.filter_by(active=True).order_by(
+            PaymentMethod.display_order.asc()
+        )
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
     @staticmethod
     def get_by_id(pm_id):
         """Obtener método de pago por ID"""
