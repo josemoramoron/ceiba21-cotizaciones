@@ -118,6 +118,46 @@ class GmailService:
 
         return None
 
+    def _fetch_email_by_uid(self, uid: bytes) -> Optional[dict]:
+        """
+        Obtiene y parsea un correo individual por su UID IMAP.
+
+        Args:
+            uid: UID del mensaje en el servidor IMAP
+
+        Returns:
+            dict con los datos del correo, o None si falló el fetch
+        """
+        status, msg_data = self._connection.fetch(uid, '(RFC822)')
+
+        if status != 'OK':
+            return None
+
+        raw_email = msg_data[0][1]
+        msg = email.message_from_bytes(raw_email)
+
+        message_id = msg.get('Message-ID', '').strip()
+        subject = self._decode_header_value(msg.get('Subject', ''))
+        sender = msg.get('From', '')
+        date_str = msg.get('Date', '')
+        to_raw = msg.get('To', '')
+
+        html_body = self._get_email_body_html(msg)
+
+        if not html_body:
+            logger.warning(f"Correo {message_id} sin cuerpo HTML, omitiendo")
+            return None
+
+        return {
+            'message_id': message_id,
+            'subject': subject,
+            'sender': sender,
+            'to_raw': to_raw,
+            'date': date_str,
+            'html_body': html_body,
+            'imap_uid': uid.decode() if isinstance(uid, bytes) else uid
+        }
+
     def get_new_paypal_payments(self) -> list[dict]:
         """
         Obtiene correos de pago PayPal no leídos del inbox.
@@ -144,20 +184,13 @@ class GmailService:
         emails = []
 
         try:
-            # Seleccionar inbox
             self._connection.select('INBOX')
 
-            # Buscar correos no leídos del remitente PayPal
-            # Combinamos FROM y SUBJECT para filtrar solo pagos
             search_criteria = (
                 f'(UNSEEN FROM "{self.PAYPAL_SENDER}" '
                 f'SUBJECT "{self.PAYPAL_SUBJECT}")'
             )
-
-            status, message_ids = self._connection.search(
-                None,
-                search_criteria
-            )
+            status, message_ids = self._connection.search(None, search_criteria)
 
             if status != 'OK' or not message_ids[0]:
                 logger.info("No hay correos nuevos de PayPal")
@@ -168,44 +201,9 @@ class GmailService:
 
             for uid in uid_list:
                 try:
-                    # Obtener el correo completo
-                    status, msg_data = self._connection.fetch(uid, '(RFC822)')
-
-                    if status != 'OK':
-                        continue
-
-                    # Parsear el mensaje
-                    raw_email = msg_data[0][1]
-                    msg = email.message_from_bytes(raw_email)
-
-                    # Extraer campos del header
-                    message_id = msg.get('Message-ID', '').strip()
-                    subject = self._decode_header_value(
-                        msg.get('Subject', '')
-                    )
-                    sender = msg.get('From', '')
-                    date_str = msg.get('Date', '')
-                    to_raw = msg.get('To', '')
-
-                    # Extraer HTML
-                    html_body = self._get_email_body_html(msg)
-
-                    if not html_body:
-                        logger.warning(
-                            f"Correo {message_id} sin cuerpo HTML, omitiendo"
-                        )
-                        continue
-
-                    emails.append({
-                        'message_id': message_id,
-                        'subject': subject,
-                        'sender': sender,
-                        'to_raw': to_raw,
-                        'date': date_str,
-                        'html_body': html_body,
-                        'imap_uid': uid.decode() if isinstance(uid, bytes) else uid
-                    })
-
+                    correo = self._fetch_email_by_uid(uid)
+                    if correo:
+                        emails.append(correo)
                 except (UnicodeDecodeError, KeyError, AttributeError) as e:
                     logger.error(f"Error procesando correo UID {uid}: {e}")
                     continue

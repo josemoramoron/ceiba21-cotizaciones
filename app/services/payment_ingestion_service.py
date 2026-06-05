@@ -39,6 +39,26 @@ class PaymentIngestionService:
         self.gmail_service = GmailService()
         self.parser_service = PaypalParserService()
 
+    @staticmethod
+    def _build_resumen_pago(pago: PaypalPayment) -> dict:
+        """
+        Construye el dict de resumen de un pago para incluir en el resultado.
+
+        Args:
+            pago: Instancia de PaypalPayment recién guardada
+
+        Returns:
+            dict con los campos clave del pago
+        """
+        return {
+            'id': pago.id,
+            'pagador': pago.pagador_nombre,
+            'monto': float(pago.importe_bruto),
+            'moneda': pago.moneda,
+            'estado': pago.estado,
+            'transaction_id': pago.paypal_transaction_id
+        }
+
     def procesar_nuevos_pagos(
         self,
         web_user_id: Optional[int] = None
@@ -104,14 +124,9 @@ class PaymentIngestionService:
                     resultado['errores'] += 1
                 else:
                     resultado['procesados'] += 1
-                    resultado['nuevos'].append({
-                        'id': pago_guardado.id,
-                        'pagador': pago_guardado.pagador_nombre,
-                        'monto': float(pago_guardado.importe_bruto),
-                        'moneda': pago_guardado.moneda,
-                        'estado': pago_guardado.estado,
-                        'transaction_id': pago_guardado.paypal_transaction_id
-                    })
+                    resultado['nuevos'].append(
+                        self._build_resumen_pago(pago_guardado)
+                    )
 
                 # Marcar como leído independientemente del resultado
                 self.gmail_service.mark_as_read(correo['imap_uid'])
@@ -132,66 +147,33 @@ class PaymentIngestionService:
         logger.info(resultado['mensaje'])
         return resultado
 
-    def _procesar_correo(
+    def _crear_pago_desde_datos(
         self,
-        correo: dict,
+        datos: dict,
+        message_id: str,
         web_user_id: Optional[int]
-    ) -> Optional[PaypalPayment]:
+    ) -> PaypalPayment:
         """
-        Procesa un correo individual.
+        Instancia un PaypalPayment desde los datos parseados del correo.
+
+        Determina el estado inicial y aplica la cotización automática
+        si la moneda es USD.
 
         Args:
-            correo: Dict con datos del correo de GmailService
+            datos: Dict devuelto por PaypalParserService.parse_email()
+            message_id: ID del mensaje Gmail (para logs)
             web_user_id: ID del usuario que disparó la ejecución
 
         Returns:
-            PaypalPayment guardado si es nuevo
-            None si es duplicado
-            False si hubo error de parseo
+            PaypalPayment instanciado (aún no guardado en BD)
         """
-        message_id = correo.get('message_id', '')
-
-        # Verificar duplicado por message_id
-        existente = PaypalPayment.get_by_email_message_id(message_id)
-        if existente:
-            logger.debug(f"Correo duplicado: {message_id}")
-            return None
-
-        # Parsear HTML
-        datos = self.parser_service.parse_email(
-            correo['html_body'],
-            message_id
+        moneda = datos.get('moneda', 'USD')
+        estado = (
+            PaypalPaymentStatus.MANUAL
+            if moneda != 'USD'
+            else PaypalPaymentStatus.PENDIENTE
         )
 
-        if datos and correo.get('to_raw'):
-            # Guardar el header To: completo "Nombre <email@gmail.com>"
-            # El template separa nombre y email para mostrar/tooltip
-            datos['cuenta_destino'] = correo['to_raw'].strip()
-
-        if not datos:
-            logger.error(f"No se pudo parsear correo: {message_id}")
-            return False
-
-        # Verificar duplicado por transaction_id (segunda línea de defensa)
-        if datos.get('paypal_transaction_id'):
-            existente_tx = PaypalPayment.get_by_transaction_id(
-                datos['paypal_transaction_id']
-            )
-            if existente_tx:
-                logger.debug(
-                    f"Transacción duplicada: {datos['paypal_transaction_id']}"
-                )
-                return None
-
-        # Determinar estado inicial
-        moneda = datos.get('moneda', 'USD')
-        if moneda != 'USD':
-            # Moneda no soportada automáticamente → llenado manual
-            estado = PaypalPaymentStatus.MANUAL
-        else:
-            estado = PaypalPaymentStatus.PENDIENTE
-
-        # Crear el objeto de pago
         pago = PaypalPayment(
             email_message_id=message_id,
             cuenta_destino=datos.get('cuenta_destino'),
@@ -208,17 +190,13 @@ class PaymentIngestionService:
             procesado_por=web_user_id if web_user_id else None
         )
 
-        # Si es USD, aplicar cotización automáticamente
-        # Usamos moneda local por defecto configurada (VES)
         if moneda == 'USD':
             moneda_default = current_app.config.get(
-                'DEFAULT_LOCAL_CURRENCY',
-                'VES'
+                'DEFAULT_LOCAL_CURRENCY', 'VES'
             )
             try:
                 valor = pago.calcular_valor_pagar(moneda_default, web_user_id)
                 if not valor:
-                    # Si no hay cotización, queda pendiente sin valor
                     logger.warning(
                         f"No hay cotización PayPal para {moneda_default}, "
                         f"pago queda pendiente"
@@ -226,7 +204,53 @@ class PaymentIngestionService:
             except (ValueError, SQLAlchemyError) as e:
                 logger.warning(f"Error calculando cotización: {e}")
 
-        # Guardar en base de datos
+        return pago
+
+    def _procesar_correo(
+        self,
+        correo: dict,
+        web_user_id: Optional[int]
+    ) -> Optional[PaypalPayment]:
+        """
+        Procesa un correo individual: verifica duplicados, parsea,
+        crea el pago y lo guarda en BD.
+
+        Args:
+            correo: Dict con datos del correo de GmailService
+            web_user_id: ID del usuario que disparó la ejecución
+
+        Returns:
+            PaypalPayment guardado si es nuevo
+            None si es duplicado
+            False si hubo error de parseo o guardado
+        """
+        message_id = correo.get('message_id', '')
+
+        # Primera línea de defensa: duplicado por message_id
+        if PaypalPayment.get_by_email_message_id(message_id):
+            logger.debug(f"Correo duplicado: {message_id}")
+            return None
+
+        # Parsear HTML del correo
+        datos = self.parser_service.parse_email(correo['html_body'], message_id)
+
+        if datos and correo.get('to_raw'):
+            datos['cuenta_destino'] = correo['to_raw'].strip()
+
+        if not datos:
+            logger.error(f"No se pudo parsear correo: {message_id}")
+            return False
+
+        # Segunda línea de defensa: duplicado por transaction_id
+        if datos.get('paypal_transaction_id'):
+            if PaypalPayment.get_by_transaction_id(datos['paypal_transaction_id']):
+                logger.debug(
+                    f"Transacción duplicada: {datos['paypal_transaction_id']}"
+                )
+                return None
+
+        pago = self._crear_pago_desde_datos(datos, message_id, web_user_id)
+
         if not pago.save():
             logger.error(f"Error guardando pago: {message_id}")
             return False
@@ -236,7 +260,6 @@ class PaymentIngestionService:
             f"{pago.importe_bruto} {pago.moneda} | "
             f"ID: {pago.id} | Estado: {pago.estado}"
         )
-
         return pago
 
     def obtener_resumen(self) -> dict:

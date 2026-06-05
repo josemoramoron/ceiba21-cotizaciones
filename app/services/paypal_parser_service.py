@@ -158,13 +158,154 @@ class PaypalParserService:
             return PaypalPaymentType.COMERCIAL
         return PaypalPaymentType.PERSONAL
 
+    @staticmethod
+    def _parsear_titulo(soup: 'BeautifulSoup') -> dict:
+        """
+        Extrae pagador y monto desde el título principal del correo.
+
+        Intenta primero el elemento con font-size:42px. Si falla,
+        usa el preHeader como fallback.
+
+        Args:
+            soup: Objeto BeautifulSoup del correo
+
+        Returns:
+            dict con 'pagador_nombre', 'importe_bruto', 'moneda'
+            (vacío si no se pudo extraer)
+        """
+        resultado = {}
+
+        # Fuente primaria: párrafo con font-size:42px
+        # Texto: "Paul Milton III le ha enviado $\xa020,00\xa0USD"
+        titulo = soup.find('p', style=lambda s: s and 'font-size:42px' in s)
+        if titulo:
+            texto_titulo = titulo.get_text(separator=' ', strip=True)
+            match_titulo = re.match(
+                r'^(.+?)\s+le ha enviado\s+(.+)$',
+                texto_titulo,
+                re.IGNORECASE
+            )
+            if match_titulo:
+                resultado['pagador_nombre'] = match_titulo.group(1).strip()
+                monto, moneda = PaypalParserService._limpiar_monto(
+                    match_titulo.group(2).strip()
+                )
+                resultado['importe_bruto'] = monto
+                resultado['moneda'] = moneda or 'USD'
+            else:
+                logger.warning(f"No se pudo parsear título: {texto_titulo}")
+
+        # Fallback: preHeader — "Nombre, recibió $20,00 USD"
+        if not resultado.get('pagador_nombre'):
+            preheader = soup.find(id='preHeader')
+            if preheader:
+                match_pre = re.match(
+                    r'^(.+?),\s+recibió\s+(.+)$',
+                    preheader.get_text(strip=True),
+                    re.IGNORECASE
+                )
+                if match_pre and not resultado.get('importe_bruto'):
+                    monto, moneda = PaypalParserService._limpiar_monto(
+                        match_pre.group(2).strip()
+                    )
+                    resultado['importe_bruto'] = monto
+                    resultado['moneda'] = moneda or 'USD'
+
+        return resultado
+
+    @staticmethod
+    def _parsear_tabla_detalles(soup: 'BeautifulSoup') -> dict:
+        """
+        Extrae comisión, total neto, transaction_id y fecha desde
+        la tabla cartDetails del correo PayPal.
+
+        Args:
+            soup: Objeto BeautifulSoup del correo
+
+        Returns:
+            dict con 'comision_paypal', 'importe_neto',
+            'paypal_transaction_id', 'fecha_pago'
+        """
+        comision = None
+        total_neto = None
+        fecha_pago = None
+        transaction_id = None
+
+        for tabla in soup.find_all('table', id='cartDetails'):
+            for fila in tabla.find_all('tr'):
+                celdas = fila.find_all('td')
+                if len(celdas) < 2:
+                    continue
+
+                etiqueta = celdas[0].get_text(strip=True).lower()
+                valor_texto = celdas[1].get_text(strip=True)
+
+                if 'importe recibido' in etiqueta:
+                    # Se ignora aquí — ya viene del título; solo sobreescribe
+                    # si el título no lo capturó (lo maneja parse_email)
+                    pass
+                elif 'comisión' in etiqueta or 'comision' in etiqueta:
+                    monto, _ = PaypalParserService._limpiar_monto(valor_texto)
+                    comision = monto
+                elif 'total' in etiqueta:
+                    monto, _ = PaypalParserService._limpiar_monto(valor_texto)
+                    total_neto = monto
+                elif 'id. de transacci' in etiqueta or 'transaction' in etiqueta.lower():
+                    enlace = celdas[0].find('a')
+                    if enlace:
+                        transaction_id = enlace.get_text(strip=True)
+                elif 'fecha de la transacci' in etiqueta:
+                    fecha_pago = PaypalParserService._parsear_fecha(valor_texto)
+
+        return {
+            'comision_paypal': comision,
+            'importe_neto': total_neto,
+            'paypal_transaction_id': transaction_id,
+            'fecha_pago': fecha_pago,
+        }
+
+    @staticmethod
+    def _parsear_direccion(soup: 'BeautifulSoup') -> Optional[str]:
+        """
+        Extrae la dirección de envío del correo PayPal si existe.
+
+        La dirección aparece en la fila siguiente al encabezado
+        'Dirección de envío' dentro de la tabla de detalles.
+
+        Args:
+            soup: Objeto BeautifulSoup del correo
+
+        Returns:
+            str con la dirección formateada, o None si no hay dirección
+        """
+        for p in soup.find_all('p'):
+            if 'Dirección de envío' not in p.get_text(strip=True):
+                continue
+            padre = p.find_parent('td')
+            if not padre:
+                break
+            fila_actual = padre.find_parent('tr')
+            if not fila_actual:
+                break
+            siguiente_fila = fila_actual.find_next_sibling('tr')
+            if siguiente_fila:
+                dir_p = siguiente_fila.find('p')
+                if dir_p:
+                    return dir_p.get_text(separator=', ', strip=True)
+            break
+
+        return None
+
     def parse_email(self, html_body: str, message_id: str) -> Optional[dict]:
         """
         Parsea el HTML de un correo PayPal y extrae los datos del pago.
 
+        Orquesta los helpers privados: _parsear_titulo,
+        _parsear_tabla_detalles y _parsear_direccion.
+
         Args:
             html_body: Contenido HTML del correo
-            message_id: ID del mensaje Gmail (para referencia)
+            message_id: ID del mensaje Gmail (para referencia en logs)
 
         Returns:
             dict con los datos del pago, o None si no se pudo parsear:
@@ -187,142 +328,27 @@ class PaypalParserService:
 
         try:
             soup = BeautifulSoup(html_body, 'html.parser')
-            resultado = {}
 
-            # ── 1. Pagador y monto desde el título principal ──────────
-            # Texto: "Paul Milton III le ha enviado $\xa020,00\xa0USD"
-            titulo = soup.find('p', style=lambda s: s and 'font-size:42px' in s)
-            if titulo:
-                texto_titulo = titulo.get_text(separator=' ', strip=True)
-                # Extraer nombre del pagador (todo antes de "le ha enviado")
-                match_titulo = re.match(
-                    r'^(.+?)\s+le ha enviado\s+(.+)$',
-                    texto_titulo,
-                    re.IGNORECASE
-                )
-                if match_titulo:
-                    resultado['pagador_nombre'] = match_titulo.group(1).strip()
-                    monto_texto = match_titulo.group(2).strip()
-                    monto, moneda = PaypalParserService._limpiar_monto(
-                        monto_texto
-                    )
-                    resultado['importe_bruto'] = monto
-                    resultado['moneda'] = moneda or 'USD'
-                else:
-                    logger.warning(
-                        f"No se pudo parsear título: {texto_titulo}"
-                    )
+            # 1. Pagador y monto principal
+            resultado = self._parsear_titulo(soup)
 
-            # Fallback: preHeader tiene "Nombre, recibió $20,00 USD"
-            if not resultado.get('pagador_nombre'):
-                preheader = soup.find(id='preHeader')
-                if preheader:
-                    texto_pre = preheader.get_text(strip=True)
-                    match_pre = re.match(
-                        r'^(.+?),\s+recibió\s+(.+)$',
-                        texto_pre,
-                        re.IGNORECASE
-                    )
-                    if match_pre and not resultado.get('importe_bruto'):
-                        monto_texto = match_pre.group(2).strip()
-                        monto, moneda = PaypalParserService._limpiar_monto(
-                            monto_texto
-                        )
-                        resultado['importe_bruto'] = monto
-                        resultado['moneda'] = moneda or 'USD'
+            # 2. Detalles de la tabla (comisión, neto, ID, fecha)
+            detalles = self._parsear_tabla_detalles(soup)
+            resultado.update(detalles)
 
-            # ── 2. Tabla de detalles (cartDetails) ───────────────────
-            # Busca filas: Importe recibido, Comisión, Total
-            comision = None
-            total_neto = None
-            fecha_pago = None
-            transaction_id = None
-
-            tablas_cart = soup.find_all('table', id='cartDetails')
-
-            for tabla in tablas_cart:
-                filas = tabla.find_all('tr')
-                for fila in filas:
-                    celdas = fila.find_all('td')
-                    if len(celdas) >= 2:
-                        etiqueta = celdas[0].get_text(strip=True).lower()
-                        valor_texto = celdas[1].get_text(strip=True)
-
-                        if 'importe recibido' in etiqueta:
-                            monto, _ = PaypalParserService._limpiar_monto(
-                                valor_texto
-                            )
-                            if monto:
-                                resultado['importe_bruto'] = monto
-
-                        elif 'comisión' in etiqueta or 'comision' in etiqueta:
-                            monto, _ = PaypalParserService._limpiar_monto(
-                                valor_texto
-                            )
-                            comision = monto
-
-                        elif 'total' in etiqueta:
-                            monto, _ = PaypalParserService._limpiar_monto(
-                                valor_texto
-                            )
-                            total_neto = monto
-
-                        elif 'id. de transacci' in etiqueta or 'transaction' in etiqueta.lower():
-                            # El ID está en un enlace dentro de la celda
-                            enlace = celdas[0].find('a')
-                            if enlace:
-                                transaction_id = enlace.get_text(strip=True)
-
-                        elif 'fecha de la transacci' in etiqueta:
-                            fecha_pago = PaypalParserService._parsear_fecha(
-                                valor_texto
-                            )
-
-            resultado['comision_paypal'] = comision
-            resultado['importe_neto'] = total_neto
-            resultado['paypal_transaction_id'] = transaction_id
-            resultado['fecha_pago'] = fecha_pago
-
-            # ── 3. Tipo de pago ───────────────────────────────────────
+            # 3. Tipo de pago (personal vs comercial)
             resultado['tipo_pago'] = PaypalParserService._detectar_tipo_pago(
-                comision,
-                total_neto
+                detalles['comision_paypal'],
+                detalles['importe_neto']
             )
 
-            # ── 4. Dirección de envío (opcional en ambos tipos) ───────
-            direccion = None
-            seccion_dir = soup.find(
-                'p',
-                string=lambda s: s and 'Dirección de envío' in s
-                if s else False
-            )
+            # 4. Dirección de envío (opcional)
+            resultado['direccion_envio'] = self._parsear_direccion(soup)
 
-            # Buscar por texto del encabezado de sección
-            for p in soup.find_all('p'):
-                texto_p = p.get_text(strip=True)
-                if 'Dirección de envío' in texto_p:
-                    # La dirección está en el siguiente párrafo
-                    padre = p.find_parent('td')
-                    if padre:
-                        siguiente_td = padre.find_parent('tr')
-                        if siguiente_td:
-                            siguiente_fila = siguiente_td.find_next_sibling('tr')
-                            if siguiente_fila:
-                                dir_p = siguiente_fila.find('p')
-                                if dir_p:
-                                    direccion = dir_p.get_text(
-                                        separator=', ',
-                                        strip=True
-                                    )
-                    break
+            # 5. Cuenta destino — se rellena en PaymentIngestionService
+            resultado['cuenta_destino'] = None
 
-            resultado['direccion_envio'] = direccion
-
-            # ── 5. Cuenta destino (del header X-Forwarded-To) ─────────
-            # No está en el HTML, se pasa desde el correo raw
-            resultado['cuenta_destino'] = None  # Se rellena en PaymentIngestionService
-
-            # ── Validación mínima ─────────────────────────────────────
+            # Validación mínima
             if not resultado.get('importe_bruto'):
                 logger.error(
                     f"No se pudo extraer importe del correo {message_id}"
@@ -341,7 +367,9 @@ class PaypalParserService:
             return resultado
 
         except (AttributeError, TypeError) as e:
-            logger.error(f"Error parseando estructura HTML del correo {message_id}: {e}")
+            logger.error(
+                f"Error parseando estructura HTML del correo {message_id}: {e}"
+            )
             return None
 
     @staticmethod
