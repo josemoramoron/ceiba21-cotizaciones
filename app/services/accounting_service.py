@@ -42,6 +42,42 @@ class AccountingService(BaseService):
     # ==========================================
     
     @classmethod
+    def _process_transactions(
+        cls,
+        transactions: list
+    ) -> Tuple[Dict, set]:
+        """
+        Procesa una lista de transacciones y acumula totales por tipo.
+
+        Args:
+            transactions: Lista de Transaction del período
+
+        Returns:
+            Tuple (parciales, order_ids) donde parciales contiene
+            total_income_usd, total_fees_usd y total_expenses
+        """
+        parciales = {
+            'total_income_usd': Decimal('0.00'),
+            'total_fees_usd': Decimal('0.00'),
+            'total_expenses': {},
+        }
+        order_ids: set = set()
+
+        for t in transactions:
+            amount = t.amount
+            if t.type == TransactionType.INCOME and t.currency_code == 'USD':
+                parciales['total_income_usd'] += amount
+                order_ids.add(t.order_id)
+            elif t.type == TransactionType.FEE:
+                parciales['total_fees_usd'] += amount
+            elif t.type == TransactionType.EXPENSE:
+                if t.currency_code not in parciales['total_expenses']:
+                    parciales['total_expenses'][t.currency_code] = Decimal('0.00')
+                parciales['total_expenses'][t.currency_code] += amount
+
+        return parciales, order_ids
+
+    @classmethod
     def get_balance_summary(cls, 
                           start_date: Optional[datetime] = None,
                           end_date: Optional[datetime] = None) -> Dict[str, Any]:
@@ -93,25 +129,10 @@ class AccountingService(BaseService):
             'order_count': 0,
             'average_fee_percentage': Decimal('0.00')
         }
-        
+
         # Procesar transacciones
-        order_ids = set()
-        
-        for t in transactions:
-            # IMPORTANTE: amount ya es Decimal desde la BD
-            amount = t.amount
-            
-            if t.type == TransactionType.INCOME and t.currency_code == 'USD':
-                summary['total_income_usd'] += amount
-                order_ids.add(t.order_id)
-            
-            elif t.type == TransactionType.FEE:
-                summary['total_fees_usd'] += amount
-            
-            elif t.type == TransactionType.EXPENSE:
-                if t.currency_code not in summary['total_expenses']:
-                    summary['total_expenses'][t.currency_code] = Decimal('0.00')
-                summary['total_expenses'][t.currency_code] += amount
+        parciales, order_ids = cls._process_transactions(transactions)
+        summary.update(parciales)
         
         # Calcular métricas derivadas
         summary['net_profit_usd'] = summary['total_fees_usd']
@@ -226,6 +247,39 @@ class AccountingService(BaseService):
         return Decimal(str(result)) if result else Decimal('0.00')
     
     @classmethod
+    def _build_fee_distribution(cls, results: list) -> List[Dict[str, Any]]:
+        """
+        Construye la lista de distribución de fees por método de pago.
+
+        Args:
+            results: Rows de SQLAlchemy con name, total_fees, order_count
+
+        Returns:
+            Lista de dicts ordenada descendente por fees
+        """
+        total_fees = sum(Decimal(str(r.total_fees)) for r in results)
+        distribution = []
+
+        for result in results:
+            fees = Decimal(str(result.total_fees))
+            if total_fees > 0:
+                percentage = (fees / total_fees * 100).quantize(
+                    cls.DECIMAL_PERCENTAGE, rounding=ROUND_HALF_UP
+                )
+            else:
+                percentage = Decimal('0.0')
+
+            distribution.append({
+                'method': result.name,
+                'fees': fees,
+                'percentage': percentage,
+                'order_count': result.order_count
+            })
+
+        distribution.sort(key=lambda x: x['fees'], reverse=True)
+        return distribution
+
+    @classmethod
     def get_fees_by_payment_method(cls,
                                   start_date: Optional[datetime] = None,
                                   end_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
@@ -267,34 +321,45 @@ class AccountingService(BaseService):
             Transaction.created_at.between(start_date, end_date)
         ).group_by(PaymentMethod.id, PaymentMethod.name).all()
         
-        # Calcular total para porcentajes
-        total_fees = sum(Decimal(str(r.total_fees)) for r in results)
-        
+        # Calcular distribución con Decimal
+        return cls._build_fee_distribution(results)
+    
+    @classmethod
+    def _build_currency_distribution(cls, results: list) -> List[Dict[str, Any]]:
+        """
+        Construye la lista de distribución de órdenes por moneda.
+
+        Args:
+            results: Rows de SQLAlchemy con code, name, order_count, total_amount
+
+        Returns:
+            Lista de dicts ordenada descendente por count
+        """
+        total_orders = sum(r.order_count for r in results)
         distribution = []
+
         for result in results:
-            fees = Decimal(str(result.total_fees))
-            
-            # Calcular porcentaje con Decimal
-            if total_fees > 0:
-                percentage = (fees / total_fees * 100).quantize(
-                    cls.DECIMAL_PERCENTAGE, 
-                    rounding=ROUND_HALF_UP
-                )
+            if total_orders > 0:
+                percentage = (
+                    Decimal(result.order_count) / Decimal(total_orders) * 100
+                ).quantize(cls.DECIMAL_PERCENTAGE, rounding=ROUND_HALF_UP)
             else:
                 percentage = Decimal('0.0')
-            
+
             distribution.append({
-                'method': result.name,
-                'fees': fees,
+                'currency': result.code,
+                'currency_name': result.name,
+                'count': result.order_count,
                 'percentage': percentage,
-                'order_count': result.order_count
+                'total_amount_local': (
+                    Decimal(str(result.total_amount))
+                    if result.total_amount else Decimal('0.00')
+                )
             })
-        
-        # Ordenar por fees descendente
-        distribution.sort(key=lambda x: x['fees'], reverse=True)
-        
+
+        distribution.sort(key=lambda x: x['count'], reverse=True)
         return distribution
-    
+
     @classmethod
     def get_orders_by_currency(cls,
                               start_date: Optional[datetime] = None,
@@ -334,29 +399,7 @@ class AccountingService(BaseService):
             Order.completed_at.between(start_date, end_date)
         ).group_by(Currency.code, Currency.name).all()
         
-        total_orders = sum(r.order_count for r in results)
-        
-        distribution = []
-        for result in results:
-            if total_orders > 0:
-                percentage = (Decimal(result.order_count) / Decimal(total_orders) * 100).quantize(
-                    cls.DECIMAL_PERCENTAGE,
-                    rounding=ROUND_HALF_UP
-                )
-            else:
-                percentage = Decimal('0.0')
-            
-            distribution.append({
-                'currency': result.code,
-                'currency_name': result.name,
-                'count': result.order_count,
-                'percentage': percentage,
-                'total_amount_local': Decimal(str(result.total_amount)) if result.total_amount else Decimal('0.00')
-            })
-        
-        distribution.sort(key=lambda x: x['count'], reverse=True)
-        
-        return distribution
+        return cls._build_currency_distribution(results)
     
     # ==========================================
     # MÉTRICAS DIARIAS

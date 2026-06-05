@@ -31,6 +31,106 @@ class BlacklistService(BaseService):
     # ==========================================
     
     @classmethod
+    def _validate_identifiers(
+        cls,
+        user_id: Optional[int],
+        telegram_id: Optional[int],
+        phone: Optional[str],
+        email: Optional[str],
+        dni: Optional[str]
+    ) -> Tuple[bool, str]:
+        """
+        Valida que exista al menos un identificador y que no haya duplicado activo.
+
+        Returns:
+            (valid, error_message) — error_message vacío si es válido
+        """
+        if not any([user_id, telegram_id, phone, email, dni]):
+            return False, "Debes proporcionar al menos un identificador (user_id, telegram_id, phone, email o dni)"
+        existing = cls._check_duplicates(telegram_id, phone, email, dni)
+        if existing:
+            return False, f"Ya existe un reporte activo (ID: {existing.id}): {existing.reason}"
+        return True, ""
+
+    @classmethod
+    def _enrich_from_user(
+        cls,
+        user_id: int,
+        telegram_id: Optional[int],
+        phone: Optional[str],
+        email: Optional[str],
+        full_name: Optional[str]
+    ) -> Tuple[Optional[object], Optional[int], Optional[str], Optional[str], Optional[str], Optional[str]]:
+        """
+        Completa datos faltantes desde el modelo User si se proporcionó user_id.
+
+        Returns:
+            (user, telegram_id, phone, email, full_name, error_message)
+        """
+        user = User.find_by_id(user_id)
+        if not user:
+            return None, telegram_id, phone, email, full_name, f"Usuario con ID {user_id} no encontrado"
+        telegram_id = telegram_id or user.telegram_id
+        phone = phone or user.phone
+        email = email or user.email
+        full_name = full_name or user.get_display_name()
+        return user, telegram_id, phone, email, full_name, None
+
+    @classmethod
+    def _build_entry(
+        cls,
+        user_id: Optional[int],
+        telegram_id: Optional[int],
+        phone: Optional[str],
+        email: Optional[str],
+        dni: Optional[str],
+        full_name: Optional[str],
+        block_type_enum: 'BlacklistType',
+        category_enum: 'BlacklistCategory',
+        reason: str,
+        operator_id: int,
+        severity: int,
+        fraud_result: Optional[dict],
+        risk_score: int,
+        **kwargs
+    ) -> BlacklistEntry:
+        """
+        Instancia un BlacklistEntry con todos los campos necesarios.
+
+        Returns:
+            BlacklistEntry sin guardar
+        """
+        evidence_urls = kwargs.get('evidence_urls')
+        return BlacklistEntry(
+            user_id=user_id,
+            telegram_id=telegram_id,
+            phone=phone,
+            email=email,
+            dni=dni,
+            full_name=full_name,
+            block_type=block_type_enum,
+            category=category_enum,
+            status=BlacklistStatus.ACTIVE,
+            reason=reason,
+            detailed_notes=kwargs.get('detailed_notes'),
+            blocked_by_operator_id=operator_id,
+            expires_at=kwargs.get('expires_at'),
+            severity=severity,
+            evidence_urls=json.dumps(evidence_urls) if evidence_urls else None,
+            order_references=kwargs.get('order_references'),
+            fraud_check_result=fraud_result,
+            risk_score=risk_score,
+            country=kwargs.get('country'),
+            state=kwargs.get('state'),
+            transaction_type=kwargs.get('transaction_type'),
+            bank_info=kwargs.get('bank_info'),
+            additional_info=kwargs.get('additional_info'),
+            photo_url=kwargs.get('photo_url'),
+            scam_links=kwargs.get('scam_links'),
+            reporter_name=kwargs.get('reporter_name', 'ceiba21')
+        )
+
+    @classmethod
     def create_report(cls,
                      operator_id: int,
                      reason: str,
@@ -83,109 +183,108 @@ class BlacklistService(BaseService):
             (success, message, blacklist_entry)
         """
         try:
-            # Validar que al menos un identificador exista
-            if not any([user_id, telegram_id, phone, email, dni]):
-                return False, "Debes proporcionar al menos un identificador (user_id, telegram_id, phone, email o dni)", None
-            
-            # Si hay user_id, obtener datos del usuario
+            # 1. Enriquecer desde usuario si se proporcionó user_id
+            user = None
             if user_id:
-                user = User.find_by_id(user_id)
-                if not user:
-                    return False, f"Usuario con ID {user_id} no encontrado", None
-                
-                # Completar datos faltantes del usuario
-                telegram_id = telegram_id or user.telegram_id
-                phone = phone or user.phone
-                email = email or user.email
-                full_name = full_name or user.get_display_name()
-            
-            # Verificar duplicados
-            existing = cls._check_duplicates(telegram_id, phone, email, dni)
-            if existing:
-                return False, f"Ya existe un reporte activo (ID: {existing.id}): {existing.reason}", None
-            
-            # Ejecutar fraud check si está habilitado
+                user, telegram_id, phone, email, full_name, err = cls._enrich_from_user(
+                    user_id, telegram_id, phone, email, full_name
+                )
+                if err:
+                    return False, err, None
+
+            # 2. Validar identificadores y duplicados
+            valid, err = cls._validate_identifiers(user_id, telegram_id, phone, email, dni)
+            if not valid:
+                return False, err, None
+
+            # 3. Fraud check opcional
             fraud_result = None
             risk_score = 0
             if run_fraud_check:
                 try:
                     from app.services.fraud_check_service import FraudCheckService
                     fraud_result = FraudCheckService.check_all(
-                        telegram_id=telegram_id,
-                        phone=phone,
-                        email=email
+                        telegram_id=telegram_id, phone=phone, email=email
                     )
                     risk_score = fraud_result.get('risk_score', 0)
                 except Exception as e:
                     cls.log_error('fraud_check_failed', {'error': str(e)})
-            
-            # Validar tipo de bloqueo
+
+            # 4. Validar enums
             try:
                 block_type_enum = BlacklistType[block_type.upper()]
                 category_enum = BlacklistCategory[category.upper()]
             except KeyError as e:
                 return False, f"Tipo de bloqueo o categoría inválida: {str(e)}", None
-            
-            # Si es temporal, debe tener fecha de expiración
+
             if block_type_enum == BlacklistType.TEMPORARY and not expires_at:
                 return False, "Los bloqueos temporales deben tener una fecha de expiración", None
-            
-            # Crear entrada
-            entry = BlacklistEntry(
-                user_id=user_id,
-                telegram_id=telegram_id,
-                phone=phone,
-                email=email,
-                dni=dni,
-                full_name=full_name,
-                block_type=block_type_enum,
-                category=category_enum,
-                status=BlacklistStatus.ACTIVE,
-                reason=reason,
-                detailed_notes=detailed_notes,
-                blocked_by_operator_id=operator_id,
-                expires_at=expires_at,
-                severity=severity,
-                evidence_urls=json.dumps(evidence_urls) if evidence_urls else None,
-                order_references=order_references,
-                fraud_check_result=fraud_result,
-                risk_score=risk_score,
-                country=country,
-                state=state,
-                transaction_type=transaction_type,
-                bank_info=bank_info,
-                additional_info=additional_info,
-                photo_url=photo_url,
-                scam_links=scam_links,
-                reporter_name=reporter_name
+
+            # 5. Crear y guardar entrada
+            entry = cls._build_entry(
+                user_id=user_id, telegram_id=telegram_id, phone=phone,
+                email=email, dni=dni, full_name=full_name,
+                block_type_enum=block_type_enum, category_enum=category_enum,
+                reason=reason, operator_id=operator_id, severity=severity,
+                fraud_result=fraud_result, risk_score=risk_score,
+                detailed_notes=detailed_notes, expires_at=expires_at,
+                evidence_urls=evidence_urls, order_references=order_references,
+                country=country, state=state, transaction_type=transaction_type,
+                bank_info=bank_info, additional_info=additional_info,
+                photo_url=photo_url, scam_links=scam_links, reporter_name=reporter_name
             )
-            
+
             if not entry.save():
                 return False, "Error al guardar el reporte en la base de datos", None
-            
-            # Si hay user_id, actualizar usuario
-            if user_id:
-                user = User.find_by_id(user_id)
+
+            # 6. Efectos secundarios si hay user_id
+            if user_id and user:
                 user.is_blocked = True
                 user.is_active = False
                 user.save()
-                
-                # Cancelar órdenes pendientes
                 cls._cancel_pending_orders(user_id, f"Usuario bloqueado: {reason}")
-            
+
             cls.log_action('blacklist_created', {
-                'entry_id': entry.id,
-                'operator_id': operator_id,
-                'category': category,
-                'user_id': user_id
+                'entry_id': entry.id, 'operator_id': operator_id,
+                'category': category, 'user_id': user_id
             })
-            
+
             return True, "Reporte creado exitosamente", entry
-            
+
         except Exception as e:
             cls.log_error('create_report_failed', {'error': str(e)})
             return False, f"Error al crear reporte: {str(e)}", None
     
+    @classmethod
+    def _apply_revoke(
+        cls,
+        entry: BlacklistEntry,
+        operator_id: int,
+        reason: str
+    ) -> Tuple[bool, str]:
+        """
+        Aplica el desbloqueo de una entrada: actualiza campos y reactiva
+        al usuario si no tiene otros bloqueos activos.
+
+        Returns:
+            (success, error_message) — error_message vacío si éxito
+        """
+        if not reason:
+            return False, "Debes proporcionar una razón para desbloquear"
+
+        entry.unblocked_at = datetime.utcnow()
+        entry.unblocked_by_operator_id = operator_id
+        entry.unblock_reason = reason
+
+        if entry.user_id:
+            user = User.find_by_id(entry.user_id)
+            if user and not cls._has_other_active_blocks(entry.user_id, entry.id):
+                user.is_blocked = False
+                user.is_active = True
+                user.save()
+
+        return True, ""
+
     @classmethod
     def update_status(cls,
                      blacklist_id: int,
@@ -229,25 +328,12 @@ class BlacklistService(BaseService):
                 return False, f"Estado inválido: {new_status}"
             
             entry.status = new_status_enum
-            
+
             # Si se está desbloqueando
             if new_status_enum == BlacklistStatus.REVOKED:
-                if not reason:
-                    return False, "Debes proporcionar una razón para desbloquear"
-                
-                entry.unblocked_at = datetime.utcnow()
-                entry.unblocked_by_operator_id = operator_id
-                entry.unblock_reason = reason
-                
-                # Actualizar usuario si existe
-                if entry.user_id:
-                    user = User.find_by_id(entry.user_id)
-                    # Verificar que no tenga otros bloqueos activos
-                    other_blocks = cls._has_other_active_blocks(entry.user_id, blacklist_id)
-                    if not other_blocks:
-                        user.is_blocked = False
-                        user.is_active = True
-                        user.save()
+                ok, err = cls._apply_revoke(entry, operator_id, reason or '')
+                if not ok:
+                    return False, err
             
             # Si se cambia tipo de bloqueo
             if new_block_type:
@@ -348,6 +434,64 @@ class BlacklistService(BaseService):
     # ==========================================
     
     @classmethod
+    def _build_search_filters(
+        cls,
+        query: Optional[str],
+        telegram_id: Optional[int],
+        phone: Optional[str],
+        email: Optional[str],
+        dni: Optional[str],
+        category: Optional[str],
+        status: Optional[str],
+        min_severity: Optional[int]
+    ) -> list:
+        """
+        Construye la lista de filtros SQLAlchemy para la búsqueda avanzada.
+
+        Returns:
+            Lista de condiciones para BlacklistEntry.query.filter()
+        """
+        filters = []
+
+        if telegram_id:
+            filters.append(BlacklistEntry.telegram_id == telegram_id)
+        if phone:
+            filters.append(BlacklistEntry.phone.like(f'%{phone}%'))
+        if email:
+            filters.append(BlacklistEntry.email.like(f'%{email}%'))
+        if dni:
+            filters.append(BlacklistEntry.dni.like(f'%{dni}%'))
+
+        if query:
+            filters.append(
+                or_(
+                    BlacklistEntry.reason.ilike(f'%{query}%'),
+                    BlacklistEntry.detailed_notes.ilike(f'%{query}%'),
+                    BlacklistEntry.full_name.ilike(f'%{query}%')
+                )
+            )
+
+        if category:
+            try:
+                filters.append(BlacklistEntry.category == BlacklistCategory[category.upper()])
+            except KeyError:
+                pass
+
+        if status:
+            try:
+                filters.append(BlacklistEntry.status == BlacklistStatus[status.upper()])
+            except KeyError:
+                pass
+
+        if min_severity:
+            filters.append(BlacklistEntry.severity >= min_severity)
+
+        if not filters:
+            filters.append(BlacklistEntry.status == BlacklistStatus.ACTIVE)
+
+        return filters
+
+    @classmethod
     def search(cls,
               query: Optional[str] = None,
               telegram_id: Optional[int] = None,
@@ -378,60 +522,19 @@ class BlacklistService(BaseService):
             Lista de BlacklistEntry
         """
         try:
-            filters = []
-            
-            # Búsqueda por ID de reporte
             if report_id:
                 entry = BlacklistEntry.find_by_id(report_id)
                 return [entry] if entry else []
-            
-            # Búsqueda por identificadores específicos
-            if telegram_id:
-                filters.append(BlacklistEntry.telegram_id == telegram_id)
-            
-            if phone:
-                filters.append(BlacklistEntry.phone.like(f'%{phone}%'))
-            
-            if email:
-                filters.append(BlacklistEntry.email.like(f'%{email}%'))
-            
-            if dni:
-                filters.append(BlacklistEntry.dni.like(f'%{dni}%'))
-            
-            # Búsqueda por texto general
-            if query:
-                filters.append(
-                    or_(
-                        BlacklistEntry.reason.ilike(f'%{query}%'),
-                        BlacklistEntry.detailed_notes.ilike(f'%{query}%'),
-                        BlacklistEntry.full_name.ilike(f'%{query}%')
-                    )
-                )
-            
-            # Filtros adicionales
-            if category:
-                try:
-                    filters.append(BlacklistEntry.category == BlacklistCategory[category.upper()])
-                except KeyError:
-                    pass
-            
-            if status:
-                try:
-                    filters.append(BlacklistEntry.status == BlacklistStatus[status.upper()])
-                except KeyError:
-                    pass
-            
-            if min_severity:
-                filters.append(BlacklistEntry.severity >= min_severity)
-            
-            # Si no hay filtros, retornar todos los activos
-            if not filters:
-                filters.append(BlacklistEntry.status == BlacklistStatus.ACTIVE)
-            
+
+            filters = cls._build_search_filters(
+                query, telegram_id, phone, email, dni,
+                category, status, min_severity
+            )
+
             return BlacklistEntry.query.filter(*filters).order_by(
                 BlacklistEntry.blocked_at.desc()
             ).limit(limit).all()
-            
+
         except Exception as e:
             cls.log_error('search_failed', {'error': str(e)})
             return []
@@ -515,6 +618,25 @@ class BlacklistService(BaseService):
     # ==========================================
     
     @classmethod
+    def _check_pending_appeal(cls, blacklist_id: int) -> bool:
+        """Verifica si ya existe una apelación pendiente para un reporte."""
+        return BlacklistAppeal.query.filter_by(
+            blacklist_id=blacklist_id,
+            status=AppealStatus.PENDING
+        ).first() is not None
+
+    @classmethod
+    def _notify_new_appeal(cls, entry: BlacklistEntry, appellant_name: str) -> None:
+        """Notifica a administradores sobre una nueva apelación (falla silenciosamente)."""
+        try:
+            from app.services.notification_service import NotificationService
+            NotificationService.notify_admins(
+                f"Nueva apelación recibida\nReporte: {entry.id}\nApelante: {appellant_name}"
+            )
+        except Exception:
+            pass
+
+    @classmethod
     def submit_appeal(cls,
                      blacklist_id: int,
                      appellant_name: str,
@@ -544,17 +666,10 @@ class BlacklistService(BaseService):
             entry = BlacklistEntry.find_by_id(blacklist_id)
             if not entry:
                 return False, "Reporte de blacklist no encontrado", None
-            
-            # Verificar que no tenga apelación pendiente
-            pending = BlacklistAppeal.query.filter_by(
-                blacklist_id=blacklist_id,
-                status=AppealStatus.PENDING
-            ).first()
-            
-            if pending:
+
+            if cls._check_pending_appeal(blacklist_id):
                 return False, "Ya existe una apelación pendiente para este reporte", None
-            
-            # Crear apelación
+
             appeal = BlacklistAppeal(
                 blacklist_id=blacklist_id,
                 appellant_name=appellant_name,
@@ -565,34 +680,57 @@ class BlacklistService(BaseService):
                 ip_address=ip_address,
                 user_agent=user_agent
             )
-            
+
             if not appeal.save():
                 return False, "Error al guardar la apelación", None
-            
-            # Actualizar estado del blacklist
+
             entry.status = BlacklistStatus.APPEALED
             entry.save()
-            
-            # Notificar a administradores
-            try:
-                from app.services.notification_service import NotificationService
-                NotificationService.notify_admins(
-                    f"Nueva apelación recibida\nReporte: {entry.id}\nApelante: {appellant_name}"
-                )
-            except:
-                pass
-            
+
+            cls._notify_new_appeal(entry, appellant_name)
+
             cls.log_action('appeal_submitted', {
                 'appeal_id': appeal.id,
                 'blacklist_id': blacklist_id
             })
-            
+
             return True, "Apelación enviada exitosamente. Te contactaremos pronto.", appeal
-            
+
         except Exception as e:
             cls.log_error('submit_appeal_failed', {'error': str(e)})
             return False, f"Error al enviar apelación: {str(e)}", None
     
+    @classmethod
+    def _apply_appeal_decision(
+        cls,
+        appeal: BlacklistAppeal,
+        decision: str,
+        operator_id: int,
+        decision_reason: str
+    ) -> Tuple[bool, str]:
+        """
+        Aplica la decisión de una apelación: desbloquea si aprobada,
+        reactiva el bloqueo si rechazada.
+
+        Returns:
+            (success, message)
+        """
+        if decision == 'approved':
+            success, msg = cls.update_status(
+                blacklist_id=appeal.blacklist_id,
+                new_status='REVOKED',
+                operator_id=operator_id,
+                reason=f"Apelación aprobada: {decision_reason}"
+            )
+            if not success:
+                return False, f"Apelación aprobada pero error al desbloquear: {msg}"
+        else:
+            entry = appeal.blacklist_entry
+            entry.status = BlacklistStatus.ACTIVE
+            entry.save()
+
+        return True, ""
+
     @classmethod
     def review_appeal(cls,
                      appeal_id: int,
@@ -617,49 +755,35 @@ class BlacklistService(BaseService):
             appeal = BlacklistAppeal.find_by_id(appeal_id)
             if not appeal:
                 return False, "Apelación no encontrada"
-            
+
             if appeal.status != AppealStatus.PENDING:
                 return False, f"Esta apelación ya fue revisada (estado: {appeal.status.value})"
-            
-            # Validar decisión
+
             if decision not in ['approved', 'rejected']:
                 return False, "Decisión inválida. Debe ser 'approved' o 'rejected'"
-            
-            # Actualizar apelación
+
             appeal.status = AppealStatus.APPROVED if decision == 'approved' else AppealStatus.REJECTED
             appeal.reviewed_at = datetime.utcnow()
             appeal.reviewed_by_operator_id = operator_id
             appeal.decision = decision
             appeal.decision_reason = decision_reason
             appeal.review_notes = review_notes
-            
+
             if not appeal.save():
                 return False, "Error al guardar la revisión"
-            
-            # Si se aprueba, desbloquear
-            if decision == 'approved':
-                success, msg = cls.update_status(
-                    blacklist_id=appeal.blacklist_id,
-                    new_status='REVOKED',
-                    operator_id=operator_id,
-                    reason=f"Apelación aprobada: {decision_reason}"
-                )
-                if not success:
-                    return False, f"Apelación aprobada pero error al desbloquear: {msg}"
-            else:
-                # Si se rechaza, volver a ACTIVE
-                entry = appeal.blacklist_entry
-                entry.status = BlacklistStatus.ACTIVE
-                entry.save()
-            
+
+            ok, err = cls._apply_appeal_decision(appeal, decision, operator_id, decision_reason)
+            if not ok:
+                return False, err
+
             cls.log_action('appeal_reviewed', {
                 'appeal_id': appeal_id,
                 'decision': decision,
                 'operator_id': operator_id
             })
-            
+
             return True, f"Apelación {decision}. El usuario ha sido notificado."
-            
+
         except Exception as e:
             cls.log_error('review_appeal_failed', {'error': str(e)})
             return False, f"Error al revisar apelación: {str(e)}"
