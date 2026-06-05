@@ -1,92 +1,332 @@
-# 🌳 Sistema de Cotizaciones Ceiba21
+# 🌳 Ceiba21 — Sistema de Cotizaciones
 
-Sistema completo de gestión de cotizaciones de divisas con publicación automatizada en Telegram, desarrollado para Raspberry Pi 5.
+Plataforma completa de exchange de criptomonedas y divisas construida con Flask 3.1, PostgreSQL 17 y Python 3.13. Gestiona cotizaciones, publica automáticamente en Telegram, procesa pagos PayPal, y proporciona un dashboard administrativo para operadores.
+
+Desplegada sobre Raspberry Pi 5 con Cloudflare Tunnel — sin exponer puertos, sin IP pública, con SSL automático.
 
 ![Python](https://img.shields.io/badge/Python-3.13-blue)
-![Flask](https://img.shields.io/badge/Flask-3.1-green)
+![Flask](https://img.shields.io/badge/Flask-3.1.2-green)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red)
 ![License](https://img.shields.io/badge/License-Proprietary-red)
 
 ---
 
 ## 📋 Tabla de Contenidos
 
-- [Características](#-características)
+- [Módulos del Sistema](#-módulos-del-sistema)
 - [Arquitectura](#-arquitectura)
+- [Stack Tecnológico](#-stack-tecnológico)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Requisitos](#-requisitos)
 - [Instalación](#-instalación)
 - [Configuración](#-configuración)
-- [Uso](#-uso)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Desarrollo Local](#-desarrollo-local)
+- [Flujo de Deploy](#-flujo-de-deploy)
 - [API](#-api)
 - [Mantenimiento](#-mantenimiento)
 - [Monitoreo](#-monitoreo)
 - [Troubleshooting](#-troubleshooting)
+- [Roadmap](#-roadmap)
 - [Licencia](#-licencia)
 
 ---
 
-## ✨ Características
+## 🧩 Módulos del Sistema
 
-### 🎯 Funcionalidades Principales
+### 💱 Cotizaciones
+CRUD completo para múltiples monedas (VES, COP, BRL, MXN, etc.) y métodos de pago (PayPal, Zelle, USDT, Wise, Binance). Soporta dos modos de valoración:
+- **Manual**: valor fijo en USD
+- **Fórmula**: cálculo automático basado en tasas de cambio (`BCV_VES * 1.05 + 2`)
 
-- **Gestión de Cotizaciones**: CRUD completo para múltiples monedas y métodos de pago
-- **Publicación Automática**: Generación de imágenes y publicación en Telegram
-- **Calculadora PayPal**: Cálculo interactivo de comisiones
-- **Dashboard Administrativo**: Panel completo de administración
-- **API REST**: Endpoints para consultas externas
-- **Drag & Drop**: Reordenamiento visual de métodos de pago
-- **Fórmulas Programables**: Cotizaciones con cálculo automático
+Las cotizaciones se recalculan automáticamente cuando cambia una tasa de cambio.
 
-### 📊 Monitoreo y Analytics
+### 📱 Publicación en Telegram
+Genera imágenes de cotizaciones con Pillow/CairoSVG y las publica en un canal de Telegram. Soporta publicación VES y COP, imagen personalizada opcional, y mensaje adicional.
 
-- **Netdata**: Monitoreo en tiempo real del sistema
-- **Dashboard de Temperatura**: Visualización dedicada
-- **Logs Automáticos**: Sistema de logging periódico
-- **Alertas**: Notificaciones de cambios significativos
+### 💳 Ingesta de Pagos PayPal
+Lee automáticamente los correos de pago de Gmail vía IMAP cada 5 minutos (APScheduler). Para cada correo:
+1. Parsea el HTML con BeautifulSoup para extraer monto, comisión, tipo (G&S / F&F), transaction ID y fecha
+2. Verifica duplicados por `message_id` y `transaction_id`
+3. Aplica cotización automática si es USD
+4. Guarda en PostgreSQL
+5. Marca el correo como leído
 
-### 🔐 Seguridad
+### 🤖 Bot Conversacional Multicanal
+Bot de conversación con máquina de estados que opera en Telegram, Web y WhatsApp (patrón Strategy). Maneja consultas de cotizaciones, inicio de órdenes y seguimiento.
 
-- **Cloudflare Tunnel**: Acceso seguro sin exponer puertos
-- **Autenticación**: Sistema de login para panel administrativo
-- **Firewall UFW**: Configuración de seguridad perimetral
-- **Separación de Usuarios**: Aislamiento c21/webmaster
-- **Entorno Virtual**: Dependencias aisladas
+### 📋 Sistema de Órdenes
+Gestión completa del ciclo de vida de órdenes de compra/venta: creación, asignación a operador, procesamiento, comprobantes de pago y completado.
+
+### 🚫 Blacklist y Verificación de Fraude
+Sistema de reportes de usuarios fraudulentos con:
+- Bloqueo por user_id, telegram_id, teléfono, email o DNI
+- Bloqueo preventivo (sin cuenta registrada)
+- Apelaciones desde formulario público
+- Verificación automática de fraude al crear órdenes
+- Estadísticas por categoría y severidad
+
+### 📊 Contabilidad Automática
+Registro de transacciones con precisión `Decimal` (nunca `float`). Genera reportes de:
+- Balance por período (ingresos, comisiones, gastos)
+- Distribución de ganancias por método de pago
+- Distribución de órdenes por moneda
+- Comparativa hoy vs ayer
+- Serie temporal de fees diarios
+
+### 🧮 Calculadora PayPal
+Calculadora pública que muestra cuánto recibirá el usuario en moneda local dado un monto en USD, considerando la comisión PayPal según el tipo de transacción.
 
 ---
 
 ## 🏗️ Arquitectura
+
+### Capas (estricto)
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    INTERNET                             │
-└─────────────────┬───────────────────────────────────────┘
-                  │
-         ┌────────▼────────┐
-         │  Cloudflare     │
-         │  (DDoS, SSL)    │
-         └────────┬────────┘
-                  │
-         ┌────────▼─────────────────────────────────┐
-         │  Cloudflare Tunnel (cloudflared)         │
-         │  • ceiba21.com → Flask (5000)            │
-         │  • monitor.ceiba21.com → Netdata (19999) │
-         │  • temp.ceiba21.com → Dashboard (8080)   │
-         │  • ssh.ceiba21.com → SSH (22)            │
-         │  • vnc.ceiba21.com → VNC (5900)          │
-         └────────┬─────────────────────────────────┘
-                  │
-    ┌─────────────▼──────────────┐
-    │   Raspberry Pi 5 (ARM64)   │
-    │   • 4 cores @ 2.4GHz       │
-    │   • 8GB RAM                │
-    │   • 2TB NVMe SSD           │
-    │   • Debian 13 (Trixie)     │
-    └────────────────────────────┘
-         │         │         │
-    ┌────▼───┐ ┌──▼────┐ ┌─▼──────┐
-    │ Flask  │ │ PG 17 │ │ Nginx  │
-    │ Gunicorn│ │ DB    │ │ Proxy  │
-    └────────┘ └───────┘ └────────┘
+┌─────────────────────────────────────┐
+│   TEMPLATES  (Jinja2 — solo HTML)   │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│   ROUTES  (Blueprints — orquesta)   │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│   SERVICES  (toda la lógica)        │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│   MODELS  (SQLAlchemy — datos)      │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│   DATABASE  (PostgreSQL 17)         │
+└─────────────────────────────────────┘
+```
+
+**Reglas:**
+- Routes nunca llaman directamente a Models — siempre vía Services
+- Templates sin lógica Python — solo presentación Jinja2
+- Services concentran toda la lógica de negocio
+
+### Infraestructura
+
+```
+┌──────────────────────────────────────────────────┐
+│                    INTERNET                       │
+└──────────────────┬───────────────────────────────┘
+                   │
+          ┌────────▼────────┐
+          │   Cloudflare    │
+          │  (DDoS + SSL)   │
+          └────────┬────────┘
+                   │
+   ┌───────────────▼──────────────────────────┐
+   │        Cloudflare Tunnel                 │
+   │  ceiba21.com          → Flask :5000      │
+   │  monitor.ceiba21.com  → Netdata :19999   │
+   │  temp.ceiba21.com     → Dashboard :8080  │
+   │  ssh.ceiba21.com      → SSH :22          │
+   └───────────────┬──────────────────────────┘
+                   │
+     ┌─────────────▼──────────────┐
+     │   Raspberry Pi 5 (ARM64)   │
+     │   4 cores · 8GB RAM        │
+     │   2TB NVMe · Debian 13     │
+     └──────┬──────┬──────┬───────┘
+            │      │      │
+       ┌────▼──┐ ┌─▼───┐ ┌▼──────┐
+       │Flask  │ │PG17 │ │Nginx  │
+       │Gunicorn│ │     │ │Proxy  │
+       └───────┘ └─────┘ └───────┘
+```
+
+---
+
+## 🛠️ Stack Tecnológico
+
+### Backend
+
+| Paquete | Versión | Uso |
+|---|---|---|
+| Python | 3.13 | Lenguaje principal |
+| Flask | 3.1.2 | Framework web |
+| SQLAlchemy | 2.0.44 | ORM |
+| Flask-SQLAlchemy | 3.1.1 | Integración Flask↔SQLAlchemy |
+| Flask-Login | 0.6.3 | Autenticación de sesión |
+| Flask-Caching | 2.1.0 | Caché con Redis |
+| Flask-Session | 0.8.0 | Sesiones del lado servidor |
+| Gunicorn | 23.0.0 | WSGI server |
+| psycopg2-binary | 2.9.11 | Driver PostgreSQL |
+| redis | 5.0.1 | Caché y sesiones |
+| APScheduler | 3.10.4 | Scheduler (ingesta PayPal cada 5 min) |
+| python-dotenv | 1.2.1 | Variables de entorno |
+
+### Telegram e Imágenes
+
+| Paquete | Versión | Uso |
+|---|---|---|
+| python-telegram-bot | 22.5 | SDK Telegram |
+| Pillow | 12.0.0 | Generación de imágenes |
+| CairoSVG | 2.8.2 | Renderizado SVG |
+| cairocffi | 1.7.1 | Bindings libcairo |
+
+### PayPal / Gmail
+
+| Paquete | Versión | Uso |
+|---|---|---|
+| beautifulsoup4 | 4.12.3 | Parseo HTML correos PayPal |
+| httpx | 0.27.0 | HTTP client async |
+
+### Frontend
+
+| Tecnología | Uso |
+|---|---|
+| Tailwind CSS 3.x (CDN) | Framework CSS |
+| Vanilla JS (ES6+) | Interactividad |
+| Jinja2 3.1.6 | Motor de templates |
+| CSS Custom Properties | Sistema de temas (claro/oscuro) |
+
+### Testing
+
+| Paquete | Versión | Uso |
+|---|---|---|
+| pytest | 9.0.3 | Framework de tests |
+| pytest-flask | 1.3.0 | Fixtures Flask |
+
+### Infraestructura
+
+| Tecnología | Uso |
+|---|---|
+| Raspberry Pi 5 (ARM64) | Hardware — 4 cores, 8GB RAM, 2TB NVMe |
+| Debian 13 Trixie | Sistema operativo |
+| PostgreSQL 17 | Base de datos principal |
+| Redis | Caché de sesiones y queries |
+| Nginx | Reverse proxy |
+| Cloudflare Tunnel | Acceso público sin exponer puertos |
+| Systemd | Gestión del servicio Flask |
+| Netdata | Monitoreo del sistema |
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+ceiba21-cotizaciones/
+│
+├── .clinerules              # Reglas de codificación para asistentes de IA
+├── .clineignore             # Archivos bloqueados para asistentes de IA
+├── .env.example             # Plantilla de variables de entorno
+├── .gitignore
+├── README.md
+├── requirements.txt         # 44 dependencias Python
+├── wsgi.py                  # Entry point Gunicorn
+├── start_bot.py             # Iniciar bot conversacional de Telegram
+│
+├── app/
+│   ├── __init__.py          # Factory pattern — create_app()
+│   ├── config.py            # Configuración dev/prod
+│   │
+│   ├── models/              # SQLAlchemy — solo estructura de datos
+│   │   ├── base.py          # BaseModel con timestamps y save()
+│   │   ├── currency.py      # Monedas (VES, USD, COP, BRL, MXN…)
+│   │   ├── exchange_rate.py # Tasas entre pares de monedas
+│   │   ├── payment_method.py# Métodos de pago (PayPal, Zelle, USDT…)
+│   │   ├── quote.py         # Cotizaciones con fórmulas programables
+│   │   ├── quote_history.py # Historial de cambios
+│   │   ├── operator.py      # Operadores del dashboard (roles: admin/operator/viewer)
+│   │   ├── order.py         # Órdenes de compra/venta
+│   │   ├── transaction.py   # Transacciones completadas
+│   │   ├── user.py          # Usuarios del bot conversacional
+│   │   ├── web_user.py      # Usuarios del dashboard web
+│   │   ├── message.py       # Mensajes del bot
+│   │   ├── paypal_payment.py# Pagos PayPal ingresados por Gmail
+│   │   └── blacklist.py     # Reportes y apelaciones de blacklist
+│   │
+│   ├── routes/              # Blueprints Flask — solo orquestación
+│   │   ├── auth.py          # Login / logout
+│   │   ├── dashboard.py     # Panel administrativo CRUD
+│   │   ├── main.py          # API REST pública
+│   │   ├── public.py        # Páginas públicas (home, calculadora)
+│   │   ├── operator_dashboard.py  # Dashboard de operadores
+│   │   ├── blacklist.py     # CRUD de blacklist
+│   │   ├── payments.py      # Gestión de pagos PayPal
+│   │   └── bot_control.py   # Control del bot conversacional
+│   │
+│   ├── services/            # Lógica de negocio — toda aquí
+│   │   ├── base_service.py
+│   │   ├── quote_service.py
+│   │   ├── exchange_rate_service.py
+│   │   ├── currency_service.py
+│   │   ├── payment_method_service.py
+│   │   ├── operator_service.py
+│   │   ├── order_service.py
+│   │   ├── user_service.py
+│   │   ├── auth_service.py
+│   │   ├── blacklist_service.py
+│   │   ├── accounting_service.py
+│   │   ├── calculator_service.py
+│   │   ├── gmail_service.py          # Lectura IMAP de Gmail
+│   │   ├── paypal_parser_service.py  # Parseo HTML de correos PayPal
+│   │   ├── payment_ingestion_service.py # Orquesta ingesta PayPal + scheduler
+│   │   ├── api_service.py            # APIs externas (BCV, Binance)
+│   │   ├── image_service.py
+│   │   ├── notification_service.py
+│   │   ├── fraud_check_service.py
+│   │   ├── cache_service.py
+│   │   └── bot_service.py
+│   │
+│   ├── bot/                 # Bot conversacional multicanal
+│   │   ├── conversation_handler.py
+│   │   ├── message_parser.py
+│   │   ├── responses.py
+│   │   └── states.py
+│   │
+│   ├── channels/            # Canales de comunicación (patrón Strategy)
+│   │   ├── base_channel.py
+│   │   ├── telegram_channel.py
+│   │   ├── webchat_channel.py
+│   │   └── whatsapp_channel.py
+│   │
+│   ├── telegram/            # Integración Telegram
+│   │   ├── bot.py                # Publisher (publica cotizaciones)
+│   │   ├── bot_conversational.py # Bot interactivo
+│   │   ├── formatters.py
+│   │   └── image_generator.py    # Genera imágenes con Pillow/CairoSVG
+│   │
+│   ├── templates/           # Jinja2 — sin lógica Python
+│   │   ├── base.html
+│   │   ├── public_base.html
+│   │   ├── auth/
+│   │   ├── dashboard/
+│   │   ├── operator/
+│   │   ├── blacklist/
+│   │   ├── payments/
+│   │   └── public/
+│   │
+│   ├── static/
+│   │   ├── css/style.css    # Variables CSS, tema claro/oscuro
+│   │   ├── js/
+│   │   └── img/
+│   │
+│   └── tests/
+│       ├── conftest.py
+│       ├── test_models.py
+│       └── test_routes.py
+│
+├── docs/                    # Documentación técnica de decisiones
+│   ├── ESTRUCTURA_PROYECTO.md
+│   ├── DEPLOY_GUIDE.md
+│   ├── PLAN_SISTEMA_ORDENES.md
+│   ├── BLACKLIST_IMPLEMENTATION.md
+│   └── …
+│
+└── scripts/                 # Migraciones y utilidades
+    ├── create_tables.py
+    ├── seed_data.py
+    ├── health_check.py
+    └── safe_restart.sh
 ```
 
 ---
@@ -94,130 +334,138 @@ Sistema completo de gestión de cotizaciones de divisas con publicación automat
 ## 📦 Requisitos
 
 ### Hardware
+- **Raspberry Pi 5** — 4GB RAM mínimo, 8GB recomendado
+- **Almacenamiento** — NVMe 256GB+
+- **Conectividad** — Ethernet estable
 
-- **Raspberry Pi 5** (4GB RAM mínimo, 8GB recomendado)
-- **Almacenamiento**: NVMe 256GB+ (2TB recomendado)
-- **Conectividad**: Ethernet o WiFi estable
-
-### Software Base
-
-- **OS**: Raspberry Pi OS 64-bit (Debian 13 Trixie)
-- **Python**: 3.13+
-- **PostgreSQL**: 17+
-- **Node.js**: No requerido (CDN usado)
+### Software
+- Debian 13 Trixie (64-bit)
+- Python 3.13+
+- PostgreSQL 17+
+- Redis 7+
+- Nginx
 
 ---
 
 ## 🚀 Instalación
 
-### 1. Preparación del Sistema
+### 1. Preparar el sistema
 ```bash
-# Actualizar sistema
 sudo apt update && sudo apt upgrade -y
-
-# Instalar dependencias del sistema
-sudo apt install -y \
-    python3-full \
-    python3-pip \
-    python3-venv \
-    postgresql-17 \
-    nginx \
-    git \
-    curl \
-    bc \
-    jq
+sudo apt install -y python3-full python3-pip python3-venv \
+    postgresql-17 nginx redis-server git curl bc jq
 ```
 
 ### 2. Configurar PostgreSQL
 ```bash
-# Crear usuario y base de datos
 sudo -u postgres psql << EOF
 CREATE USER webmaster WITH PASSWORD 'tu_password_segura';
-CREATE DATABASE cotizaciones_db OWNER webmaster;
-GRANT ALL PRIVILEGES ON DATABASE cotizaciones_db TO webmaster;
-\c cotizaciones_db
+CREATE DATABASE ceiba21_prod OWNER webmaster;
+GRANT ALL PRIVILEGES ON DATABASE ceiba21_prod TO webmaster;
+\c ceiba21_prod
 GRANT ALL ON SCHEMA public TO webmaster;
 EOF
 ```
 
-### 3. Clonar Repositorio
+### 3. Clonar y configurar entorno
 ```bash
-# Crear usuario webmaster si no existe
 sudo useradd -m -s /bin/bash webmaster
 sudo usermod -aG sudo,www-data webmaster
-
-# Cambiar a webmaster
 sudo -u webmaster -i
 
-# Clonar proyecto
 cd /var/www
 git clone <URL_REPOSITORIO> cotizaciones
 cd cotizaciones
-```
 
-### 4. Configurar Entorno Virtual
-```bash
-# Crear venv
 python3 -m venv venv
-
-# Activar
 source venv/bin/activate
-
-# Instalar dependencias
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 5. Configurar Variables de Entorno
+### 4. Variables de entorno
 ```bash
-# Crear archivo .env
+cp .env.example .env
 nano .env
 ```
 
-**Contenido:**
 ```env
 # Flask
-SECRET_KEY=tu_clave_secreta_aqui
+SECRET_KEY=clave-secreta-segura-minimo-32-caracteres
 FLASK_ENV=production
 
 # Database
-DATABASE_URL=postgresql://webmaster:password@localhost/cotizaciones_db
+DATABASE_URL=postgresql://webmaster:password@localhost/ceiba21_prod
+
+# Redis
+REDIS_URL=redis://localhost:6379/0
 
 # Telegram
-TELEGRAM_BOT_TOKEN=tu_token_aqui
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
 TELEGRAM_CHANNEL_ID=@tu_canal
+
+# Gmail IMAP (para ingesta PayPal)
+GMAIL_IMAP_USER=tu_cuenta@gmail.com
+GMAIL_IMAP_PASSWORD=app_password_de_google
+
+# Moneda local por defecto
+DEFAULT_LOCAL_CURRENCY=VES
 
 # Admin
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=password_hasheada
 ```
 
-### 6. Inicializar Base de Datos
+### 5. Inicializar base de datos
 ```bash
-# Activar venv
 source venv/bin/activate
+python scripts/create_tables.py
+python scripts/seed_data.py  # Datos iniciales opcionales
+```
 
-# Crear tablas
-python3 -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all()"
+### 6. Configurar Systemd
+```bash
+sudo nano /etc/systemd/system/ceiba21.service
+```
+
+```ini
+[Unit]
+Description=Ceiba21 Flask Application
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=webmaster
+WorkingDirectory=/var/www/cotizaciones
+Environment="PATH=/var/www/cotizaciones/venv/bin"
+ExecStart=/var/www/cotizaciones/venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:5000 \
+    --timeout 120 \
+    wsgi:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable ceiba21
+sudo systemctl start ceiba21
 ```
 
 ### 7. Configurar Cloudflare Tunnel
 ```bash
-# Instalar cloudflared
-curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb -o cloudflared.deb
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb \
+    -o cloudflared.deb
 sudo dpkg -i cloudflared.deb
 
-# Autenticar
 cloudflared tunnel login
-
-# Crear tunnel
-cloudflared tunnel create cotizaciones-rpi
-
-# Configurar
+cloudflared tunnel create ceiba21
 sudo nano /etc/cloudflared/config.yml
 ```
 
-**Contenido:**
 ```yaml
 tunnel: <TUNNEL_ID>
 credentials-file: /root/.cloudflared/<TUNNEL_ID>.json
@@ -227,44 +475,13 @@ ingress:
     service: http://localhost:5000
   - hostname: monitor.ceiba21.com
     service: http://localhost:19999
-  - hostname: temp.ceiba21.com
-    service: http://localhost:8080
   - hostname: ssh.ceiba21.com
     service: ssh://localhost:22
-  - hostname: vnc.ceiba21.com
-    service: tcp://localhost:5900
   - service: http_status:404
 ```
 
-### 8. Configurar Systemd
 ```bash
-sudo nano /etc/systemd/system/ceiba21.service
-```
-
-**Contenido:**
-```ini
-[Unit]
-Description=Ceiba21 Flask Application
-After=network.target postgresql.service
-
-[Service]
-Type=simple
-User=webmaster
-WorkingDirectory=/var/www/cotizaciones
-Environment="PATH=/var/www/cotizaciones/venv/bin"
-ExecStart=/var/www/cotizaciones/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:5000 --timeout 120 wsgi:app
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Activar servicios:**
-```bash
-sudo systemctl enable ceiba21
 sudo systemctl enable cloudflared
-sudo systemctl start ceiba21
 sudo systemctl start cloudflared
 ```
 
@@ -274,78 +491,88 @@ sudo systemctl start cloudflared
 
 ### Firewall
 ```bash
-# Configurar UFW
 sudo ufw allow 22/tcp comment 'SSH'
 sudo ufw allow 80/tcp comment 'HTTP'
 sudo ufw allow 443/tcp comment 'HTTPS'
-sudo ufw allow 5900/tcp comment 'VNC'
-sudo ufw allow 8080/tcp comment 'Temperatura'
 sudo ufw allow 19999/tcp comment 'Netdata'
 sudo ufw enable
 ```
 
 ### Netdata
 ```bash
-# Instalar
 curl https://get.netdata.cloud/kickstart.sh > /tmp/netdata-kickstart.sh
 sh /tmp/netdata-kickstart.sh
 ```
 
 ---
 
-## 🎮 Uso
+## 💻 Desarrollo Local
 
-### Acceso Web
+### Requisitos
+- Windows + VSCode
+- Python 3.13 en PATH
+- PostgreSQL 17 local (base: `ceiba21_dev`)
+- Redis como servicio Windows
 
-- **Aplicación Principal**: https://ceiba21.com
-- **Dashboard Admin**: https://ceiba21.com/dashboard
-- **Monitoreo**: https://monitor.ceiba21.com
-- **Temperatura**: https://temp.ceiba21.com
+### Setup
+```powershell
+# Clonar y configurar
+git clone https://github.com/josemoramoron/ceiba21-cotizaciones
+cd ceiba21-cotizaciones
 
-### Gestión de Cotizaciones
+python -m venv venv
+venv\Scripts\activate
 
-1. **Login**: Accede al dashboard con credenciales admin
-2. **Monedas**: Gestiona monedas y tasas de cambio
-3. **Métodos de Pago**: Configura PayPal, Zelle, USDT, etc.
-4. **Cotizaciones**: Establece valores o fórmulas automáticas
-5. **Publicar**: Genera imagen y publica en Telegram
-
-### Publicación en Telegram
-```bash
-# Manual desde el dashboard
-https://ceiba21.com/dashboard/telegram
-
-# Via API
-curl -X POST https://ceiba21.com/api/publish \
-  -H "Content-Type: application/json" \
-  -d '{"currency": "VES"}'
+pip install -r requirements.txt
 ```
+
+Crear `.env` apuntando a la base local:
+```env
+DATABASE_URL=postgresql://postgres:password@localhost/ceiba21_dev
+FLASK_ENV=development
+REDIS_URL=redis://localhost:6379/0
+```
+
+```powershell
+# Iniciar servidor local
+flask run
+# → http://localhost:5000
+```
+
+### Ejecutar tests
+```powershell
+python -m pytest app\tests\ -v
+```
+> Siempre con `python -m pytest` — nunca solo `pytest`.
 
 ---
 
-## 📁 Estructura del Proyecto
+## 🚢 Flujo de Deploy
+
+El deploy es un proceso de un solo comando desde la máquina de desarrollo:
+
+```powershell
+# 1. Commit de los cambios
+git add -A
+git commit -m "descripción clara del cambio"
+
+# 2. Push al repositorio
+git push origin master
+
+# 3. Deploy al Raspberry Pi (via SSH + deploy.sh)
+ssh ceiba21-local-webmaster "/var/www/cotizaciones/deploy.sh"
 ```
-cotizaciones/
-├── app/
-│   ├── __init__.py              # Factory pattern
-│   ├── models.py                # SQLAlchemy models
-│   ├── routes/
-│   │   ├── main.py             # Rutas públicas
-│   │   ├── dashboard.py        # Panel admin
-│   │   └── auth.py             # Autenticación
-│   ├── telegram/
-│   │   ├── bot.py              # Publisher
-│   │   └── image_generator.py  # Generador de imágenes
-│   ├── templates/              # Jinja2 templates
-│   ├── static/                 # CSS, JS, imágenes
-│   └── utils/                  # Utilidades
-├── venv/                       # Entorno virtual
-├── logs/                       # Logs de aplicación
-├── .env                        # Variables de entorno
-├── requirements.txt            # Dependencias Python
-├── wsgi.py                     # Entry point
-└── README.md                   # Este archivo
-```
+
+**Lo que hace `deploy.sh`:**
+1. `git pull` desde GitHub
+2. `pip install -r requirements.txt` (solo instala lo nuevo)
+3. `systemctl restart ceiba21`
+
+**SSH aliases configurados:**
+- `ceiba21-local-webmaster` → `192.168.1.12` (red local)
+- `ceiba21-webmaster` → vía Cloudflare Tunnel (acceso remoto)
+
+> ⚠️ **Nunca** modificar archivos directamente en el Raspberry Pi.
 
 ---
 
@@ -353,240 +580,118 @@ cotizaciones/
 
 ### Endpoints Públicos
 
-#### GET `/api/quotes`
-Obtener todas las cotizaciones actuales
+#### `GET /api/quotes`
+Todas las cotizaciones activas.
 ```bash
 curl https://ceiba21.com/api/quotes
 ```
-
-**Respuesta:**
 ```json
 {
   "VES": [
     {"method": "PayPal", "rate": 296.25},
     {"method": "Zelle", "rate": 307.43}
+  ],
+  "COP": [
+    {"method": "PayPal", "rate": 4120.00}
   ]
 }
 ```
 
-#### GET `/api/quotes/:currency`
-Cotizaciones de una moneda específica
+#### `GET /api/quotes/<currency>`
+Cotizaciones de una moneda específica.
 ```bash
 curl https://ceiba21.com/api/quotes/VES
 ```
+
+### Endpoints del Dashboard (requieren autenticación)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `PUT` | `/dashboard/api/quote/<id>` | Actualizar cotización |
+| `POST` | `/dashboard/api/recalculate` | Recalcular todas las cotizaciones |
+| `POST` | `/dashboard/api/fetch-rate/<currency>` | Obtener tasa desde API externa |
+| `GET` | `/dashboard/api/test-providers` | Probar proveedores de tasas |
+
+### Endpoints de Pagos (requieren autenticación)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/payments/api/ingestar` | Disparar ingesta manual de Gmail |
+| `POST` | `/payments/api/calcular/<id>` | Calcular cotización de un pago |
+| `PUT` | `/payments/api/editar/<id>` | Editar un pago |
+| `GET` | `/payments/api/resumen` | Resumen de pagos por estado |
+| `GET` | `/payments/api/test-gmail` | Verificar conexión IMAP |
 
 ---
 
 ## 🛠️ Mantenimiento
 
-### Scripts Automáticos
-```bash
-# Ver scripts disponibles
-ls -lh ~/*.sh
-
-# Dashboard maestro
-~/dashboard_ceiba21.sh
-
-# Verificaciones
-~/verificar_sistema.sh
-~/verificar_temperatura.sh
-~/verificar_vnc.sh
-~/verificar_red.sh
-
-# Mantenimiento
-~/backup_database.sh
-~/rotar_logs.sh
-~/limpiar_imagenes_telegram.sh
-
-# Sistema de alertas
-~/enviar_alerta.sh
-~/monitor_servicios.sh
-~/alerta_temperatura.sh
-~/alerta_disco.sh
-~/ver_alertas.sh
-```
-
-### Tareas Programadas (Cron)
-```
-# Logs automáticos
-00:00 cada hora   → Monitor de temperatura
-00:00 cada 6h     → Estado del sistema
-00:00 diario      → Dashboard completo
-00:00 domingos    → Verificación de red
-
-# Mantenimiento
-02:00 diario      → Backup de base de datos
-03:00 diario      → Rotación de logs
-04:00 diario      → Limpieza de imágenes antiguas
-02:00 día 1 mes   → Limpieza de logs muy antiguos
-
-# Alertas automáticas
-*/15 * * * *      → Monitor de servicios críticos
-*/30 * * * *      → Monitor de temperatura CPU
-06:00 diario      → Monitor de espacio en disco
-08:00 lunes       → Reporte semanal de estado
-```
-
 ### Backups
 ```bash
-# Ubicación de backups
+# Ubicación
 /var/backups/ceiba21/database/
 
-# Restaurar backup
-zcat backup.sql.gz | psql -U webmaster -d cotizaciones_db
+# Restaurar
+zcat backup.sql.gz | psql -U webmaster -d ceiba21_prod
 
 # Ver últimos backups
 ls -lht /var/backups/ceiba21/database/ | head -5
 ```
 
----
-
-## 📧 Sistema de Correo y Alertas
-
-### Configuración de Email
-
-**Recepción** (Cloudflare Email Routing):
-- `info@ceiba21.com` → `ceiba21.oficial@gmail.com`
-- `webmaster@ceiba21.com` → `ceiba21.oficial@gmail.com`
-
-**Envío** (Postfix + Gmail SMTP):
-- Servidor: `smtp.gmail.com:587`
-- Remitente: `webmaster@ceiba21.com`
-- Autenticación: `ceiba21.oficial@gmail.com`
-- TLS: Habilitado
-
-### Alertas Automáticas
-
-El sistema envía alertas por email cuando detecta problemas:
-
-#### **Monitor de Servicios Críticos** (cada 15 minutos)
-Verifica el estado de:
-- ceiba21 (Flask app)
-- postgresql
-- nginx
-- cloudflared
-- netdata
-
-Si algún servicio está caído, envía alerta inmediata.
-
-#### **Monitor de Temperatura** (cada 30 minutos)
-- Umbral: 75°C
-- Sensor: CPU Thermal
-- Alerta si temperatura excede el umbral
-
-#### **Monitor de Espacio en Disco** (diario 06:00)
-- Umbral: 80% de uso
-- Partición: `/` (root)
-- Incluye estadísticas de espacio usado/disponible
-
-#### **Alerta de Backup Fallido** (cuando ocurre)
-- Se activa si el backup de PostgreSQL falla
-- Incluye logs del error
-- Permite respuesta rápida a problemas
-
-#### **Reporte Semanal** (Lunes 08:00)
-- Resumen del estado de todos los servicios
-- Confirmación de que todo funciona correctamente
-- Enlaces rápidos a dashboards
-
-### Uso del Sistema de Alertas
-
-#### Enviar alerta manual:
+### Scripts de sistema
 ```bash
-~/enviar_alerta.sh "Asunto" "Mensaje del cuerpo"
-```
-
-#### Ver historial de alertas:
-```bash
-~/ver_alertas.sh
-```
-
-#### Probar monitores manualmente:
-```bash
-# Servicios
+~/verificar_sistema.sh
+~/verificar_temperatura.sh
+~/backup_database.sh
+~/rotar_logs.sh
+~/limpiar_imagenes_telegram.sh
 ~/monitor_servicios.sh
-
-# Temperatura
-~/alerta_temperatura.sh
-
-# Disco
-~/alerta_disco.sh
 ```
 
-#### Ver logs:
-```bash
-# Historial de alertas enviadas
-cat ~/logs/alertas.log
-
-# Logs de Postfix
-sudo tail -f /var/log/mail.log
-
-# Verificar cola de correo
-mailq
+### Cron jobs
+```
+*/15 * * * *    Monitor de servicios críticos
+*/30 * * * *    Alerta de temperatura CPU (umbral: 75°C)
+06:00 diario    Monitor de espacio en disco (umbral: 80%)
+02:00 diario    Backup de PostgreSQL
+03:00 diario    Rotación de logs
+08:00 lunes     Reporte semanal de estado
 ```
 
-### Contenido de las Alertas
+### Alertas por email
 
-Cada alerta incluye:
-- 🚨 Descripción del problema
-- 📊 Estado actual del sistema:
-  - Temperatura CPU
-  - Uso de CPU (%)
-  - Load average
-  - Uso de RAM (%)
-  - Uso de disco (%)
-  - Uptime
-- 🔗 Enlaces rápidos a dashboards
-- ⏰ Timestamp de la alerta
+El sistema envía alertas automáticas por email (Postfix + Gmail SMTP) ante:
+- Servicio caído (ceiba21, postgresql, nginx, cloudflared, netdata)
+- Temperatura CPU > 75°C
+- Disco > 80% de uso
+- Backup fallido
 
-### Configuración Avanzada
-
-#### Cambiar umbrales:
-```bash
-# Editar scripts
-nano ~/alerta_temperatura.sh  # Cambiar THRESHOLD=75
-nano ~/alerta_disco.sh        # Cambiar THRESHOLD=80
-```
-
-#### Cambiar destinatarios:
-```bash
-nano ~/enviar_alerta.sh
-# Modificar: DESTINATARIO="otro@email.com"
-```
-
-#### Agregar más servicios al monitor:
-```bash
-nano ~/monitor_servicios.sh
-# Agregar a SERVICIOS=("servicio1" "servicio2" ...)
-``````
+Cada alerta incluye temperatura, CPU, RAM, disco, uptime y links a dashboards.
 
 ---
 
 ## 📊 Monitoreo
 
-### Netdata
-- **URL**: https://monitor.ceiba21.com
-- **Métricas**: CPU, RAM, Disco, Red, Temperatura
-- **Retención**: 14 días por defecto
-
-### Dashboard de Temperatura
-- **URL**: https://temp.ceiba21.com
-- **Actualización**: Cada 3 segundos
-- **Sensores**: CPU y NVMe
+| Dashboard | URL | Descripción |
+|---|---|---|
+| Aplicación | https://ceiba21.com | Cotizaciones públicas |
+| Admin | https://ceiba21.com/dashboard | Panel administrativo |
+| Netdata | https://monitor.ceiba21.com | Métricas del sistema en tiempo real |
+| Temperatura | https://temp.ceiba21.com | CPU y NVMe (actualización 3s) |
 
 ### Logs
 ```bash
-# Logs de aplicación
-tail -f /var/www/cotizaciones/logs/app.log
-
-# Logs del sistema
+# Aplicación Flask
 journalctl -u ceiba21 -f
 
-# Logs de Netdata
-journalctl -u netdata -f
+# PostgreSQL
+sudo tail -f /var/log/postgresql/postgresql-17-main.log
 
-# Logs automáticos
-tail -f ~/logs/monitor_$(date +%Y%m%d).log
+# Alertas enviadas
+cat ~/logs/alertas.log
+
+# Nginx
+sudo tail -f /var/log/nginx/error.log
 ```
 
 ---
@@ -595,130 +700,108 @@ tail -f ~/logs/monitor_$(date +%Y%m%d).log
 
 ### La aplicación no arranca
 ```bash
-# Ver logs
 sudo journalctl -u ceiba21 -n 50
-
-# Ver estado
 sudo systemctl status ceiba21
-
-# Reiniciar
 sudo systemctl restart ceiba21
 ```
 
 ### Base de datos no conecta
 ```bash
-# Verificar PostgreSQL
 sudo systemctl status postgresql
-
-# Verificar conexión
-psql -U webmaster -d cotizaciones_db -h localhost
-
-# Ver logs
+psql -U webmaster -d ceiba21_prod -h localhost
 sudo tail -f /var/log/postgresql/postgresql-17-main.log
 ```
 
 ### Cloudflare Tunnel desconectado
 ```bash
-# Ver estado
 sudo systemctl status cloudflared
-
-# Ver logs
 sudo journalctl -u cloudflared -f
-
-# Reiniciar
 sudo systemctl restart cloudflared
-
-# Verificar conexiones
-cloudflared tunnel info cotizaciones-rpi
+cloudflared tunnel info ceiba21
 ```
 
-### Temperatura no se actualiza
+### Redis no disponible
 ```bash
-# Verificar Nginx
-sudo nginx -t
-sudo systemctl reload nginx
+sudo systemctl status redis
+redis-cli ping
+sudo systemctl restart redis
+```
 
-# Verificar API de Netdata
-curl http://localhost:19999/api/v1/charts | jq '.charts' | grep temperature
+### Ingesta PayPal no funciona
+```bash
+# Probar conexión IMAP desde el dashboard
+curl -X GET https://ceiba21.com/payments/api/test-gmail \
+  -H "Cookie: session=..."
 
-# Limpiar caché del navegador
-Ctrl + Shift + Delete
+# O directamente en el servidor
+source venv/bin/activate
+python -c "
+from app import create_app
+app = create_app()
+with app.app_context():
+    from app.services.gmail_service import GmailService
+    print(GmailService().test_connection())
+"
+```
+
+### Tests fallan al correr
+```bash
+# Asegurarse de usar el comando correcto
+python -m pytest app\tests\ -v
+
+# Verificar que la BD de desarrollo existe
+psql -U postgres -c "\l" | grep ceiba21_dev
 ```
 
 ---
 
-## 📚 Tecnologías Utilizadas
+## 🗺️ Roadmap
 
-- **Backend**: Flask 3.1, SQLAlchemy 2.0, Gunicorn
-- **Database**: PostgreSQL 17
-- **Frontend**: Tailwind CSS, Vanilla JavaScript
-- **Telegram**: python-telegram-bot 20.7
-- **Imágenes**: Pillow 12.0, CairoSVG
-- **Monitoreo**: Netdata 2.7
-- **Túnel**: Cloudflare Tunnel
-- **Server**: Nginx (proxy)
+### En desarrollo
+
+- ⬜ **Tests unitarios para Services** — cubrir `PaypalParserService`, `BlacklistService`, `AccountingService`, `GmailService`
+- ⬜ **API REST documentada con Swagger/OpenAPI** — documentación interactiva en `/api/docs`
+- ⬜ **Gráficos de histórico de cotizaciones** — dashboard con Chart.js, tendencias por período
+- ⬜ **Alertas en Telegram** — bot que notifica cambios críticos de tasa y caída de servicios
+
+### Backlog
+
+- ⬜ Multi-idioma (inglés, portugués)
+- ⬜ Exportar cotizaciones a PDF
+- ⬜ Webhooks para integración con sistemas externos
+- ⬜ CDN para imágenes generadas de Telegram
+- ⬜ Histórico de cotizaciones con análisis de tendencias
+- ⬜ Panel de analytics con estadísticas de uso de la calculadora
+- ⬜ Sistema de notificaciones cuando una tasa cambia más de X%
+
+---
+
+## 📚 Documentación Técnica
+
+La carpeta `docs/` contiene documentación de decisiones de arquitectura:
+
+| Documento | Contenido |
+|---|---|
+| `ESTRUCTURA_PROYECTO.md` | Árbol de directorios, descripción de capas, flujos de datos |
+| `DEPLOY_GUIDE.md` | Guía detallada de deployment en Raspberry Pi |
+| `PLAN_SISTEMA_ORDENES.md` | Diseño del sistema de órdenes |
+| `BLACKLIST_IMPLEMENTATION.md` | Implementación del sistema de blacklist |
+| `SOLUCION_ESCALABLE_FORMULAS.md` | Diseño de fórmulas programables para cotizaciones |
 
 ---
 
 ## 👥 Equipo
 
 - **Desarrollador Principal**: Jose (Ceiba21)
-- **Asistente IA**: Claude (Anthropic)
-
----
-
-## 🗺️ Roadmap - Próximas Funcionalidades
-
-### En Desarrollo
-
-- ⬜ **Dashboard web para ver alertas**
-  - Interfaz web para visualizar historial de alertas
-  - Filtros por tipo, fecha y severidad
-  - Estadísticas de alertas por periodo
-  
-- ⬜ **Integrar alertas con Telegram**
-  - Bot que envía alertas críticas por Telegram
-  - Comandos para consultar estado del sistema
-  - Notificaciones push instantáneas
-  
-- ⬜ **API para consultar estado del sistema**
-  - Endpoints REST para métricas en tiempo real
-  - Autenticación con API keys
-  - Documentación con Swagger/OpenAPI
-  - Integración con herramientas de monitoreo externas
-  
-- ⬜ **Gráficos de histórico de alertas**
-  - Visualización de tendencias de temperatura
-  - Gráficos de uso de CPU/RAM/Disco
-  - Reportes mensuales automatizados
-  - Dashboard con Chart.js o Plotly
-
-### Backlog
-
-- ⬜ Multi-idioma (inglés, portugués)
-- ⬜ App móvil con React Native
-- ⬜ Integración con más exchanges (Binance, Kraken)
-- ⬜ Sistema de notificaciones cuando tasas cambian >X%
-- ⬜ Histórico de cotizaciones con análisis de tendencias
-- ⬜ Panel de analytics con estadísticas de uso
-- ⬜ Sistema de cache con Redis
-- ⬜ CDN para imágenes de Telegram
-
-### Ideas Futuras
-
-- Modo oscuro en el dashboard
-- Exportar cotizaciones a PDF/Excel
-- Webhooks para integración con sistemas externos
-- Panel de administración multi-usuario con roles
-- Marketplace de plugins para extensiones
+- **Asistente de IA**: Claude (Anthropic) — arquitectura, revisiones de código y documentación
 
 ---
 
 ## 📄 Licencia
 
-© 2025 Ceiba21. Todos los derechos reservados.
+© 2026 Ceiba21. Todos los derechos reservados.
 
-Este software es propietario y confidencial. No está permitida su distribución, modificación o uso sin autorización expresa.
+Software propietario y confidencial. No está permitida su distribución, modificación o uso sin autorización expresa del titular.
 
 ---
 
@@ -730,4 +813,4 @@ Este software es propietario y confidencial. No está permitida su distribución
 
 ---
 
-**Última actualización**: Noviembre 2025
+**Última actualización**: Junio 2026

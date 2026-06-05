@@ -26,6 +26,13 @@ Capas en orden estricto: Routes → Services → Models
 5. Si una función supera 60 líneas sepárala en un módulo independiente
 6. No mezcles lógica de negocio en routes — va en services/
 
+## Regla sobre funciones largas
+- Si una función supera 60 líneas pero su firma tiene muchos parámetros opcionales
+  (ej: 10+ argumentos), los parámetros no cuentan como líneas de lógica.
+  Lo importante es que el cuerpo de la función sea legible, no el número total.
+- No dividir por dividir: solo extraer un helper si tiene responsabilidad propia
+  y nombre claro. Un helper llamado _parte2() no aporta nada.
+
 ## Reglas operacionales
 1. Antes de modificar código analiza dependencias para no romper otras partes
 2. Antes de ejecutar pip install o migraciones de BD pídeme confirmación explícita
