@@ -14,5 +14,18 @@
   "files.watcherExclude": {
     "**/venv/**": true,
     "**/__pycache__/**": true
-  }
+  },
+  "sqltools.connections": [
+    {
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "Ceiba21",
+      "database": "ceiba21_dev",
+      "username": "webmaster",
+      "password": "postgres123"
+    }
+  ]
 }

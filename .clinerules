@@ -63,3 +63,6 @@ Capas en orden estricto: Routes → Services → Models
 - Antes de refactorizar un bloque que llama métodos de un Model,
   leer el Model completo para verificar nombres exactos de métodos.
 - No asumir nombres de métodos — verificar siempre con grep o leyendo el archivo.
+
+## Acceso al Depositorio de Github
+- bash_tool con curl a raw.githubusercontent.com

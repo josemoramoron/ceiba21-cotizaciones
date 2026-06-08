@@ -196,3 +196,54 @@ class CalculatorService:
             'cotizacion_id': quote.id,
             'moneda_local': currency_code.upper()
         }
+    
+    @classmethod
+    def calcular_pago_recibido(
+        cls,
+        monto_base: float,
+        currency_code: str,
+        metodo_code: str
+    ) -> dict:
+        """
+        Calcula el valor a pagar usando la cotizacion DEL METODO indicado.
+
+        Args:
+            monto_base: Monto neto en USD.
+            currency_code: Codigo de moneda local (VES, COP, ...).
+            metodo_code: Codigo del metodo ('paypal', 'zelle', 'wise', ...).
+
+        Returns:
+            dict con valor_a_pagar, tasa_aplicada, cotizacion_id, moneda_local,
+            o dict con 'error' si no hay metodo/moneda/cotizacion.
+        """
+        from app.models.quote import Quote
+        from app.models.payment_method import PaymentMethod
+        from app.models.currency import Currency
+
+        method = PaymentMethod.query.filter_by(code=metodo_code.upper()).first()
+        if not method:
+            method = PaymentMethod.query.filter(
+                PaymentMethod.name.ilike(f'%{metodo_code}%')
+            ).first()
+        if not method:
+            return {'error': f'Metodo {metodo_code} no encontrado'}
+
+        currency = Currency.query.filter_by(
+            code=currency_code.upper(), active=True
+        ).first()
+        if not currency:
+            return {'error': f'Moneda {currency_code} no encontrada o inactiva'}
+
+        quote = Quote.query.filter_by(
+            payment_method_id=method.id, currency_id=currency.id
+        ).first()
+        if not quote or not quote.final_value:
+            return {'error': f'No hay cotizacion {metodo_code} para {currency_code}'}
+
+        tasa = float(quote.final_value)
+        return {
+            'valor_a_pagar': round(monto_base * tasa, 2),
+            'tasa_aplicada': tasa,
+            'cotizacion_id': quote.id,
+            'moneda_local': currency_code.upper(),
+        }

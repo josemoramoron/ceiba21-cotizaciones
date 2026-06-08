@@ -25,8 +25,8 @@ from app.models.web_user import WebUser
 
 # ✨ NUEVOS MODELOS - FASE 2: Pagos PayPal  
 from app.models.paypal_payment import PaypalPayment, PaypalPaymentStatus, PaypalPaymentType
-
-
+from app.models.payment import Payment, PaymentProvider, PaymentStatus, PaypalSubtipo
+from app.models.payment_source import PaymentSource
 # Exportar para facilitar importación
 __all__ = [
     'db',
@@ -50,5 +50,10 @@ __all__ = [
     # Pagos PayPal
     'PaypalPayment',
     'PaypalPaymentStatus',
-    'PaypalPaymentType'
+    'PaypalPaymentType',
+    'Payment',
+    'PaymentProvider',
+    'PaymentStatus',
+    'PaypalSubtipo',
+    'PaymentSource'
 ]

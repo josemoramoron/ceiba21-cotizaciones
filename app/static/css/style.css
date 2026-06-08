@@ -50,6 +50,14 @@
   --color-ff-bg:       #E0F2FE;
   --color-ff-text:     #0369A1;
 
+  /* Badges de método de pago */
+  --color-paypal-bg:   #DBEAFE;
+  --color-paypal-text: #1E40AF;
+  --color-zelle-bg:    #EDE9FE;
+  --color-zelle-text:  #5B21B6;
+  --color-wise-bg:     #D1FAE5;
+  --color-wise-text:   #065F46;
+
   /* Textos secundarios adicionales */
   --color-text-subtle: #9CA3AF;
   --color-text-body:   #374151;
@@ -86,6 +94,14 @@
   --color-gs-text:     #C4B5FD;
   --color-ff-bg:       #0C2A3E;
   --color-ff-text:     #7DD3FC;
+
+  /* Badges de método de pago */
+  --color-paypal-bg:   #1E3A5F;
+  --color-paypal-text: #93C5FD;
+  --color-zelle-bg:    #2D1F4E;
+  --color-zelle-text:  #C4B5FD;
+  --color-wise-bg:     #0C2E22;
+  --color-wise-text:   #6EE7B7;
 
   /* Textos secundarios adicionales */
   --color-text-subtle: #6B7280;

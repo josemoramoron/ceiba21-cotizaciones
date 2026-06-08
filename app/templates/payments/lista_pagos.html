@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}Pagos{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Alias locales -> variables del design system (adaptan a claro/oscuro).
+       --chrome / --chrome-2 son paneles SIEMPRE oscuros (igual que el navbar). */
+    :root {
+        --c-primary:      var(--color-primary);
+        --c-primary-dark: var(--color-primary-dark);
+        --c-success:      var(--color-success);
+        --c-error:        var(--color-error);
+        --c-warning:      var(--color-warning);
+        --c-info:         var(--color-info);
+        --c-surface:      var(--color-surface);
+        --c-border:       var(--color-border);
+        --c-text:         var(--color-text);
+        --c-text-2:       var(--color-text-secondary);
+        --c-text-3:       var(--color-text-subtle);
+        --c-text-body:    var(--color-text-body);
+        --chrome:         #1A1A1A;
+        --chrome-2:       #2D2D2D;
+    }
+
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .page-title  { font-size:1.35rem; font-weight:800; color:var(--c-text); }
+    .page-sub    { font-size:0.85rem; color:var(--c-text-2); margin-top:0.15rem; }
+
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:0.75rem; margin-bottom:1.5rem; }
+    .stat-card {
+        background:var(--c-surface); border:1px solid var(--c-border); border-radius:0.65rem;
+        padding:1rem; text-align:center; cursor:pointer;
+        transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+        text-decoration:none;
+    }
+    .stat-card:hover { border-color:var(--c-primary); box-shadow:0 2px 10px rgba(247,217,23,0.2); transform:translateY(-1px); }
+    .stat-card.active { border-color:var(--c-primary); background:var(--color-primary-light); }
+    .stat-num  { font-size:1.6rem; font-weight:800; color:var(--c-text); line-height:1; }
+    .stat-label{ font-size:0.72rem; font-weight:600; color:var(--c-text-2); margin-top:0.3rem; text-transform:uppercase; letter-spacing:0.05em; }
+    .stat-dot  { width:8px; height:8px; border-radius:50%; display:inline-block; margin-bottom:0.4rem; }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
+        color:#1A1A1A; font-weight:700; font-size:0.875rem;
+        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none;
+        cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
+        transition: transform 0.15s, box-shadow 0.15s; text-decoration:none;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+    .btn-ghost {
+        background:transparent; color:var(--c-text-2); font-weight:600; font-size:0.875rem;
+        padding:0.55rem 1rem; border-radius:0.5rem; border:1px solid var(--c-border);
+        cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
+        transition:all 0.15s; text-decoration:none;
+    }
+    .btn-ghost:hover { border-color:var(--c-text); color:var(--c-text); }
+
+    .table-wrap { overflow-x:auto; border-radius:0.65rem; border:1px solid var(--c-border); }
+    table { width:100%; border-collapse:collapse; }
+    thead th {
+        background: linear-gradient(135deg, var(--chrome) 0%, var(--chrome-2) 100%);
+        color:#fff; font-size:0.72rem; font-weight:700;
+        text-transform:uppercase; letter-spacing:0.06em;
+        padding:0.75rem 1rem; text-align:left; white-space:nowrap;
+    }
+    tbody tr { border-bottom:1px solid var(--c-border); transition:background 0.1s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:rgba(127,127,127,0.08); }
+    tbody td { padding:0.85rem 1rem; font-size:0.875rem; color:var(--c-text); vertical-align:middle; }
+
+    .td-pagador { font-weight:600; max-width:180px; }
+    .td-pagador small { display:block; font-weight:400; color:var(--c-text-2); font-size:0.75rem; margin-top:0.1rem; }
+    .td-monto { font-weight:700; font-size:0.95rem; white-space:nowrap; }
+    .td-pagar { font-weight:700; color:var(--c-success); white-space:nowrap; }
+    .td-pagar.manual { color:var(--c-warning); }
+    .td-fecha { color:var(--c-text-2); font-size:0.8rem; white-space:nowrap; }
+    .td-actions { white-space:nowrap; }
+
+    .badge {
+        display:inline-flex; align-items:center; gap:0.3rem;
+        font-size:0.7rem; font-weight:700; padding:0.25rem 0.6rem;
+        border-radius:9999px; text-transform:uppercase; letter-spacing:0.04em;
+        white-space:nowrap;
+    }
+    /* Estados: tonos semánticos del sistema */
+    .badge-pendiente  { background:var(--color-warning); color:#fff; }
+    .badge-procesado  { background:var(--color-success); color:#fff; }
+    .badge-pagado     { background:var(--color-info);    color:#fff; }
+    .badge-revision   { background:#EC4899;              color:#fff; }
+    .badge-manual     { background:var(--color-secondary-light); color:#fff; }
+
+    /* Métodos: variables del design system */
+    .badge-paypal { background:var(--color-paypal-bg); color:var(--color-paypal-text); }
+    .badge-zelle  { background:var(--color-zelle-bg);  color:var(--color-zelle-text); }
+    .badge-wise   { background:var(--color-wise-bg);   color:var(--color-wise-text); }
+    .metodo-sub   { display:block; font-weight:600; color:var(--c-text-2); font-size:0.66rem; margin-top:0.2rem; text-transform:uppercase; letter-spacing:0.04em; }
+
+    .btn-edit {
+        background: linear-gradient(135deg, var(--chrome) 0%, var(--chrome-2) 100%);
+        border:1px solid var(--c-primary); color:var(--c-primary);
+        font-size:0.75rem; font-weight:600; padding:0.35rem 0.7rem;
+        border-radius:0.4rem; cursor:pointer;
+        display:inline-flex; align-items:center; gap:0.3rem;
+        transition:all 0.15s; text-decoration:none;
+    }
+    .btn-edit:hover { background:var(--c-primary); color:#1A1A1A; }
+
+    .filter-bar { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem; align-items:center; }
+    .filter-btn {
+        font-size:0.8rem; font-weight:600; padding:0.4rem 0.9rem;
+        border-radius:9999px; border:1px solid var(--c-border);
+        cursor:pointer; background:var(--c-surface); color:var(--c-text-2); transition:all 0.15s;
+        text-decoration:none;
+    }
+    .filter-btn:hover  { border-color:var(--c-text); color:var(--c-text); }
+    .filter-btn.active { background:var(--chrome); color:#fff; border-color:var(--chrome); }
+
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin { animation:spin 0.8s linear infinite; }
+
+    #toast {
+        position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
+        background:var(--c-surface); border-radius:0.65rem; padding:0.75rem 1.1rem;
+        box-shadow:0 4px 20px rgba(0,0,0,0.15); border-left:4px solid var(--c-success);
+        font-size:0.875rem; font-weight:600; color:var(--c-text);
+        display:none; align-items:center; gap:0.5rem; max-width:320px;
+        animation:slideIn 0.25s ease;
+    }
+    #toast.show { display:flex; }
+    #toast.error { border-left-color:var(--c-error); }
+    @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    .empty-state { text-align:center; padding:3rem 1rem; color:var(--c-text-2); }
+    .empty-state i { font-size:2.5rem; margin-bottom:0.75rem; opacity:0.4; }
+
+    .pagination { display:flex; gap:0.35rem; flex-wrap:wrap; align-items:center; }
+    .page-btn {
+        padding:0.4rem 0.75rem; border-radius:0.4rem; font-size:0.82rem; font-weight:600;
+        border:1px solid var(--c-border); background:var(--c-surface); color:var(--c-text-2);
+        cursor:pointer; text-decoration:none; transition:all 0.15s;
+    }
+    .page-btn:hover { border-color:var(--c-text); color:var(--c-text); }
+    .page-btn.active { background:var(--chrome); color:#fff; border-color:var(--chrome); }
+    .page-btn.disabled { opacity:0.4; pointer-events:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rounded-xl shadow-lg p-6" style="background:var(--color-surface);">
+
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">
+                <i class="fas fa-wallet mr-2" style="color:var(--color-primary);"></i>
+                Pagos
+            </h2>
+            <p class="page-sub">Pagos recibidos vía Gmail (PayPal, Zelle, Wise) — actualizados automáticamente cada 5 minutos</p>
+        </div>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+            <button onclick="ingestar()" id="btnIngestar" class="btn-primary">
+                <i class="fas fa-sync-alt" id="iconIngestar"></i>
+                <span id="lblIngestar">Verificar correos ahora</span>
+            </button>
+            <a href="{{ url_for('dashboard.index') }}" class="btn-ghost">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="stat-grid">
+        {% for item in resumen.estados %}
+        <a href="{{ url_for('pagos.index', estado=item.estado, metodo=metodo_filtro) }}"
+           class="stat-card {% if estado_filtro == item.estado %}active{% endif %}">
+            <div class="stat-dot"
+                 style="background:
+                 {% if item.estado == 'pendiente' %}var(--color-warning)
+                 {% elif item.estado == 'procesado' %}var(--color-success)
+                 {% elif item.estado == 'pagado' %}var(--color-info)
+                 {% elif item.estado == 'revision' %}#EC4899
+                 {% else %}var(--color-secondary-light){% endif %};"></div>
+            <div class="stat-num">{{ item.total }}</div>
+            <div class="stat-label">{{ item.estado }}</div>
+        </a>
+        {% endfor %}
+        <a href="{{ url_for('pagos.index', metodo=metodo_filtro) }}"
+           class="stat-card {% if not estado_filtro %}active{% endif %}">
+            <div class="stat-dot" style="background:var(--c-text-2);"></div>
+            <div class="stat-num">{{ resumen.total_global }}</div>
+            <div class="stat-label">Todos</div>
+        </a>
+    </div>
+
+    <div class="filter-bar">
+        <span style="font-size:0.8rem; font-weight:600; color:var(--c-text-2);">Estado:</span>
+        <a href="{{ url_for('pagos.index', metodo=metodo_filtro) }}"
+           class="filter-btn {% if not estado_filtro %}active{% endif %}">Todos</a>
+        <a href="{{ url_for('pagos.index', estado='pendiente', metodo=metodo_filtro) }}"
+           class="filter-btn {% if estado_filtro == 'pendiente' %}active{% endif %}">🟡 Pendiente</a>
+        <a href="{{ url_for('pagos.index', estado='procesado', metodo=metodo_filtro) }}"
+           class="filter-btn {% if estado_filtro == 'procesado' %}active{% endif %}">🟢 Procesado</a>
+        <a href="{{ url_for('pagos.index', estado='pagado', metodo=metodo_filtro) }}"
+           class="filter-btn {% if estado_filtro == 'pagado' %}active{% endif %}">🔵 Pagado</a>
+        <a href="{{ url_for('pagos.index', estado='manual', metodo=metodo_filtro) }}"
+           class="filter-btn {% if estado_filtro == 'manual' %}active{% endif %}">🟠 Manual</a>
+        <a href="{{ url_for('pagos.index', estado='revision', metodo=metodo_filtro) }}"
+           class="filter-btn {% if estado_filtro == 'revision' %}active{% endif %}">🔴 Revisión</a>
+    </div>
+
+    <div class="filter-bar">
+        <span style="font-size:0.8rem; font-weight:600; color:var(--c-text-2);">Método:</span>
+        <a href="{{ url_for('pagos.index', estado=estado_filtro) }}"
+           class="filter-btn {% if not metodo_filtro %}active{% endif %}">Todos</a>
+        <a href="{{ url_for('pagos.index', metodo='paypal', estado=estado_filtro) }}"
+           class="filter-btn {% if metodo_filtro == 'paypal' %}active{% endif %}"><i class="fab fa-paypal"></i> PayPal</a>
+        <a href="{{ url_for('pagos.index', metodo='zelle', estado=estado_filtro) }}"
+           class="filter-btn {% if metodo_filtro == 'zelle' %}active{% endif %}"><i class="fas fa-bolt"></i> Zelle</a>
+        <a href="{{ url_for('pagos.index', metodo='wise', estado=estado_filtro) }}"
+           class="filter-btn {% if metodo_filtro == 'wise' %}active{% endif %}"><i class="fas fa-globe"></i> Wise</a>
+    </div>
+
+    {% if pagos.items %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Fecha</th>
+                    <th>Método</th>
+                    <th>Destinatario</th>
+                    <th>Pagador</th>
+                    <th>Monto</th>
+                    <th>Neto / Base</th>
+                    <th>Valor a pagar</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pagos.items %}
+                <tr>
+                    <td style="color:var(--c-text-3); font-size:0.75rem; font-weight:600;">#{{ pago.id }}</td>
+                    <td class="td-fecha">
+                        {% set fecha_ref = pago.fecha_pago or pago.created_at %}
+                        {% if fecha_ref %}
+                            {{ (fecha_ref.replace(tzinfo=none) - timedelta(hours=5)).strftime('%d/%m/%Y') }}
+                            <small style="display:block; color:var(--c-text-3);">
+                                {{ (fecha_ref.replace(tzinfo=none) - timedelta(hours=5)).strftime('%H:%M') }} COL
+                            </small>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if pago.metodo == 'paypal' %}
+                            <span class="badge badge-paypal"><i class="fab fa-paypal" style="font-size:0.6rem;"></i> PayPal</span>
+                            {% if pago.subtipo == 'gs' %}<small class="metodo-sub">G&amp;S</small>
+                            {% elif pago.subtipo == 'payout' %}<small class="metodo-sub">Payout</small>
+                            {% elif pago.subtipo == 'ff' %}<small class="metodo-sub">F&amp;F</small>{% endif %}
+                        {% elif pago.metodo == 'zelle' %}
+                            <span class="badge badge-zelle"><i class="fas fa-bolt" style="font-size:0.6rem;"></i> Zelle</span>
+                        {% elif pago.metodo == 'wise' %}
+                            <span class="badge badge-wise"><i class="fas fa-globe" style="font-size:0.6rem;"></i> Wise</span>
+                        {% else %}
+                            <span class="badge">{{ pago.metodo }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:0.82rem; color:var(--c-text-body); max-width:160px;">
+                        {% if pago.cuenta_destino %}
+                            {% set dest = pago.cuenta_destino %}
+                            {% if '<' in dest and '>' in dest %}
+                                {% set dest_nombre = dest.split('<')[0].strip().strip('"') %}
+                                {% set dest_email = dest.split('<')[1].rstrip('>').strip() %}
+                            {% else %}
+                                {% set dest_nombre = dest.split('@')[0] %}
+                                {% set dest_email = dest %}
+                            {% endif %}
+                            <span title="{{ dest_email }}" style="cursor:default;">{{ dest_nombre }}</span>
+                        {% else %}
+                            <span style="color:var(--c-text-3);">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-pagador">
+                        {{ pago.pagador_nombre or '—' }}
+                        {% if pago.transaction_id %}<small>{{ pago.transaction_id }}</small>{% endif %}
+                    </td>
+                    <td class="td-monto">
+                        {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ "%.2f"|format(pago.importe_bruto) }}
+                        <small style="color:var(--c-text-3); font-weight:400;">{{ pago.moneda }}</small>
+                    </td>
+                    <td style="font-size:0.85rem;">
+                        {% if pago.importe_neto %}
+                            <span style="color:var(--c-success); font-weight:600;">${{ "%.2f"|format(pago.importe_neto) }}</span>
+                            {% if pago.comision %}
+                            <small style="color:var(--c-error); display:block;">-${{ "%.2f"|format(pago.comision) }} comisión</small>
+                            {% endif %}
+                        {% else %}
+                            <span style="color:var(--c-text-2);">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-pagar {% if pago.estado == 'manual' %}manual{% endif %}">
+                        {% if pago.valor_a_pagar %}
+                            {{ "%.2f"|format(pago.valor_a_pagar) }}
+                            <small style="font-weight:400; color:var(--c-text-2);">{{ pago.moneda_pago_local }}</small>
+                        {% else %}
+                            <span style="color:var(--c-warning); font-size:0.8rem;"><i class="fas fa-clock"></i> Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ pago.estado }}">
+                            {% if pago.estado == 'pendiente' %}<i class="fas fa-clock" style="font-size:0.6rem;"></i>
+                            {% elif pago.estado == 'procesado' %}<i class="fas fa-check" style="font-size:0.6rem;"></i>
+                            {% elif pago.estado == 'pagado' %}<i class="fas fa-check-double" style="font-size:0.6rem;"></i>
+                            {% elif pago.estado == 'revision' %}<i class="fas fa-exclamation" style="font-size:0.6rem;"></i>
+                            {% else %}<i class="fas fa-hand-paper" style="font-size:0.6rem;"></i>{% endif %}
+                            {{ pago.estado }}
+                        </span>
+                    </td>
+                    <td class="td-actions">
+                        <a href="{{ url_for('pagos.detail', pago_id=pago.id) }}" class="btn-edit" title="Ver / Editar">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if pagos.pages > 1 %}
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <span style="font-size:0.82rem; color:var(--c-text-2);">
+            Mostrando {{ pagos.per_page * (pagos.page - 1) + 1 }}–{{ [pagos.per_page * pagos.page, pagos.total]|min }}
+            de {{ pagos.total }} pagos
+        </span>
+        <div class="pagination">
+            <a href="{{ url_for('pagos.index', estado=estado_filtro, metodo=metodo_filtro, page=pagos.prev_num) if pagos.has_prev else '#' }}"
+               class="page-btn {% if not pagos.has_prev %}disabled{% endif %}"><i class="fas fa-chevron-left"></i></a>
+            {% for p in pagos.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                <a href="{{ url_for('pagos.index', estado=estado_filtro, metodo=metodo_filtro, page=p) }}"
+                   class="page-btn {% if p == pagos.page %}active{% endif %}">{{ p }}</a>
+                {% else %}<span class="page-btn disabled">…</span>{% endif %}
+            {% endfor %}
+            <a href="{{ url_for('pagos.index', estado=estado_filtro, metodo=metodo_filtro, page=pagos.next_num) if pagos.has_next else '#' }}"
+               class="page-btn {% if not pagos.has_next %}disabled{% endif %}"><i class="fas fa-chevron-right"></i></a>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p class="font-semibold mt-2" style="color:var(--c-text-2);">No hay pagos
+            {% if estado_filtro %}con estado "{{ estado_filtro }}"{% endif %}
+            {% if metodo_filtro %} del método "{{ metodo_filtro }}"{% endif %}
+        </p>
+        <p class="text-sm mt-1">Presiona "Verificar correos ahora" para buscar pagos nuevos.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<div id="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg"></span></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showToast(msg, error=false) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.toggle('error', error);
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+async function ingestar() {
+    const btn  = document.getElementById('btnIngestar');
+    const icon = document.getElementById('iconIngestar');
+    const lbl  = document.getElementById('lblIngestar');
+
+    btn.disabled = true; icon.classList.add('spin'); lbl.textContent = 'Verificando...';
+
+    try {
+        const r = await fetch('/dashboard/pagos/api/ingestar', { method: 'POST' });
+        const d = await r.json();
+        if (d.success) {
+            if (d.procesados > 0) {
+                showToast(`✅ ${d.procesados} nuevo${d.procesados > 1 ? 's' : ''} pago${d.procesados > 1 ? 's' : ''} registrado${d.procesados > 1 ? 's' : ''}`);
+                setTimeout(() => location.reload(), 1800);
+            } else {
+                showToast('Sin correos nuevos');
+            }
+        } else {
+            showToast(d.mensaje || 'Error al verificar', true);
+        }
+    } catch(e) {
+        showToast('Error de conexión', true);
+    } finally {
+        btn.disabled = false; icon.classList.remove('spin'); lbl.textContent = 'Verificar correos ahora';
+    }
+}
+</script>
+{% endblock %}

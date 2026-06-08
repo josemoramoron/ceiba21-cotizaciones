@@ -276,3 +276,58 @@ class GmailService:
             }
         finally:
             self._disconnect()
+            
+    def get_emails_de_remitentes(self, remitentes: list, limite: int = 50) -> list:
+        """
+        Obtiene correos UNSEEN de cualquiera de los remitentes dados.
+
+        NO filtra por asunto (para no perder variantes como los payouts); el
+        filtrado fino lo hace cada parser via puede_parsear(). Para no descargar
+        un backlog enorme de golpe, procesa solo los `limite` mas recientes.
+        """
+        if not remitentes or not self._connect():
+            return []
+        emails = []
+        try:
+            self._connection.select('INBOX')
+            status, message_ids = self._connection.search(
+                None, self._build_from_criteria(remitentes)
+            )
+            if status != 'OK' or not message_ids[0]:
+                logger.info("No hay correos nuevos de las fuentes vigiladas")
+                return []
+            uids = message_ids[0].split()
+            total = len(uids)
+            # IMAP devuelve los UID en orden ascendente: los mas recientes al final.
+            if limite and total > limite:
+                uids = uids[-limite:]
+                logger.info(f"{total} correos coinciden; proceso los {limite} mas recientes")
+            else:
+                logger.info(f"Encontrados {total} correos nuevos de fuentes vigiladas")
+            for uid in uids:
+                try:
+                    correo = self._fetch_email_by_uid(uid)
+                    if correo:
+                        emails.append(correo)
+                except (UnicodeDecodeError, KeyError, AttributeError) as e:
+                    logger.error(f"Error procesando correo UID {uid}: {e}")
+                    continue
+        except imaplib.IMAP4.error as e:
+            logger.error(f"Error IMAP buscando correos: {e}")
+        except OSError as e:
+            logger.error(f"Error de red en get_emails_de_remitentes: {e}")
+        finally:
+            self._disconnect()
+        return emails
+
+    @staticmethod
+    def _build_from_criteria(remitentes: list) -> str:
+        """
+        Criterio IMAP UNSEEN + OR de remitentes.
+
+        IMAP OR es binario, por eso se anida: (OR (FROM a) (OR (FROM b) (FROM c))).
+        """
+        cadena = f'(FROM "{remitentes[0]}")'
+        for r in remitentes[1:]:
+            cadena = f'(OR {cadena} (FROM "{r}"))'
+        return f'(UNSEEN {cadena})'         
