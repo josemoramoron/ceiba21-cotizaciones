@@ -46,18 +46,28 @@ class PaypalParser(EmailPaymentParser):
     metodo = PaymentProvider.PAYPAL
 
     _REMITENTE = 'intl.paypal.com'
-    _MARCADORES = (
+    # Los correos de pago real tienen el nombre del remitente en el asunto:
+    # "[Nombre] le ha enviado $X.XX" / "[Name] sent you $X.XX"
+    # Discriminar por ASUNTO primero evita que notificaciones (resúmenes,
+    # alertas de cuenta) que mencionan "le ha enviado" en el cuerpo
+    # lleguen a parse() y generen errores de extracción.
+    # Los payouts (TikTok, Clapper, etc.) tienen asuntos distintos, por eso
+    # se mantiene la revisión del cuerpo SOLO para esos marcadores.
+    _MARCADORES_ASUNTO = (
         'le ha enviado', 'le envi\u00f3', 'le envio',
-        'ha recibido un pago',
-    ) + _MARCAS_PAYOUT
+        'ha recibido un pago', 'sent you',
+    )
 
     def puede_parsear(self, correo: dict) -> bool:
         sender = (correo.get('sender') or '').lower()
         if self._REMITENTE not in sender:
             return False
-        texto = (correo.get('html_body') or '').lower()
         asunto = (correo.get('subject') or '').lower()
-        return any(m in texto or m in asunto for m in self._MARCADORES)
+        if any(m in asunto for m in self._MARCADORES_ASUNTO):
+            return True
+        # Fallback: body solo para payouts (asuntos muy variables)
+        texto = (correo.get('html_body') or '').lower()
+        return any(m in texto or m in asunto for m in _MARCAS_PAYOUT)
 
     def parse(self, correo: dict) -> Optional[dict]:
         html = correo.get('html_body')

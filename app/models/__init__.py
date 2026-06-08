@@ -23,8 +23,7 @@ from app.models.transaction import Transaction, TransactionType
 from app.models.message import Message
 from app.models.web_user import WebUser
 
-# ✨ NUEVOS MODELOS - FASE 2: Pagos PayPal  
-from app.models.paypal_payment import PaypalPayment, PaypalPaymentStatus, PaypalPaymentType
+# Pagos (sistema unificado)
 from app.models.payment import Payment, PaymentProvider, PaymentStatus, PaypalSubtipo
 from app.models.payment_source import PaymentSource
 # Exportar para facilitar importación
@@ -47,10 +46,7 @@ __all__ = [
     'TransactionType',
     'Message',
     'WebUser',
-    # Pagos PayPal
-    'PaypalPayment',
-    'PaypalPaymentStatus',
-    'PaypalPaymentType',
+    # Pagos (sistema unificado)
     'Payment',
     'PaymentProvider',
     'PaymentStatus',

@@ -318,6 +318,87 @@ class UnifiedIngestionService:
                 'total_global': 0, 'ultima_actualizacion': None
             }    
 
+    def procesar_desde_fecha(
+        self,
+        desde_imap: str,
+        web_user_id: Optional[int]
+    ) -> dict:
+        """
+        Importación histórica one-time: procesa TODOS los correos (leídos y
+        no leídos) de los remitentes activos a partir de `desde_imap`.
+
+        La dedup por message_id y transaction_id evita registros duplicados
+        si el correo ya fue procesado previamente. Todos los correos procesados
+        se marcan como leídos al finalizar.
+
+        Args:
+            desde_imap: Fecha en formato IMAP, ej. '01-Jun-2026'.
+            web_user_id: ID del WebUser que disparó la ejecución.
+
+        Returns:
+            dict con el resumen de la importación.
+        """
+        resumen = {
+            'success': False, 'procesados': 0, 'duplicados': 0,
+            'no_reconocidos': 0, 'errores': 0, 'nuevos': [], 'mensaje': ''
+        }
+
+        fuentes = PaymentSource.get_activos()
+        if not fuentes:
+            resumen['success'] = True
+            resumen['mensaje'] = "No hay fuentes de pago activas configuradas"
+            return resumen
+
+        remitentes = [f.remitente for f in fuentes]
+        logger.info(
+            f"Importación histórica desde {desde_imap} — "
+            f"{len(remitentes)} remitentes"
+        )
+
+        try:
+            correos = self.gmail.get_emails_desde_fecha(remitentes, desde_imap)
+        except (imaplib.IMAP4.error, OSError) as e:
+            logger.error(f"Error conectando a Gmail: {e}")
+            resumen['mensaje'] = f"Error conectando a Gmail: {str(e)}"
+            return resumen
+
+        if not correos:
+            resumen['success'] = True
+            resumen['mensaje'] = f"No hay correos desde {desde_imap}"
+            return resumen
+
+        for correo in correos:
+            try:
+                resultado = self._procesar_correo(correo, fuentes, web_user_id)
+                if resultado == 'duplicado':
+                    resumen['duplicados'] += 1
+                elif resultado == 'no_reconocido':
+                    resumen['no_reconocidos'] += 1
+                elif resultado == 'error':
+                    resumen['errores'] += 1
+                else:
+                    resumen['procesados'] += 1
+                    resumen['nuevos'].append(self._resumen_pago(resultado))
+                # Importación histórica: siempre marcar como leído
+                self.gmail.mark_as_read(correo['imap_uid'])
+            except (ValueError, SQLAlchemyError) as e:
+                logger.error(
+                    f"Error procesando correo "
+                    f"{correo.get('message_id', '?')}: {e}"
+                )
+                resumen['errores'] += 1
+
+        resumen['success'] = True
+        resumen['mensaje'] = (
+            f"Importación desde {desde_imap}: "
+            f"{resumen['procesados']} nuevos, "
+            f"{resumen['duplicados']} duplicados, "
+            f"{resumen['no_reconocidos']} no reconocidos, "
+            f"{resumen['errores']} errores"
+        )
+        logger.info(resumen['mensaje'])
+        return resumen
+
 
 def inicializar_scheduler_unificado(app) -> None:
     """

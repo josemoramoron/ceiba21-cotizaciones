@@ -321,13 +321,77 @@ class GmailService:
         return emails
 
     @staticmethod
-    def _build_from_criteria(remitentes: list) -> str:
+    def _build_from_criteria(remitentes: list, solo_no_leidos: bool = True) -> str:
         """
-        Criterio IMAP UNSEEN + OR de remitentes.
+        Criterio IMAP de remitentes.
 
         IMAP OR es binario, por eso se anida: (OR (FROM a) (OR (FROM b) (FROM c))).
+        Con solo_no_leidos=True antepone UNSEEN (comportamiento normal del scheduler).
+        Con solo_no_leidos=False retorna solo el criterio de remitentes, para usarse
+        combinado con SINCE en importaciones históricas.
         """
         cadena = f'(FROM "{remitentes[0]}")'
         for r in remitentes[1:]:
             cadena = f'(OR {cadena} (FROM "{r}"))'
-        return f'(UNSEEN {cadena})'         
+        if solo_no_leidos:
+            return f'(UNSEEN {cadena})'
+        return cadena
+
+    def get_emails_desde_fecha(
+        self,
+        remitentes: list,
+        desde_imap: str,
+        limite: int = None
+    ) -> list:
+        """
+        Obtiene TODOS los correos (leídos y no leídos) de los remitentes
+        a partir de una fecha. Para importación histórica one-time.
+
+        Args:
+            remitentes: Lista de direcciones a vigilar.
+            desde_imap: Fecha en formato IMAP, ej. '01-Jun-2026'.
+            limite:     Máximo de correos a procesar (None = sin límite).
+
+        Returns:
+            Lista de dicts con los datos de cada correo.
+        """
+        if not remitentes or not self._connect():
+            return []
+        emails = []
+        try:
+            self._connection.select('INBOX')
+            from_criteria = self._build_from_criteria(remitentes, solo_no_leidos=False)
+            criteria = f'(SINCE "{desde_imap}" {from_criteria})'
+            status, message_ids = self._connection.search(None, criteria)
+
+            if status != 'OK' or not message_ids[0]:
+                logger.info(f"No hay correos desde {desde_imap}")
+                return []
+
+            uids = message_ids[0].split()
+            total = len(uids)
+            if limite and total > limite:
+                uids = uids[-limite:]
+                logger.info(
+                    f"{total} correos desde {desde_imap}; "
+                    f"proceso los {limite} más recientes"
+                )
+            else:
+                logger.info(f"Importación histórica: {total} correos desde {desde_imap}")
+
+            for uid in uids:
+                try:
+                    correo = self._fetch_email_by_uid(uid)
+                    if correo:
+                        emails.append(correo)
+                except (UnicodeDecodeError, KeyError, AttributeError) as e:
+                    logger.error(f"Error procesando correo UID {uid}: {e}")
+                    continue
+
+        except imaplib.IMAP4.error as e:
+            logger.error(f"Error IMAP en get_emails_desde_fecha: {e}")
+        except OSError as e:
+            logger.error(f"Error de red en get_emails_desde_fecha: {e}")
+        finally:
+            self._disconnect()
+        return emails

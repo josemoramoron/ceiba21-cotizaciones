@@ -267,3 +267,93 @@ def api_test_gmail():
             'success': False,
             'message': str(e)
         }), 500
+
+# ── Control del scheduler y importación histórica ────────────────────
+
+@pagos_bp.route('/api/scheduler/estado')
+@login_required
+def api_scheduler_estado():
+    """
+    Estado actual del scheduler de ingesta.
+    GET /dashboard/pagos/api/scheduler/estado
+    """
+    from flask import current_app
+    scheduler = getattr(current_app._get_current_object(), 'scheduler', None)
+    if not scheduler:
+        return jsonify({'disponible': False, 'estado': 'no_disponible'})
+    job = scheduler.get_job('ingesta_unificada')
+    if not job:
+        return jsonify({'disponible': True, 'estado': 'sin_job'})
+    estado = 'pausado' if job.next_run_time is None else 'activo'
+    proxima = job.next_run_time.isoformat() if job.next_run_time else None
+    return jsonify({'disponible': True, 'estado': estado, 'proxima': proxima})
+
+
+@pagos_bp.route('/api/scheduler/pausar', methods=['POST'])
+@login_required
+def api_scheduler_pausar():
+    """
+    Pausa el job de ingesta automática.
+    POST /dashboard/pagos/api/scheduler/pausar
+    Útil en dev para no competir con producción por los correos UNSEEN.
+    """
+    from flask import current_app
+    scheduler = getattr(current_app._get_current_object(), 'scheduler', None)
+    if not scheduler:
+        return jsonify({'success': False, 'error': 'Scheduler no disponible en este entorno'})
+    try:
+        scheduler.pause_job('ingesta_unificada')
+        logger.info("Scheduler de ingesta pausado manualmente")
+        return jsonify({'success': True, 'estado': 'pausado'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@pagos_bp.route('/api/scheduler/reanudar', methods=['POST'])
+@login_required
+def api_scheduler_reanudar():
+    """
+    Reanuda el job de ingesta automática.
+    POST /dashboard/pagos/api/scheduler/reanudar
+    """
+    from flask import current_app
+    scheduler = getattr(current_app._get_current_object(), 'scheduler', None)
+    if not scheduler:
+        return jsonify({'success': False, 'error': 'Scheduler no disponible en este entorno'})
+    try:
+        scheduler.resume_job('ingesta_unificada')
+        logger.info("Scheduler de ingesta reanudado manualmente")
+        return jsonify({'success': True, 'estado': 'activo'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@pagos_bp.route('/api/importar_desde', methods=['POST'])
+@login_required
+def api_importar_desde():
+    """
+    Importación histórica one-time: procesa TODOS los correos (leídos
+    y no leídos) de las fuentes activas a partir de una fecha dada.
+
+    Body JSON: { "desde_fecha": "2026-06-01" }  (formato HTML date input)
+    POST /dashboard/pagos/api/importar_desde
+    """
+    data = request.get_json() or {}
+    desde_iso = data.get('desde_fecha', '')
+    if not desde_iso:
+        return jsonify({'success': False, 'error': 'Se requiere desde_fecha (YYYY-MM-DD)'}), 400
+
+    from datetime import datetime as _dt
+    try:
+        dt = _dt.strptime(desde_iso, '%Y-%m-%d')
+        desde_imap = dt.strftime('%d-%b-%Y')   # '01-Jun-2026'
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)'}), 400
+
+    try:
+        service = UnifiedIngestionService()
+        result = service.procesar_desde_fecha(desde_imap, current_user.id)
+        return jsonify(result), 200
+    except SQLAlchemyError as e:
+        logger.error(f"Error DB en api_importar_desde: {e}")
+        return jsonify({'success': False, 'error': 'Error de base de datos'}), 500

@@ -99,7 +99,6 @@ def create_app(config_class=Config):
     from app.routes.bot_control import bot_control_bp
     from app.routes.operator_dashboard import operator_bp
     from app.routes.blacklist import blacklist_bp
-    from app.routes.payments import paypal_payments_bp
     from app.routes.payments_unified import pagos_bp
 
     app.register_blueprint(public_bp)
@@ -109,7 +108,6 @@ def create_app(config_class=Config):
     app.register_blueprint(bot_control_bp)
     app.register_blueprint(operator_bp)
     app.register_blueprint(blacklist_bp)
-    app.register_blueprint(paypal_payments_bp)
     app.register_blueprint(pagos_bp)
 
     # Crear tablas si no existen

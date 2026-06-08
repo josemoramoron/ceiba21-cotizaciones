@@ -37,16 +37,17 @@ class WiseParser(EmailPaymentParser):
     metodo = PaymentProvider.WISE
 
     _REMITENTE = 'wise.com'
-    _MARCADORES = ('dinero recibido', 'has recibido')
+    # Wise tiene muchos tipos de correo (confirmaciones de envío, recibos, etc.)
+    # que contienen "has recibido" en el cuerpo pero NO son pagos recibidos.
+    # Discriminar SOLO por asunto evita falsos positivos y el log noise de parse().
+    _MARCADORES = ('dinero recibido', 'has recibido', 'you received')
 
     def puede_parsear(self, correo: dict) -> bool:
         sender = (correo.get('sender') or '').lower()
         if self._REMITENTE not in sender:
             return False
-        texto = (
-            (correo.get('subject') or '') + ' ' + (correo.get('html_body') or '')
-        ).lower()
-        return any(m in texto for m in self._MARCADORES)
+        asunto = (correo.get('subject') or '').lower()
+        return any(m in asunto for m in self._MARCADORES)
 
     def parse(self, correo: dict) -> Optional[dict]:
         html = correo.get('html_body')
