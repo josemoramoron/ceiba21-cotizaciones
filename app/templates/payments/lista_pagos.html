@@ -170,6 +170,30 @@
         </div>
     </div>
 
+    <!-- ── Panel de control del scheduler ── -->
+    <div id="schedulerPanel" style="
+        display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;
+        padding:0.7rem 1rem; border-radius:0.5rem; margin-bottom:1.25rem;
+        border:1px solid var(--c-border); background:var(--c-surface); font-size:0.82rem;">
+        <span style="font-weight:600; color:var(--c-text-2);">Scheduler:</span>
+        <span id="schEstadoBadge" class="badge" style="font-size:0.7rem;">…</span>
+        <button id="btnSchToggle" onclick="toggleScheduler()"
+            class="btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.8rem;">…</button>
+
+        <div style="width:1px; background:var(--c-border); height:1.2rem; margin:0 0.25rem;"></div>
+
+        <span style="font-weight:600; color:var(--c-text-2);">Importar desde:</span>
+        <input type="date" id="inputDesde" value="2026-06-01"
+               style="padding:0.3rem 0.6rem; border:1px solid var(--c-border);
+                      border-radius:0.4rem; font-size:0.82rem;
+                      background:var(--c-surface); color:var(--c-text);">
+        <button id="btnImportar" onclick="importarDesde()"
+            class="btn-primary" style="padding:0.35rem 0.85rem; font-size:0.8rem; width:auto;">
+            <i class="fas fa-cloud-download-alt" id="iconImportar"></i>
+            <span id="lblImportar">Importar</span>
+        </button>
+    </div>
+
     <div class="stat-grid">
         {% for item in resumen.estados %}
         <a href="{{ url_for('pagos.index', estado=item.estado, metodo=metodo_filtro) }}"
@@ -400,5 +424,77 @@ async function ingestar() {
         btn.disabled = false; icon.classList.remove('spin'); lbl.textContent = 'Verificar correos ahora';
     }
 }
+
+// ── Scheduler control ──────────────────────────────────────────────
+let _schEstado = 'desconocido';
+
+async function cargarEstadoScheduler() {
+    try {
+        const r = await fetch('/dashboard/pagos/api/scheduler/estado');
+        const d = await r.json();
+        const badge  = document.getElementById('schEstadoBadge');
+        const toggle = document.getElementById('btnSchToggle');
+        if (!d.disponible || d.estado === 'no_disponible') {
+            badge.textContent = 'no disponible';
+            badge.style.cssText = 'background:var(--c-border);color:var(--c-text-2);';
+            toggle.style.display = 'none';
+        } else {
+            _schEstado = d.estado;
+            if (d.estado === 'activo') {
+                badge.textContent = '● activo';
+                badge.style.cssText = 'background:var(--color-success);color:#fff;';
+                toggle.textContent = 'Pausar';
+            } else {
+                badge.textContent = '● pausado';
+                badge.style.cssText = 'background:var(--color-warning);color:#fff;';
+                toggle.textContent = 'Reanudar';
+            }
+        }
+    } catch(e) { /* sin scheduler, ignorar */ }
+}
+
+async function toggleScheduler() {
+    const endpoint = _schEstado === 'activo'
+        ? '/dashboard/pagos/api/scheduler/pausar'
+        : '/dashboard/pagos/api/scheduler/reanudar';
+    try {
+        const r = await fetch(endpoint, { method: 'POST' });
+        const d = await r.json();
+        if (d.success) {
+            showToast(_schEstado === 'activo' ? '⏸ Scheduler pausado' : '▶ Scheduler reanudado');
+            await cargarEstadoScheduler();
+        } else {
+            showToast(d.error || 'Error al cambiar estado', true);
+        }
+    } catch(e) { showToast('Error de conexión', true); }
+}
+
+async function importarDesde() {
+    const desde = document.getElementById('inputDesde').value;
+    if (!desde) { showToast('Selecciona una fecha', true); return; }
+    const btn  = document.getElementById('btnImportar');
+    const icon = document.getElementById('iconImportar');
+    const lbl  = document.getElementById('lblImportar');
+    btn.disabled = true; icon.className = 'fas fa-sync-alt spin'; lbl.textContent = 'Importando...';
+    try {
+        const r = await fetch('/dashboard/pagos/api/importar_desde', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ desde_fecha: desde })
+        });
+        const d = await r.json();
+        if (d.success) {
+            showToast(`✅ ${d.procesados} nuevos · ${d.duplicados} dup · ${d.no_reconocidos} ignorados`);
+            if (d.procesados > 0) setTimeout(() => location.reload(), 2000);
+        } else {
+            showToast(d.error || d.mensaje || 'Error al importar', true);
+        }
+    } catch(e) { showToast('Error de conexión', true); }
+    finally {
+        btn.disabled = false; icon.className = 'fas fa-cloud-download-alt'; lbl.textContent = 'Importar';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', cargarEstadoScheduler);
 </script>
 {% endblock %}
