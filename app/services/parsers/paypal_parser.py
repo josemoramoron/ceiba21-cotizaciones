@@ -39,6 +39,20 @@ _MARCAS_PAYOUT = (
     'payout', 'has sent you money',
 )
 
+# Asuntos de PayPal que NO son pagos recibidos. Se descartan antes de parsear:
+#   - "Estamos transfiriendo fondos a su cuenta bancaria" -> retiro (egreso)
+#   - "...fondos disponibles al instante" -> aviso de saldo
+#   - "...condición de contribuyente..." -> aviso fiscal (1099-K)
+#   - "...solicitud de pago..." -> solicitud de cobro, NO un pago recibido.
+#     Critico: las solicitudes activas dicen "X le ha enviado una solicitud de
+#     pago", que contiene "le ha enviado" y seria un falso positivo sin esto.
+_MARCAS_NO_PAGO = (
+    'transfiriendo fondos',
+    'fondos disponibles',
+    'condici\u00f3n de contribuyente',
+    'solicitud de pago',
+)
+
 
 class PaypalParser(EmailPaymentParser):
     """Parser Strategy para correos de pago de PayPal."""
@@ -63,6 +77,11 @@ class PaypalParser(EmailPaymentParser):
         if self._REMITENTE not in sender:
             return False
         asunto = (correo.get('subject') or '').lower()
+        # Descartar explícitamente notificaciones que no son pagos recibidos
+        # (retiros, avisos, solicitudes de cobro). Va primero para que una
+        # "solicitud de pago" no se cuele por contener "le ha enviado".
+        if any(neg in asunto for neg in _MARCAS_NO_PAGO):
+            return False
         if any(m in asunto for m in self._MARCADORES_ASUNTO):
             return True
         # Fallback: body solo para payouts (asuntos muy variables)
