@@ -1,24 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Pagos{% endblock %}
+{% block title %}Pago #{{ pago.id }} — {{ pago.pagador_nombre }}{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Alias locales -> variables del design system (adaptan a claro/oscuro).
-       --chrome / --chrome-2 son paneles SIEMPRE oscuros (igual que el navbar). */
     :root {
         --c-primary:      var(--color-primary);
         --c-primary-dark: var(--color-primary-dark);
         --c-success:      var(--color-success);
         --c-error:        var(--color-error);
         --c-warning:      var(--color-warning);
-        --c-info:         var(--color-info);
         --c-surface:      var(--color-surface);
         --c-border:       var(--color-border);
         --c-text:         var(--color-text);
         --c-text-2:       var(--color-text-secondary);
         --c-text-3:       var(--color-text-subtle);
-        --c-text-body:    var(--color-text-body);
         --chrome:         #1A1A1A;
         --chrome-2:       #2D2D2D;
     }
@@ -27,25 +23,66 @@
     .page-title  { font-size:1.35rem; font-weight:800; color:var(--c-text); }
     .page-sub    { font-size:0.85rem; color:var(--c-text-2); margin-top:0.15rem; }
 
-    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:0.75rem; margin-bottom:1.5rem; }
-    .stat-card {
+    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+    @media (max-width:768px) { .detail-grid { grid-template-columns:1fr; } }
+
+    .detail-card {
         background:var(--c-surface); border:1px solid var(--c-border); border-radius:0.65rem;
-        padding:1rem; text-align:center; cursor:pointer;
-        transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
-        text-decoration:none;
+        padding:1.25rem; margin-bottom:1.25rem;
     }
-    .stat-card:hover { border-color:var(--c-primary); box-shadow:0 2px 10px rgba(247,217,23,0.2); transform:translateY(-1px); }
-    .stat-card.active { border-color:var(--c-primary); background:var(--color-primary-light); }
-    .stat-num  { font-size:1.6rem; font-weight:800; color:var(--c-text); line-height:1; }
-    .stat-label{ font-size:0.72rem; font-weight:600; color:var(--c-text-2); margin-top:0.3rem; text-transform:uppercase; letter-spacing:0.05em; }
-    .stat-dot  { width:8px; height:8px; border-radius:50%; display:inline-block; margin-bottom:0.4rem; }
+    .card-title {
+        font-size:0.72rem; font-weight:700; color:var(--c-text-2);
+        text-transform:uppercase; letter-spacing:0.06em;
+        margin-bottom:1rem; display:flex; align-items:center; gap:0.4rem;
+    }
+    .card-title i { color:var(--c-primary); }
+
+    .field-row { display:flex; justify-content:space-between; align-items:flex-start; padding:0.5rem 0; border-bottom:1px solid var(--c-border); gap:1rem; }
+    .field-row:last-child { border-bottom:none; }
+    .field-label { font-size:0.8rem; color:var(--c-text-2); font-weight:500; flex-shrink:0; }
+    .field-value { font-size:0.875rem; color:var(--c-text); font-weight:600; text-align:right; word-break:break-all; }
+
+    .m-badge { font-size:0.72rem; font-weight:700; padding:0.2rem 0.55rem; border-radius:9999px; }
+    .m-paypal { background:var(--color-paypal-bg); color:var(--color-paypal-text); }
+    .m-zelle  { background:var(--color-zelle-bg);  color:var(--color-zelle-text); }
+    .m-wise   { background:var(--color-wise-bg);   color:var(--color-wise-text); }
+
+    .monto-big { font-size:2.2rem; font-weight:900; color:var(--c-text); line-height:1; margin:0.5rem 0; }
+    .monto-label { font-size:0.8rem; color:var(--c-text-2); font-weight:500; }
+
+    .calc-section {
+        background: linear-gradient(135deg, var(--chrome) 0%, var(--chrome-2) 100%);
+        border-radius:0.65rem; padding:1.25rem; margin-bottom:1.25rem;
+        border:2px solid var(--c-primary);
+    }
+    .calc-title { color:var(--c-primary); font-size:0.85rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.4rem; }
+
+    /* Inputs sobre el panel oscuro: siempre claros y legibles */
+    .calc-select {
+        width:100%; padding:0.65rem 1rem;
+        background:#fff; border:2px solid var(--c-border); border-radius:0.5rem;
+        font-size:0.9rem; font-weight:600; color:#1A1A1A;
+        cursor:pointer; outline:none; transition:border-color 0.15s;
+        appearance:none; -webkit-appearance:none;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%231A1A1A' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:right 0.9rem center; padding-right:2.5rem;
+    }
+    .calc-select:focus { border-color:var(--c-primary); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
+
+    .calc-result {
+        background:rgba(247,217,23,0.1); border:1px solid rgba(247,217,23,0.3);
+        border-radius:0.5rem; padding:1rem; margin-top:0.75rem; display:none;
+    }
+    .calc-result.show { display:block; }
+    .calc-result-num { font-size:1.8rem; font-weight:900; color:var(--c-primary); line-height:1; }
+    .calc-result-sub { font-size:0.78rem; color:#D1D5DB; margin-top:0.3rem; }
 
     .btn-primary {
         background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
         color:#1A1A1A; font-weight:700; font-size:0.875rem;
-        padding:0.55rem 1.1rem; border-radius:0.5rem; border:none;
+        padding:0.6rem 1.2rem; border-radius:0.5rem; border:none;
         cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
-        transition: transform 0.15s, box-shadow 0.15s; text-decoration:none;
+        transition: transform 0.15s, box-shadow 0.15s; width:100%; justify-content:center;
     }
     .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
     .btn-primary:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
@@ -58,68 +95,32 @@
     }
     .btn-ghost:hover { border-color:var(--c-text); color:var(--c-text); }
 
-    .table-wrap { overflow-x:auto; border-radius:0.65rem; border:1px solid var(--c-border); }
-    table { width:100%; border-collapse:collapse; }
-    thead th {
-        background: linear-gradient(135deg, var(--chrome) 0%, var(--chrome-2) 100%);
-        color:#fff; font-size:0.72rem; font-weight:700;
-        text-transform:uppercase; letter-spacing:0.06em;
-        padding:0.75rem 1rem; text-align:left; white-space:nowrap;
+    .btn-estado {
+        font-size:0.8rem; font-weight:600; padding:0.4rem 0.85rem;
+        border-radius:0.4rem; border:1px solid var(--c-border); background:var(--c-surface);
+        color:var(--c-text); cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:0.3rem;
     }
-    tbody tr { border-bottom:1px solid var(--c-border); transition:background 0.1s; }
-    tbody tr:last-child { border-bottom:none; }
-    tbody tr:hover { background:rgba(127,127,127,0.08); }
-    tbody td { padding:0.85rem 1rem; font-size:0.875rem; color:var(--c-text); vertical-align:middle; }
+    .btn-estado:hover { border-color:var(--c-text); }
+    .btn-estado.active { background:var(--chrome); color:#fff; border-color:var(--chrome); }
 
-    .td-pagador { font-weight:600; max-width:180px; }
-    .td-pagador small { display:block; font-weight:400; color:var(--c-text-2); font-size:0.75rem; margin-top:0.1rem; }
-    .td-monto { font-weight:700; font-size:0.95rem; white-space:nowrap; }
-    .td-pagar { font-weight:700; color:var(--c-success); white-space:nowrap; }
-    .td-pagar.manual { color:var(--c-warning); }
-    .td-fecha { color:var(--c-text-2); font-size:0.8rem; white-space:nowrap; }
-    .td-actions { white-space:nowrap; }
+    .notes-input {
+        width:100%; padding:0.65rem 1rem;
+        border:2px solid var(--c-border); border-radius:0.5rem; background:var(--c-surface);
+        font-size:0.875rem; color:var(--c-text); resize:vertical; min-height:90px;
+        outline:none; transition:border-color 0.15s; font-family:inherit;
+    }
+    .notes-input:focus { border-color:var(--c-primary); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
 
     .badge {
         display:inline-flex; align-items:center; gap:0.3rem;
-        font-size:0.7rem; font-weight:700; padding:0.25rem 0.6rem;
+        font-size:0.72rem; font-weight:700; padding:0.3rem 0.7rem;
         border-radius:9999px; text-transform:uppercase; letter-spacing:0.04em;
-        white-space:nowrap;
     }
-    /* Estados: tonos semánticos del sistema */
     .badge-pendiente  { background:var(--color-warning); color:#fff; }
     .badge-procesado  { background:var(--color-success); color:#fff; }
     .badge-pagado     { background:var(--color-info);    color:#fff; }
     .badge-revision   { background:#EC4899;              color:#fff; }
     .badge-manual     { background:var(--color-secondary-light); color:#fff; }
-
-    /* Métodos: variables del design system */
-    .badge-paypal { background:var(--color-paypal-bg); color:var(--color-paypal-text); }
-    .badge-zelle  { background:var(--color-zelle-bg);  color:var(--color-zelle-text); }
-    .badge-wise   { background:var(--color-wise-bg);   color:var(--color-wise-text); }
-    .metodo-sub   { display:block; font-weight:600; color:var(--c-text-2); font-size:0.66rem; margin-top:0.2rem; text-transform:uppercase; letter-spacing:0.04em; }
-
-    .btn-edit {
-        background: linear-gradient(135deg, var(--chrome) 0%, var(--chrome-2) 100%);
-        border:1px solid var(--c-primary); color:var(--c-primary);
-        font-size:0.75rem; font-weight:600; padding:0.35rem 0.7rem;
-        border-radius:0.4rem; cursor:pointer;
-        display:inline-flex; align-items:center; gap:0.3rem;
-        transition:all 0.15s; text-decoration:none;
-    }
-    .btn-edit:hover { background:var(--c-primary); color:#1A1A1A; }
-
-    .filter-bar { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem; align-items:center; }
-    .filter-btn {
-        font-size:0.8rem; font-weight:600; padding:0.4rem 0.9rem;
-        border-radius:9999px; border:1px solid var(--c-border);
-        cursor:pointer; background:var(--c-surface); color:var(--c-text-2); transition:all 0.15s;
-        text-decoration:none;
-    }
-    .filter-btn:hover  { border-color:var(--c-text); color:var(--c-text); }
-    .filter-btn.active { background:var(--chrome); color:#fff; border-color:var(--chrome); }
-
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .spin { animation:spin 0.8s linear infinite; }
 
     #toast {
         position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
@@ -127,262 +128,226 @@
         box-shadow:0 4px 20px rgba(0,0,0,0.15); border-left:4px solid var(--c-success);
         font-size:0.875rem; font-weight:600; color:var(--c-text);
         display:none; align-items:center; gap:0.5rem; max-width:320px;
-        animation:slideIn 0.25s ease;
     }
     #toast.show { display:flex; }
     #toast.error { border-left-color:var(--c-error); }
-    @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-    .empty-state { text-align:center; padding:3rem 1rem; color:var(--c-text-2); }
-    .empty-state i { font-size:2.5rem; margin-bottom:0.75rem; opacity:0.4; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin { animation:spin 0.8s linear infinite; }
 
-    .pagination { display:flex; gap:0.35rem; flex-wrap:wrap; align-items:center; }
-    .page-btn {
-        padding:0.4rem 0.75rem; border-radius:0.4rem; font-size:0.82rem; font-weight:600;
-        border:1px solid var(--c-border); background:var(--c-surface); color:var(--c-text-2);
-        cursor:pointer; text-decoration:none; transition:all 0.15s;
-    }
-    .page-btn:hover { border-color:var(--c-text); color:var(--c-text); }
-    .page-btn.active { background:var(--chrome); color:#fff; border-color:var(--chrome); }
-    .page-btn.disabled { opacity:0.4; pointer-events:none; }
+    .section-divider { border:none; border-top:2px dashed var(--c-border); margin:0.5rem 0; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="rounded-xl shadow-lg p-6" style="background:var(--color-surface);">
 
-    <div class="page-header">
-        <div>
-            <h2 class="page-title">
-                <i class="fas fa-wallet mr-2" style="color:var(--color-primary);"></i>
-                Pagos
-            </h2>
-            <p class="page-sub">Pagos recibidos vía Gmail (PayPal, Zelle, Wise) — actualizados automáticamente cada 5 minutos</p>
-        </div>
-        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
-            <button onclick="ingestar()" id="btnIngestar" class="btn-primary">
-                <i class="fas fa-sync-alt" id="iconIngestar"></i>
-                <span id="lblIngestar">Verificar correos ahora</span>
-            </button>
-            <a href="{{ url_for('dashboard.index') }}" class="btn-ghost">
-                <i class="fas fa-arrow-left"></i> Dashboard
-            </a>
-        </div>
-    </div>
-
-    <!-- ── Panel de control del scheduler ── -->
-    <div id="schedulerPanel" style="
-        display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;
-        padding:0.7rem 1rem; border-radius:0.5rem; margin-bottom:1.25rem;
-        border:1px solid var(--c-border); background:var(--c-surface); font-size:0.82rem;">
-        <span style="font-weight:600; color:var(--c-text-2);">Scheduler:</span>
-        <span id="schEstadoBadge" class="badge" style="font-size:0.7rem;">…</span>
-        <button id="btnSchToggle" onclick="toggleScheduler()"
-            class="btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.8rem;">…</button>
-
-        <div style="width:1px; background:var(--c-border); height:1.2rem; margin:0 0.25rem;"></div>
-
-        <span style="font-weight:600; color:var(--c-text-2);">Importar desde:</span>
-        <input type="date" id="inputDesde" value="2026-06-01"
-               style="padding:0.3rem 0.6rem; border:1px solid var(--c-border);
-                      border-radius:0.4rem; font-size:0.82rem;
-                      background:var(--c-surface); color:var(--c-text);">
-        <button id="btnImportar" onclick="importarDesde()"
-            class="btn-primary" style="padding:0.35rem 0.85rem; font-size:0.8rem; width:auto;">
-            <i class="fas fa-cloud-download-alt" id="iconImportar"></i>
-            <span id="lblImportar">Importar</span>
-        </button>
-    </div>
-
-    <div class="stat-grid">
-        {% for item in resumen.estados %}
-        <a href="{{ url_for('pagos.index', estado=item.estado, metodo=metodo_filtro) }}"
-           class="stat-card {% if estado_filtro == item.estado %}active{% endif %}">
-            <div class="stat-dot"
-                 style="background:
-                 {% if item.estado == 'pendiente' %}var(--color-warning)
-                 {% elif item.estado == 'procesado' %}var(--color-success)
-                 {% elif item.estado == 'pagado' %}var(--color-info)
-                 {% elif item.estado == 'revision' %}#EC4899
-                 {% else %}var(--color-secondary-light){% endif %};"></div>
-            <div class="stat-num">{{ item.total }}</div>
-            <div class="stat-label">{{ item.estado }}</div>
-        </a>
-        {% endfor %}
-        <a href="{{ url_for('pagos.index', metodo=metodo_filtro) }}"
-           class="stat-card {% if not estado_filtro %}active{% endif %}">
-            <div class="stat-dot" style="background:var(--c-text-2);"></div>
-            <div class="stat-num">{{ resumen.total_global }}</div>
-            <div class="stat-label">Todos</div>
-        </a>
-    </div>
-
-    <div class="filter-bar">
-        <span style="font-size:0.8rem; font-weight:600; color:var(--c-text-2);">Estado:</span>
-        <a href="{{ url_for('pagos.index', metodo=metodo_filtro) }}"
-           class="filter-btn {% if not estado_filtro %}active{% endif %}">Todos</a>
-        <a href="{{ url_for('pagos.index', estado='pendiente', metodo=metodo_filtro) }}"
-           class="filter-btn {% if estado_filtro == 'pendiente' %}active{% endif %}">🟡 Pendiente</a>
-        <a href="{{ url_for('pagos.index', estado='procesado', metodo=metodo_filtro) }}"
-           class="filter-btn {% if estado_filtro == 'procesado' %}active{% endif %}">🟢 Procesado</a>
-        <a href="{{ url_for('pagos.index', estado='pagado', metodo=metodo_filtro) }}"
-           class="filter-btn {% if estado_filtro == 'pagado' %}active{% endif %}">🔵 Pagado</a>
-        <a href="{{ url_for('pagos.index', estado='manual', metodo=metodo_filtro) }}"
-           class="filter-btn {% if estado_filtro == 'manual' %}active{% endif %}">🟠 Manual</a>
-        <a href="{{ url_for('pagos.index', estado='revision', metodo=metodo_filtro) }}"
-           class="filter-btn {% if estado_filtro == 'revision' %}active{% endif %}">🔴 Revisión</a>
-    </div>
-
-    <div class="filter-bar">
-        <span style="font-size:0.8rem; font-weight:600; color:var(--c-text-2);">Método:</span>
-        <a href="{{ url_for('pagos.index', estado=estado_filtro) }}"
-           class="filter-btn {% if not metodo_filtro %}active{% endif %}">Todos</a>
-        <a href="{{ url_for('pagos.index', metodo='paypal', estado=estado_filtro) }}"
-           class="filter-btn {% if metodo_filtro == 'paypal' %}active{% endif %}"><i class="fab fa-paypal"></i> PayPal</a>
-        <a href="{{ url_for('pagos.index', metodo='zelle', estado=estado_filtro) }}"
-           class="filter-btn {% if metodo_filtro == 'zelle' %}active{% endif %}"><i class="fas fa-bolt"></i> Zelle</a>
-        <a href="{{ url_for('pagos.index', metodo='wise', estado=estado_filtro) }}"
-           class="filter-btn {% if metodo_filtro == 'wise' %}active{% endif %}"><i class="fas fa-globe"></i> Wise</a>
-    </div>
-
-    {% if pagos.items %}
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Fecha</th>
-                    <th>Método</th>
-                    <th>Destinatario</th>
-                    <th>Pagador</th>
-                    <th>Monto</th>
-                    <th>Neto / Base</th>
-                    <th>Valor a pagar</th>
-                    <th>Estado</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for pago in pagos.items %}
-                <tr>
-                    <td style="color:var(--c-text-3); font-size:0.75rem; font-weight:600;">#{{ pago.id }}</td>
-                    <td class="td-fecha">
-                        {% set fecha_ref = pago.fecha_pago or pago.created_at %}
-                        {% if fecha_ref %}
-                            {{ (fecha_ref.replace(tzinfo=none) - timedelta(hours=5)).strftime('%d/%m/%Y') }}
-                            <small style="display:block; color:var(--c-text-3);">
-                                {{ (fecha_ref.replace(tzinfo=none) - timedelta(hours=5)).strftime('%H:%M') }} COL
-                            </small>
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if pago.metodo == 'paypal' %}
-                            <span class="badge badge-paypal"><i class="fab fa-paypal" style="font-size:0.6rem;"></i> PayPal</span>
-                            {% if pago.subtipo == 'gs' %}<small class="metodo-sub">G&amp;S</small>
-                            {% elif pago.subtipo == 'payout' %}<small class="metodo-sub">Payout</small>
-                            {% elif pago.subtipo == 'ff' %}<small class="metodo-sub">F&amp;F</small>{% endif %}
-                        {% elif pago.metodo == 'zelle' %}
-                            <span class="badge badge-zelle"><i class="fas fa-bolt" style="font-size:0.6rem;"></i> Zelle</span>
-                        {% elif pago.metodo == 'wise' %}
-                            <span class="badge badge-wise"><i class="fas fa-globe" style="font-size:0.6rem;"></i> Wise</span>
-                        {% else %}
-                            <span class="badge">{{ pago.metodo }}</span>
-                        {% endif %}
-                    </td>
-                    <td style="font-size:0.82rem; color:var(--c-text-body); max-width:160px;">
-                        {% if pago.cuenta_destino %}
-                            {% set dest = pago.cuenta_destino %}
-                            {% if '<' in dest and '>' in dest %}
-                                {% set dest_nombre = dest.split('<')[0].strip().strip('"') %}
-                                {% set dest_email = dest.split('<')[1].rstrip('>').strip() %}
-                            {% else %}
-                                {% set dest_nombre = dest.split('@')[0] %}
-                                {% set dest_email = dest %}
-                            {% endif %}
-                            <span title="{{ dest_email }}" style="cursor:default;">{{ dest_nombre }}</span>
-                        {% else %}
-                            <span style="color:var(--c-text-3);">—</span>
-                        {% endif %}
-                    </td>
-                    <td class="td-pagador">
-                        {{ pago.pagador_nombre or '—' }}
-                        {% if pago.transaction_id %}<small>{{ pago.transaction_id }}</small>{% endif %}
-                    </td>
-                    <td class="td-monto">
-                        {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ "%.2f"|format(pago.importe_bruto) }}
-                        <small style="color:var(--c-text-3); font-weight:400;">{{ pago.moneda }}</small>
-                    </td>
-                    <td style="font-size:0.85rem;">
-                        {% if pago.importe_neto %}
-                            <span style="color:var(--c-success); font-weight:600;">${{ "%.2f"|format(pago.importe_neto) }}</span>
-                            {% if pago.comision %}
-                            <small style="color:var(--c-error); display:block;">-${{ "%.2f"|format(pago.comision) }} comisión</small>
-                            {% endif %}
-                        {% else %}
-                            <span style="color:var(--c-text-2);">—</span>
-                        {% endif %}
-                    </td>
-                    <td class="td-pagar {% if pago.estado == 'manual' %}manual{% endif %}">
-                        {% if pago.valor_a_pagar %}
-                            {{ "%.2f"|format(pago.valor_a_pagar) }}
-                            <small style="font-weight:400; color:var(--c-text-2);">{{ pago.moneda_pago_local }}</small>
-                        {% else %}
-                            <span style="color:var(--c-warning); font-size:0.8rem;"><i class="fas fa-clock"></i> Pendiente</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="badge badge-{{ pago.estado }}">
-                            {% if pago.estado == 'pendiente' %}<i class="fas fa-clock" style="font-size:0.6rem;"></i>
-                            {% elif pago.estado == 'procesado' %}<i class="fas fa-check" style="font-size:0.6rem;"></i>
-                            {% elif pago.estado == 'pagado' %}<i class="fas fa-check-double" style="font-size:0.6rem;"></i>
-                            {% elif pago.estado == 'revision' %}<i class="fas fa-exclamation" style="font-size:0.6rem;"></i>
-                            {% else %}<i class="fas fa-hand-paper" style="font-size:0.6rem;"></i>{% endif %}
-                            {{ pago.estado }}
-                        </span>
-                    </td>
-                    <td class="td-actions">
-                        <a href="{{ url_for('pagos.detail', pago_id=pago.id) }}" class="btn-edit" title="Ver / Editar">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    {% if pagos.pages > 1 %}
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; flex-wrap:wrap; gap:0.5rem;">
-        <span style="font-size:0.82rem; color:var(--c-text-2);">
-            Mostrando {{ pagos.per_page * (pagos.page - 1) + 1 }}–{{ [pagos.per_page * pagos.page, pagos.total]|min }}
-            de {{ pagos.total }} pagos
-        </span>
-        <div class="pagination">
-            <a href="{{ url_for('pagos.index', estado=estado_filtro, metodo=metodo_filtro, page=pagos.prev_num) if pagos.has_prev else '#' }}"
-               class="page-btn {% if not pagos.has_prev %}disabled{% endif %}"><i class="fas fa-chevron-left"></i></a>
-            {% for p in pagos.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                {% if p %}
-                <a href="{{ url_for('pagos.index', estado=estado_filtro, metodo=metodo_filtro, page=p) }}"
-                   class="page-btn {% if p == pagos.page %}active{% endif %}">{{ p }}</a>
-                {% else %}<span class="page-btn disabled">…</span>{% endif %}
-            {% endfor %}
-            <a href="{{ url_for('pagos.index', estado=estado_filtro, metodo=metodo_filtro, page=pagos.next_num) if pagos.has_next else '#' }}"
-               class="page-btn {% if not pagos.has_next %}disabled{% endif %}"><i class="fas fa-chevron-right"></i></a>
-        </div>
-    </div>
-    {% endif %}
-
-    {% else %}
-    <div class="empty-state">
-        <i class="fas fa-inbox"></i>
-        <p class="font-semibold mt-2" style="color:var(--c-text-2);">No hay pagos
-            {% if estado_filtro %}con estado "{{ estado_filtro }}"{% endif %}
-            {% if metodo_filtro %} del método "{{ metodo_filtro }}"{% endif %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">
+            <i class="fas fa-wallet mr-2" style="color:var(--color-primary);"></i>
+            Pago #{{ pago.id }}
+        </h2>
+        <p class="page-sub">
+            {{ pago.pagador_nombre or 'Pagador desconocido' }}
+            {% if pago.transaction_id %}· <span style="font-family:monospace;">{{ pago.transaction_id }}</span>{% endif %}
         </p>
-        <p class="text-sm mt-1">Presiona "Verificar correos ahora" para buscar pagos nuevos.</p>
     </div>
-    {% endif %}
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+        <span class="badge badge-{{ pago.estado }}">{{ pago.estado }}</span>
+        <a href="{{ url_for('pagos.index') }}" class="btn-ghost"><i class="fas fa-arrow-left"></i> Volver</a>
+    </div>
+</div>
 
+<div class="detail-grid">
+
+    <div>
+        <div class="detail-card" style="border-left:4px solid var(--color-primary);">
+            <div class="card-title"><i class="fas fa-dollar-sign"></i> Montos del Pago</div>
+
+            <div style="text-align:center; padding:0.5rem 0 1rem;">
+                <div class="monto-label">Importe recibido</div>
+                <div class="monto-big">
+                    {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ "%.2f"|format(pago.importe_bruto) }}
+                </div>
+                <div class="monto-label">{{ pago.moneda }}</div>
+            </div>
+
+            {% if pago.comision %}
+            <hr class="section-divider">
+            <div class="field-row">
+                <span class="field-label">Comisión</span>
+                <span class="field-value" style="color:var(--c-error);">-${{ "%.2f"|format(pago.comision) }} {{ pago.moneda }}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Neto (base de cálculo)</span>
+                <span class="field-value" style="color:var(--c-success);">${{ "%.2f"|format(pago.importe_neto) }} {{ pago.moneda }}</span>
+            </div>
+            {% endif %}
+
+            {% if pago.valor_a_pagar %}
+            <hr class="section-divider">
+            <div class="field-row">
+                <span class="field-label">Valor a pagar al cliente</span>
+                <span class="field-value" style="color:var(--c-success); font-size:1.05rem;">{{ "%.2f"|format(pago.valor_a_pagar) }} {{ pago.moneda_pago_local }}</span>
+            </div>
+            {% if pago.tasa_aplicada %}
+            <div class="field-row">
+                <span class="field-label">Tasa aplicada</span>
+                <span class="field-value" style="font-size:0.8rem; color:var(--c-text-2);">1 USD = {{ "%.2f"|format(pago.tasa_aplicada) }} {{ pago.moneda_pago_local }}</span>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        <div class="detail-card">
+            <div class="card-title"><i class="fas fa-user"></i> Datos del Pagador</div>
+            <div class="field-row">
+                <span class="field-label">Nombre</span>
+                <span class="field-value">{{ pago.pagador_nombre or '—' }}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Método</span>
+                <span class="field-value">
+                    {% if pago.metodo == 'paypal' %}<span class="m-badge m-paypal"><i class="fab fa-paypal" style="font-size:0.6rem;"></i> PayPal</span>
+                    {% elif pago.metodo == 'zelle' %}<span class="m-badge m-zelle"><i class="fas fa-bolt" style="font-size:0.6rem;"></i> Zelle</span>
+                    {% elif pago.metodo == 'wise' %}<span class="m-badge m-wise"><i class="fas fa-globe" style="font-size:0.6rem;"></i> Wise</span>
+                    {% else %}{{ pago.metodo }}{% endif %}
+                </span>
+            </div>
+            {% if pago.metodo == 'paypal' and pago.subtipo %}
+            <div class="field-row">
+                <span class="field-label">Subtipo</span>
+                <span class="field-value">
+                    {% if pago.subtipo == 'gs' %}Goods &amp; Services
+                    {% elif pago.subtipo == 'payout' %}Payout de plataforma
+                    {% else %}Friends &amp; Family{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            <div class="field-row">
+                <span class="field-label">Fecha del pago</span>
+                <span class="field-value">{% if pago.fecha_pago %}{{ pago.fecha_pago.strftime('%d/%m/%Y') }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">ID transacción</span>
+                <span class="field-value" style="font-family:monospace; font-size:0.8rem;">{{ pago.transaction_id or '—' }}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Cuenta destino</span>
+                <span class="field-value" style="font-size:0.8rem;">{{ pago.cuenta_destino or '—' }}</span>
+            </div>
+            {% if pago.memo %}
+            <div class="field-row">
+                <span class="field-label">Memo / Concepto</span>
+                <span class="field-value">{{ pago.memo }}</span>
+            </div>
+            {% endif %}
+            {% if pago.direccion_envio %}
+            <div class="field-row" style="flex-direction:column; gap:0.25rem;">
+                <span class="field-label">Dirección de envío</span>
+                <span style="font-size:0.8rem; color:var(--c-text); line-height:1.5;">{{ pago.direccion_envio }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div>
+        {% if pago.es_moneda_soportada %}
+        <div class="calc-section">
+            <div class="calc-title"><i class="fas fa-calculator"></i> Calcular valor a pagar</div>
+
+            <label style="color:#D1D5DB; font-size:0.8rem; font-weight:600; display:block; margin-bottom:0.4rem;">Moneda local del cliente</label>
+            <select id="selectMoneda" class="calc-select" onchange="calcularValor()">
+                <option value="">— Selecciona moneda —</option>
+                {% for moneda in monedas %}
+                <option value="{{ moneda.code }}" {% if pago.moneda_pago_local == moneda.code %}selected{% endif %}>{{ moneda.code }} — {{ moneda.name }}</option>
+                {% endfor %}
+            </select>
+
+            <div id="calcResult" class="calc-result {% if pago.valor_a_pagar %}show{% endif %}">
+                <div style="color:#D1D5DB; font-size:0.75rem; font-weight:600; margin-bottom:0.3rem;">VALOR A PAGAR AL CLIENTE</div>
+                <div class="calc-result-num" id="resultNum">
+                    {% if pago.valor_a_pagar %}{{ "%.2f"|format(pago.valor_a_pagar) }} {{ pago.moneda_pago_local }}{% endif %}
+                </div>
+                <div class="calc-result-sub" id="resultSub">
+                    {% if pago.tasa_aplicada %}Tasa: 1 USD = {{ "%.2f"|format(pago.tasa_aplicada) }} {{ pago.moneda_pago_local }} · Base: ${{ "%.2f"|format(pago.monto_base_calculo) if pago.monto_base_calculo else "—" }}{% endif %}
+                </div>
+            </div>
+
+            <button onclick="aplicarCalculo()" id="btnAplicar" class="btn-primary" style="margin-top:0.75rem;" {% if not pago.valor_a_pagar %}disabled{% endif %}>
+                <i class="fas fa-save" id="iconAplicar"></i>
+                <span id="lblAplicar">Guardar cálculo</span>
+            </button>
+        </div>
+        {% else %}
+        <div class="detail-card" style="border-left:4px solid var(--color-warning); background:var(--color-primary-light);">
+            <div class="card-title" style="color:var(--c-warning);"><i class="fas fa-exclamation-triangle"></i> Moneda no USD</div>
+            <p style="font-size:0.85rem; color:var(--c-text-2); line-height:1.6;">
+                Este pago es en <strong>{{ pago.moneda }}</strong>. Ingresa el valor a pagar manualmente en la sección de edición.
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="detail-card">
+            <div class="card-title"><i class="fas fa-edit"></i> Editar pago</div>
+
+            <div style="margin-bottom:1rem;">
+                <label style="font-size:0.8rem; font-weight:600; color:var(--c-text-2); display:block; margin-bottom:0.5rem;">Estado</label>
+                <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="estadoBtns">
+                    {% for est in ['pendiente', 'procesado', 'pagado', 'revision', 'manual'] %}
+                    <button class="btn-estado {% if pago.estado == est %}active{% endif %}" onclick="setEstado('{{ est }}')" data-estado="{{ est }}">{{ est }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if not pago.es_moneda_soportada %}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+                <div>
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--c-text-2); display:block; margin-bottom:0.4rem;">Moneda local</label>
+                    <select id="editMoneda" class="calc-select">
+                        <option value="">—</option>
+                        {% for moneda in monedas %}
+                        <option value="{{ moneda.code }}" {% if pago.moneda_pago_local == moneda.code %}selected{% endif %}>{{ moneda.code }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--c-text-2); display:block; margin-bottom:0.4rem;">Valor a pagar</label>
+                    <input type="number" step="0.01" id="editValor" value="{{ pago.valor_a_pagar or '' }}" placeholder="0.00"
+                           style="width:100%; padding:0.6rem 0.9rem; border:2px solid var(--c-border); border-radius:0.5rem; font-size:0.9rem; outline:none; background:var(--c-surface); color:var(--c-text);">
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="margin-bottom:1rem;">
+                <label style="font-size:0.8rem; font-weight:600; color:var(--c-text-2); display:block; margin-bottom:0.4rem;">
+                    <i class="fas fa-sticky-note" style="color:var(--color-primary);"></i> Notas del operador
+                </label>
+                <textarea id="editNotas" class="notes-input" placeholder="Notas sobre el cliente o el pago...">{{ pago.notas or '' }}</textarea>
+            </div>
+
+            <button onclick="guardarEdicion()" id="btnGuardar" class="btn-primary">
+                <i class="fas fa-save" id="iconGuardar"></i>
+                <span id="lblGuardar">Guardar cambios</span>
+            </button>
+        </div>
+
+        <div class="detail-card">
+            <div class="card-title"><i class="fas fa-info-circle"></i> Metadatos</div>
+            <div class="field-row">
+                <span class="field-label">Registrado</span>
+                <span class="field-value" style="font-size:0.8rem;">{% if pago.created_at %}{{ pago.created_at.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Actualizado</span>
+                <span class="field-value" style="font-size:0.8rem;">{% if pago.updated_at %}{{ pago.updated_at.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Message ID</span>
+                <span class="field-value" style="font-family:monospace; font-size:0.7rem; color:var(--c-text-3); word-break:break-all;">{{ pago.email_message_id }}</span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div id="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg"></span></div>
@@ -390,6 +355,9 @@
 
 {% block extra_js %}
 <script>
+const PAGO_ID = {{ pago.id }};
+let estadoActual = '{{ pago.estado }}';
+
 function showToast(msg, error=false) {
     const t = document.getElementById('toast');
     document.getElementById('toastMsg').textContent = msg;
@@ -398,103 +366,81 @@ function showToast(msg, error=false) {
     setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-async function ingestar() {
-    const btn  = document.getElementById('btnIngestar');
-    const icon = document.getElementById('iconIngestar');
-    const lbl  = document.getElementById('lblIngestar');
-
-    btn.disabled = true; icon.classList.add('spin'); lbl.textContent = 'Verificando...';
-
-    try {
-        const r = await fetch('/dashboard/pagos/api/ingestar', { method: 'POST' });
-        const d = await r.json();
-        if (d.success) {
-            if (d.procesados > 0) {
-                showToast(`✅ ${d.procesados} nuevo${d.procesados > 1 ? 's' : ''} pago${d.procesados > 1 ? 's' : ''} registrado${d.procesados > 1 ? 's' : ''}`);
-                setTimeout(() => location.reload(), 1800);
-            } else {
-                showToast('Sin correos nuevos');
-            }
-        } else {
-            showToast(d.mensaje || 'Error al verificar', true);
-        }
-    } catch(e) {
-        showToast('Error de conexión', true);
-    } finally {
-        btn.disabled = false; icon.classList.remove('spin'); lbl.textContent = 'Verificar correos ahora';
-    }
+function setEstado(est) {
+    estadoActual = est;
+    document.querySelectorAll('.btn-estado').forEach(b => { b.classList.toggle('active', b.dataset.estado === est); });
 }
 
-// ── Scheduler control ──────────────────────────────────────────────
-let _schEstado = 'desconocido';
-
-async function cargarEstadoScheduler() {
+async function calcularValor() {
+    const moneda = document.getElementById('selectMoneda').value;
+    if (!moneda) return;
+    const result = document.getElementById('calcResult');
+    const num = document.getElementById('resultNum');
+    const sub = document.getElementById('resultSub');
+    const btn = document.getElementById('btnAplicar');
+    num.textContent = '...'; result.classList.add('show');
     try {
-        const r = await fetch('/dashboard/pagos/api/scheduler/estado');
-        const d = await r.json();
-        const badge  = document.getElementById('schEstadoBadge');
-        const toggle = document.getElementById('btnSchToggle');
-        if (!d.disponible || d.estado === 'no_disponible') {
-            badge.textContent = 'no disponible';
-            badge.style.cssText = 'background:var(--c-border);color:var(--c-text-2);';
-            toggle.style.display = 'none';
-        } else {
-            _schEstado = d.estado;
-            if (d.estado === 'activo') {
-                badge.textContent = '● activo';
-                badge.style.cssText = 'background:var(--color-success);color:#fff;';
-                toggle.textContent = 'Pausar';
-            } else {
-                badge.textContent = '● pausado';
-                badge.style.cssText = 'background:var(--color-warning);color:#fff;';
-                toggle.textContent = 'Reanudar';
-            }
-        }
-    } catch(e) { /* sin scheduler, ignorar */ }
-}
-
-async function toggleScheduler() {
-    const endpoint = _schEstado === 'activo'
-        ? '/dashboard/pagos/api/scheduler/pausar'
-        : '/dashboard/pagos/api/scheduler/reanudar';
-    try {
-        const r = await fetch(endpoint, { method: 'POST' });
-        const d = await r.json();
-        if (d.success) {
-            showToast(_schEstado === 'activo' ? '⏸ Scheduler pausado' : '▶ Scheduler reanudado');
-            await cargarEstadoScheduler();
-        } else {
-            showToast(d.error || 'Error al cambiar estado', true);
-        }
-    } catch(e) { showToast('Error de conexión', true); }
-}
-
-async function importarDesde() {
-    const desde = document.getElementById('inputDesde').value;
-    if (!desde) { showToast('Selecciona una fecha', true); return; }
-    const btn  = document.getElementById('btnImportar');
-    const icon = document.getElementById('iconImportar');
-    const lbl  = document.getElementById('lblImportar');
-    btn.disabled = true; icon.className = 'fas fa-sync-alt spin'; lbl.textContent = 'Importando...';
-    try {
-        const r = await fetch('/dashboard/pagos/api/importar_desde', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ desde_fecha: desde })
+        const r = await fetch(`/dashboard/pagos/api/calcular/${PAGO_ID}`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ moneda, solo_calcular: true })
         });
         const d = await r.json();
         if (d.success) {
-            showToast(`✅ ${d.procesados} nuevos · ${d.duplicados} dup · ${d.no_reconocidos} ignorados`);
-            if (d.procesados > 0) setTimeout(() => location.reload(), 2000);
+            num.textContent = `${d.valor_a_pagar.toFixed(2)} ${moneda}`;
+            sub.textContent = `Tasa: 1 USD = ${d.tasa_aplicada?.toFixed(2)} ${moneda} · Base: $${d.monto_base?.toFixed(2)}`;
+            btn.disabled = false;
         } else {
-            showToast(d.error || d.mensaje || 'Error al importar', true);
+            num.textContent = d.error || 'Sin cotización disponible'; sub.textContent = ''; btn.disabled = true;
         }
-    } catch(e) { showToast('Error de conexión', true); }
-    finally {
-        btn.disabled = false; icon.className = 'fas fa-cloud-download-alt'; lbl.textContent = 'Importar';
-    }
+    } catch(e) { num.textContent = 'Error de conexión'; btn.disabled = true; }
 }
 
-document.addEventListener('DOMContentLoaded', cargarEstadoScheduler);
+async function aplicarCalculo() {
+    const moneda = document.getElementById('selectMoneda').value;
+    if (!moneda) return;
+    const btn = document.getElementById('btnAplicar');
+    const icon = document.getElementById('iconAplicar');
+    const lbl = document.getElementById('lblAplicar');
+    btn.disabled = true; icon.classList.add('spin'); lbl.textContent = 'Guardando...';
+    try {
+        const r = await fetch(`/dashboard/pagos/api/calcular/${PAGO_ID}`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ moneda })
+        });
+        const d = await r.json();
+        if (d.success) {
+            showToast(`✅ Calculado: ${d.valor_a_pagar.toFixed(2)} ${moneda}`);
+            setTimeout(() => location.reload(), 1500);
+        } else { showToast(d.error || 'Error al calcular', true); btn.disabled = false; }
+    } catch(e) { showToast('Error de conexión', true); btn.disabled = false; }
+    finally { icon.classList.remove('spin'); lbl.textContent = 'Guardar cálculo'; }
+}
+
+async function guardarEdicion() {
+    const btn = document.getElementById('btnGuardar');
+    const icon = document.getElementById('iconGuardar');
+    const lbl = document.getElementById('lblGuardar');
+    btn.disabled = true; icon.classList.add('spin'); lbl.textContent = 'Guardando...';
+    const payload = { estado: estadoActual, notas: document.getElementById('editNotas').value.trim() || null };
+    const editMoneda = document.getElementById('editMoneda');
+    const editValor  = document.getElementById('editValor');
+    if (editMoneda && editMoneda.value) payload.moneda_pago_local = editMoneda.value;
+    if (editValor  && editValor.value)  payload.valor_a_pagar = parseFloat(editValor.value);
+    try {
+        const r = await fetch(`/dashboard/pagos/api/editar/${PAGO_ID}`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (d.success) { showToast('✅ Cambios guardados'); setTimeout(() => location.reload(), 1500); }
+        else { showToast(d.error || 'Error al guardar', true); btn.disabled = false; }
+    } catch(e) { showToast('Error de conexión', true); btn.disabled = false; }
+    finally { icon.classList.remove('spin'); lbl.textContent = 'Guardar cambios'; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('selectMoneda');
+    if (sel && sel.value) calcularValor();
+});
 </script>
 {% endblock %}
