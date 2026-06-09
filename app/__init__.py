@@ -114,8 +114,17 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
 
-     # Scheduler de ingesta de pagos
-    from app.services.unified_ingestion_service import inicializar_scheduler_unificado
-    inicializar_scheduler_unificado(app)   
-    
+    # Scheduler de ingesta de pagos:
+    #   - DEV (FLASK_ENV=development): scheduler embebido, con su botón de pausa.
+    #   - PRODUCCIÓN: NO se arranca aquí. Si se hiciera, cada worker de Gunicorn
+    #     levantaría su propio scheduler (3 workers = 3 schedulers compitiendo
+    #     por los mismos correos). En prod la ingesta la dispara cron cada 5 min
+    #     vía scripts/run_ingesta.py (un único proceso por ejecución).
+    import os
+    if os.environ.get('FLASK_ENV', '').lower() == 'development':
+        from app.services.unified_ingestion_service import (
+            inicializar_scheduler_unificado
+        )
+        inicializar_scheduler_unificado(app)
+
     return app
