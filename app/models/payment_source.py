@@ -125,6 +125,18 @@ class PaymentSource(BaseModel):
                 'remitente': 'customerservice@ealerts.bankofamerica.com',
                 'asunto_contiene': None,
             },
+            {
+                'nombre': 'Skrill',
+                'metodo': PaymentProvider.SKRILL,
+                'remitente': 'no-reply@email.skrill.com',
+                'asunto_contiene': None,
+            },
+            {
+                'nombre': 'Binance',
+                'metodo': PaymentProvider.BINANCE,
+                'remitente': 'do-not-reply@ses.binance.com',
+                'asunto_contiene': None,
+            },
         ]
 
         creadas = 0

@@ -12,6 +12,8 @@ from app.services.parsers.base import EmailPaymentParser
 from app.services.parsers.paypal_parser import PaypalParser
 from app.services.parsers.wise_parser import WiseParser
 from app.services.parsers.zelle_parser import ZelleParser
+from app.services.parsers.skrill_parser import SkrillParser
+from app.services.parsers.binance_parser import BinanceParser
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,8 @@ class ParserRegistry:
     @staticmethod
     def _default_parsers() -> List[EmailPaymentParser]:
         """Parsers registrados por defecto (orden = prioridad de evaluacion)."""
-        return [PaypalParser(), WiseParser(), ZelleParser()]
+        return [PaypalParser(), WiseParser(), ZelleParser(),
+                SkrillParser(), BinanceParser()]
 
     def seleccionar(self, correo: dict) -> Optional[EmailPaymentParser]:
         """

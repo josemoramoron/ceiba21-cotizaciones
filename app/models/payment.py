@@ -27,8 +27,10 @@ class PaymentProvider:
     PAYPAL = 'paypal'
     ZELLE = 'zelle'
     WISE = 'wise'
+    SKRILL = 'skrill'
+    BINANCE = 'binance'
 
-    TODOS = (PAYPAL, ZELLE, WISE)
+    TODOS = (PAYPAL, ZELLE, WISE, SKRILL, BINANCE)
 
 
 class PaymentStatus:
