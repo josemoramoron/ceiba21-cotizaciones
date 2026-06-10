@@ -72,7 +72,7 @@
     tbody td { padding:0.85rem 1rem; font-size:0.875rem; color:var(--c-text); vertical-align:middle; }
 
     .td-pagador { font-weight:600; max-width:180px; }
-    .td-pagador small { display:block; font-weight:400; color:var(--c-text-2); font-size:0.75rem; margin-top:0.1rem; }
+    .td-pagador small { display:block; font-weight:400; color:var(--c-text-2); font-size:0.75rem; margin-top:0.1rem; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .td-monto { font-weight:700; font-size:0.95rem; white-space:nowrap; }
     .td-pagar { font-weight:700; color:var(--c-success); white-space:nowrap; }
     .td-pagar.manual { color:var(--c-warning); }
@@ -96,6 +96,8 @@
     .badge-paypal { background:var(--color-paypal-bg); color:var(--color-paypal-text); }
     .badge-zelle  { background:var(--color-zelle-bg);  color:var(--color-zelle-text); }
     .badge-wise   { background:var(--color-wise-bg);   color:var(--color-wise-text); }
+    .badge-skrill { background:var(--color-skrill-bg); color:var(--color-skrill-text); }
+    .badge-binance{ background:var(--color-binance-bg);color:var(--color-binance-text); }
     .metodo-sub   { display:block; font-weight:600; color:var(--c-text-2); font-size:0.66rem; margin-top:0.2rem; text-transform:uppercase; letter-spacing:0.04em; }
 
     .btn-edit {
@@ -157,7 +159,7 @@
                 <i class="fas fa-wallet mr-2" style="color:var(--color-primary);"></i>
                 Pagos
             </h2>
-            <p class="page-sub">Pagos recibidos vía Gmail (PayPal, Zelle, Wise) — actualizados automáticamente cada 5 minutos</p>
+            <p class="page-sub">Pagos recibidos vía Gmail (PayPal, Zelle, Wise, Skrill, Binance) — actualizados automáticamente cada 5 minutos</p>
         </div>
         <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
             <button onclick="ingestar()" id="btnIngestar" class="btn-primary">
@@ -243,6 +245,10 @@
            class="filter-btn {% if metodo_filtro == 'zelle' %}active{% endif %}"><i class="fas fa-bolt"></i> Zelle</a>
         <a href="{{ url_for('pagos.index', metodo='wise', estado=estado_filtro) }}"
            class="filter-btn {% if metodo_filtro == 'wise' %}active{% endif %}"><i class="fas fa-globe"></i> Wise</a>
+        <a href="{{ url_for('pagos.index', metodo='skrill', estado=estado_filtro) }}"
+           class="filter-btn {% if metodo_filtro == 'skrill' %}active{% endif %}"><i class="fas fa-wallet"></i> Skrill</a>
+        <a href="{{ url_for('pagos.index', metodo='binance', estado=estado_filtro) }}"
+           class="filter-btn {% if metodo_filtro == 'binance' %}active{% endif %}"><i class="fas fa-coins"></i> Binance</a>
     </div>
 
     {% if pagos.items %}
@@ -285,6 +291,10 @@
                             <span class="badge badge-zelle"><i class="fas fa-bolt" style="font-size:0.6rem;"></i> Zelle</span>
                         {% elif pago.metodo == 'wise' %}
                             <span class="badge badge-wise"><i class="fas fa-globe" style="font-size:0.6rem;"></i> Wise</span>
+                        {% elif pago.metodo == 'skrill' %}
+                            <span class="badge badge-skrill"><i class="fas fa-wallet" style="font-size:0.6rem;"></i> Skrill</span>
+                        {% elif pago.metodo == 'binance' %}
+                            <span class="badge badge-binance"><i class="fas fa-coins" style="font-size:0.6rem;"></i> Binance</span>
                         {% else %}
                             <span class="badge">{{ pago.metodo }}</span>
                         {% endif %}
@@ -309,7 +319,7 @@
                     </td>
                     <td class="td-pagador">
                         {{ pago.pagador_nombre or '—' }}
-                        {% if pago.transaction_id %}<small>{{ pago.transaction_id }}</small>{% endif %}
+                        {% if pago.transaction_id %}<small title="{{ pago.transaction_id }}">{{ pago.transaction_id }}</small>{% endif %}
                     </td>
                     <td class="td-monto">
                         {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ "%.2f"|format(pago.importe_bruto) }}

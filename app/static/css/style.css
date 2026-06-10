@@ -57,6 +57,10 @@
   --color-zelle-text:  #5B21B6;
   --color-wise-bg:     #D1FAE5;
   --color-wise-text:   #065F46;
+  --color-skrill-bg:   #FCE7F3;
+  --color-skrill-text: #9D174D;
+  --color-binance-bg:  #FEF3C7;
+  --color-binance-text:#92400E;
 
   /* Textos secundarios adicionales */
   --color-text-subtle: #9CA3AF;
@@ -102,6 +106,10 @@
   --color-zelle-text:  #C4B5FD;
   --color-wise-bg:     #0C2E22;
   --color-wise-text:   #6EE7B7;
+  --color-skrill-bg:   #3B0A22;
+  --color-skrill-text: #F9A8D4;
+  --color-binance-bg:  #3A2A08;
+  --color-binance-text:#FCD34D;
 
   /* Textos secundarios adicionales */
   --color-text-subtle: #6B7280;
