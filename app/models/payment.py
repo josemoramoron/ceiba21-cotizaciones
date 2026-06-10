@@ -250,6 +250,11 @@ class Payment(BaseModel):
         """Nota/concepto del remitente si existe (p. ej. memo de Zelle)."""
         return (self.datos_extra or {}).get('memo')
 
+    @property
+    def es_manual(self) -> bool:
+        """True si el pago se registró manualmente (no vino de un correo)."""
+        return (self.datos_extra or {}).get('origen') == 'manual'
+
     # ── Mutadores ─────────────────────────────────────────────────────
     def set_dato_extra(self, clave: str, valor: Any) -> None:
         """
@@ -311,6 +316,7 @@ class Payment(BaseModel):
         data['subtipo'] = self.subtipo
         data['direccion_envio'] = self.direccion_envio
         data['memo'] = self.memo
+        data['es_manual'] = self.es_manual
 
         if include_relationships and self.cotizacion:
             data['cotizacion'] = self.cotizacion.to_dict()

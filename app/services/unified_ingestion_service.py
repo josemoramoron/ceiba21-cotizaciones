@@ -16,7 +16,9 @@ este servicio y a la tabla payments- es un paso posterior y deliberado.
 import imaplib
 import logging
 from datetime import datetime
-from typing import Optional, Union
+from decimal import Decimal, InvalidOperation
+from typing import Optional, Union, Tuple
+from uuid import uuid4
 
 from flask import current_app
 from sqlalchemy import func
@@ -159,6 +161,102 @@ class UnifiedIngestionService:
             f"{pago.importe_bruto} {pago.moneda} | ID: {pago.id} | {pago.estado}"
         )
         return pago
+
+    def crear_pago_manual(
+        self,
+        datos: dict,
+        operador_id: Optional[int] = None
+    ) -> Tuple[Optional[Payment], Optional[str]]:
+        """Registra un pago ingresado manualmente desde el dashboard.
+
+        Para métodos que no llegan por correo (ej. Zinli). Reutiliza la misma
+        cotización que la ingesta automática (CalculatorService +
+        Payment.aplicar_calculo), por lo que un método nuevo dado de alta en el
+        dashboard de métodos queda disponible aquí sin cambios de código.
+
+        Args:
+            datos: dict con claves metodo, pagador_nombre, importe_bruto, moneda,
+                moneda_local, transaction_id, cuenta_destino, notas (escalares).
+            operador_id: Operator que registra el pago.
+
+        Returns:
+            (Payment, None) si se creó, o (None, mensaje_error) si falló.
+        """
+        metodo = (datos.get('metodo') or '').strip().lower()
+        if not metodo:
+            return None, 'Debes seleccionar un método de pago'
+
+        try:
+            importe = Decimal(str(datos.get('importe_bruto')))
+        except (InvalidOperation, TypeError, ValueError):
+            return None, 'Monto inválido'
+        if importe <= 0:
+            return None, 'El monto debe ser mayor que cero'
+
+        transaction_id = (datos.get('transaction_id') or '').strip() or None
+        if transaction_id and Payment.get_by_transaction_id(transaction_id):
+            return None, f'Ya existe un pago con la referencia {transaction_id}'
+
+        moneda = (datos.get('moneda') or 'USD').strip().upper()
+        cotizable = moneda == 'USD'
+
+        pago = Payment(
+            email_message_id=f'manual:{uuid4().hex}',
+            cuenta_destino=(datos.get('cuenta_destino') or '').strip() or None,
+            metodo=metodo,
+            pagador_nombre=(datos.get('pagador_nombre') or '').strip() or None,
+            importe_bruto=importe,
+            moneda=moneda,
+            transaction_id=transaction_id,
+            fecha_pago=datos.get('fecha_pago') or datetime.utcnow(),
+            notas=(datos.get('notas') or '').strip() or None,
+            estado=PaymentStatus.PENDIENTE if cotizable else PaymentStatus.MANUAL,
+            procesado_por=operador_id,
+            datos_extra={'origen': 'manual'},
+        )
+
+        if cotizable:
+            moneda_local = (
+                datos.get('moneda_local')
+                or current_app.config.get('DEFAULT_LOCAL_CURRENCY', 'VES')
+            )
+            self._cotizar_manual(pago, moneda_local, operador_id)
+
+        try:
+            db.session.add(pago)
+            db.session.commit()
+            return pago, None
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            logger.error(f"Error guardando pago manual: {e}")
+            return None, 'Error de base de datos al guardar el pago'
+
+    def _cotizar_manual(
+        self,
+        pago: Payment,
+        moneda_local: str,
+        operador_id: Optional[int]
+    ) -> None:
+        """Aplica la cotización a un pago manual (misma tasa que la automática)."""
+        monto_base = pago.monto_base_calculo
+        if monto_base is None:
+            return
+        try:
+            resultado = CalculatorService.calcular_pago_recibido(
+                monto_base=monto_base,
+                currency_code=moneda_local,
+                metodo_code=pago.metodo
+            )
+            if resultado and 'error' not in resultado:
+                pago.aplicar_calculo(resultado, operador_id)
+            else:
+                motivo = resultado.get('error') if resultado else 'sin resultado'
+                logger.warning(
+                    f"Pago manual sin cotización ({pago.metodo}/{moneda_local}): "
+                    f"{motivo}; queda pendiente"
+                )
+        except (ValueError, SQLAlchemyError) as e:
+            logger.warning(f"Error cotizando pago manual: {e}")
 
     def _crear_pago(
         self,

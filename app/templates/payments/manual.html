@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar pago manual{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .page-title { font-size:1.4rem; font-weight:700; color:var(--c-text); }
+    .page-sub   { font-size:0.85rem; color:var(--c-text-2); margin-top:0.25rem; }
+
+    .btn-primary {
+        display:inline-flex; align-items:center; gap:0.5rem; padding:0.6rem 1.1rem;
+        background:var(--color-primary); color:#1A1A1A; font-weight:600; border:none;
+        border-radius:0.6rem; cursor:pointer; transition:all 0.15s; font-size:0.9rem;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
+    .btn-ghost {
+        display:inline-flex; align-items:center; gap:0.5rem; padding:0.6rem 1.1rem;
+        background:transparent; color:var(--c-text-2); border:1px solid var(--c-border);
+        border-radius:0.6rem; cursor:pointer; transition:all 0.15s; font-size:0.9rem; text-decoration:none;
+    }
+    .btn-ghost:hover { border-color:var(--c-text); color:var(--c-text); }
+
+    .manual-form { max-width:660px; }
+    .form-row { margin-bottom:1.1rem; }
+    .form-row label { display:block; font-size:0.8rem; font-weight:600; color:var(--c-text-2); margin-bottom:0.35rem; }
+    .form-row input, .form-row select, .form-row textarea {
+        width:100%; padding:0.6rem 0.75rem; border:1px solid var(--c-border);
+        border-radius:0.5rem; background:var(--c-surface); color:var(--c-text);
+        font-size:0.9rem; font-family:inherit;
+    }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+        outline:none; border-color:var(--color-primary);
+    }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .req { color:var(--c-error); }
+
+    .preview-box {
+        margin-top:0.25rem; padding:1rem 1.25rem; border-radius:0.6rem;
+        border:1px dashed var(--c-border); background:var(--c-surface);
+    }
+    .preview-label { font-size:0.75rem; color:var(--c-text-2); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+    .preview-value { font-size:1.7rem; font-weight:800; color:var(--color-primary); margin:0.2rem 0; }
+    .preview-detail { font-size:0.78rem; color:var(--c-text-3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rounded-xl shadow-lg p-6" style="background:var(--color-surface);">
+
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">
+                <i class="fas fa-pen mr-2" style="color:var(--color-primary);"></i>
+                Registrar pago manual
+            </h2>
+            <p class="page-sub">Para pagos que no llegan por correo (ej. Zinli u otros métodos ocasionales).</p>
+        </div>
+        <a href="{{ url_for('pagos.index') }}" class="btn-ghost">
+            <i class="fas fa-arrow-left"></i> Volver a Pagos
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('pagos.crear_manual') }}" class="manual-form" id="formManual">
+
+        <div class="form-row">
+            <label for="selMetodo">Método de pago <span class="req">*</span></label>
+            <select name="metodo" id="selMetodo" required>
+                <option value="">— Selecciona —</option>
+                {% for m in metodos %}
+                <option value="{{ m.code }}">{{ m.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row">
+            <label for="inpPagador">Pagador <span class="req">*</span></label>
+            <input type="text" name="pagador_nombre" id="inpPagador" required maxlength="255" placeholder="Nombre del cliente">
+        </div>
+
+        <div class="form-grid">
+            <div class="form-row">
+                <label for="inpMonto">Monto <span class="req">*</span></label>
+                <input type="number" name="importe_bruto" id="inpMonto" step="0.01" min="0.01" required placeholder="0.00">
+            </div>
+            <div class="form-row">
+                <label for="selMoneda">Moneda del pago</label>
+                <select name="moneda" id="selMoneda">
+                    <option value="USD" selected>USD</option>
+                    <option value="EUR">EUR</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label for="selMonedaLocal">Moneda local a pagar</label>
+            <select name="moneda_local" id="selMonedaLocal">
+                {% for c in monedas %}
+                <option value="{{ c.code }}" {% if c.code == moneda_default %}selected{% endif %}>{{ c.code }} — {{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="preview-box">
+            <div class="preview-label">Valor a pagar (estimado)</div>
+            <div class="preview-value" id="previewValor">—</div>
+            <div class="preview-detail" id="previewDetalle">Elige método, monto y moneda local para ver el cálculo.</div>
+        </div>
+
+        <div class="form-grid" style="margin-top:1.1rem;">
+            <div class="form-row">
+                <label for="inpRef">Referencia / ID (opcional)</label>
+                <input type="text" name="transaction_id" id="inpRef" maxlength="100" placeholder="Nº de referencia">
+            </div>
+            <div class="form-row">
+                <label for="inpDest">Destinatario (opcional)</label>
+                <input type="text" name="cuenta_destino" id="inpDest" maxlength="255" placeholder="Cuenta que recibió">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label for="inpNotas">Notas (opcional)</label>
+            <textarea name="notas" id="inpNotas" rows="2" placeholder="Notas del operador"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">
+            <i class="fas fa-save"></i> Registrar pago
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const URL_PREVIEW = "{{ url_for('pagos.api_calcular_manual') }}";
+    const elMetodo = document.getElementById('selMetodo');
+    const elMonto  = document.getElementById('inpMonto');
+    const elMoneda = document.getElementById('selMoneda');
+    const elLocal  = document.getElementById('selMonedaLocal');
+    const outValor = document.getElementById('previewValor');
+    const outDet   = document.getElementById('previewDetalle');
+
+    function reset(mensaje) {
+        outValor.textContent = '—';
+        outDet.textContent = mensaje;
+    }
+
+    function pedirPreview() {
+        const metodo = elMetodo.value;
+        const monto = parseFloat(elMonto.value);
+        const moneda = elMoneda.value;
+        const local = elLocal.value;
+
+        if (!metodo || !monto || monto <= 0) {
+            reset('Elige método, monto y moneda local para ver el cálculo.');
+            return;
+        }
+        if (moneda !== 'USD') {
+            reset('Solo se cotiza automáticamente en USD; otras monedas quedan para ajuste manual.');
+            return;
+        }
+
+        fetch(URL_PREVIEW, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metodo: metodo, monto: monto, moneda_local: local })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.error) {
+                reset(d.error);
+            } else {
+                outValor.textContent = d.valor_a_pagar + ' ' + d.moneda_local;
+                outDet.textContent = 'Tasa: ' + d.tasa_aplicada + ' · base ' + d.monto_base + ' USD';
+            }
+        })
+        .catch(function () { reset('No se pudo calcular en este momento.'); });
+    }
+
+    let timer = null;
+    function debounced() { clearTimeout(timer); timer = setTimeout(pedirPreview, 350); }
+
+    [elMetodo, elMonto, elMoneda, elLocal].forEach(function (el) {
+        el.addEventListener('change', debounced);
+        el.addEventListener('input', debounced);
+    });
+</script>
+{% endblock %}

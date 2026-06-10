@@ -166,6 +166,9 @@
                 <i class="fas fa-sync-alt" id="iconIngestar"></i>
                 <span id="lblIngestar">Verificar correos ahora</span>
             </button>
+            <a href="{{ url_for('pagos.manual') }}" class="btn-ghost">
+                <i class="fas fa-pen"></i> Registrar pago manual
+            </a>
             <a href="{{ url_for('dashboard.index') }}" class="btn-ghost">
                 <i class="fas fa-arrow-left"></i> Dashboard
             </a>
@@ -271,7 +274,7 @@
             <tbody>
                 {% for pago in pagos.items %}
                 <tr>
-                    <td style="color:var(--c-text-3); font-size:0.75rem; font-weight:600;">#{{ pago.id }}</td>
+                    <td style="color:var(--c-text-3); font-size:0.75rem; font-weight:600;">#{{ pago.id }}{% if pago.es_manual %} <i class="fas fa-pen" title="Registro manual" style="margin-left:0.15rem;"></i>{% endif %}</td>
                     <td class="td-fecha">
                         {% set fecha_ref = pago.fecha_pago or pago.created_at %}
                         {% if fecha_ref %}
@@ -322,14 +325,14 @@
                         {% if pago.transaction_id %}<small title="{{ pago.transaction_id }}">{{ pago.transaction_id }}</small>{% endif %}
                     </td>
                     <td class="td-monto">
-                        {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ "%.2f"|format(pago.importe_bruto) }}
+                        {% if pago.moneda == 'USD' %}${% elif pago.moneda == 'EUR' %}€{% else %}{{ pago.moneda }} {% endif %}{{ pago.importe_bruto | eu }}
                         <small style="color:var(--c-text-3); font-weight:400;">{{ pago.moneda }}</small>
                     </td>
                     <td style="font-size:0.85rem;">
                         {% if pago.importe_neto %}
-                            <span style="color:var(--c-success); font-weight:600;">${{ "%.2f"|format(pago.importe_neto) }}</span>
+                            <span style="color:var(--c-success); font-weight:600;">${{ pago.importe_neto | eu }}</span>
                             {% if pago.comision %}
-                            <small style="color:var(--c-error); display:block;">-${{ "%.2f"|format(pago.comision) }} comisión</small>
+                            <small style="color:var(--c-error); display:block;">-${{ pago.comision | eu }} comisión</small>
                             {% endif %}
                         {% else %}
                             <span style="color:var(--c-text-2);">—</span>
@@ -337,7 +340,7 @@
                     </td>
                     <td class="td-pagar {% if pago.estado == 'manual' %}manual{% endif %}">
                         {% if pago.valor_a_pagar %}
-                            {{ "%.2f"|format(pago.valor_a_pagar) }}
+                            {{ pago.valor_a_pagar | eu }}
                             <small style="font-weight:400; color:var(--c-text-2);">{{ pago.moneda_pago_local }}</small>
                         {% else %}
                             <span style="color:var(--c-warning); font-size:0.8rem;"><i class="fas fa-clock"></i> Pendiente</span>

@@ -12,7 +12,10 @@ import imaplib
 import logging
 from datetime import timedelta
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import (
+    Blueprint, render_template, request, jsonify,
+    flash, redirect, url_for, current_app
+)
 from flask_login import login_required, current_user
 
 from app.models import db
@@ -20,6 +23,8 @@ from app.models.payment import Payment, PaymentStatus, PaymentProvider
 from app.models.currency import Currency
 from app.services.unified_ingestion_service import UnifiedIngestionService
 from app.services.calculator_service import CalculatorService
+from app.services.payment_method_service import PaymentMethodService
+from app.utils import formato_eu
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
@@ -70,6 +75,102 @@ def index():
         metodos=PaymentProvider,
         timedelta=timedelta
     )
+
+
+@pagos_bp.route('/manual', methods=['GET'])
+@login_required
+def manual():
+    """
+    Formulario para registrar un pago manualmente.
+
+    Para métodos que no llegan por correo (ej. Zinli). El desplegable de
+    métodos se llena dinámicamente desde PaymentMethodService, así que un
+    método nuevo dado de alta en el dashboard de métodos aparece aquí solo.
+
+    GET /dashboard/pagos/manual
+    """
+    metodos = PaymentMethodService.get_active_ordered()
+    monedas = Currency.query.filter_by(active=True).order_by(
+        Currency.display_order
+    ).all()
+    moneda_default = current_app.config.get('DEFAULT_LOCAL_CURRENCY', 'VES')
+
+    return render_template(
+        'payments/manual.html',
+        metodos=metodos,
+        monedas=monedas,
+        moneda_default=moneda_default
+    )
+
+
+@pagos_bp.route('/manual', methods=['POST'])
+@login_required
+def crear_manual():
+    """
+    Crea el pago manual reutilizando la cotización de la ingesta automática.
+
+    POST /dashboard/pagos/manual
+    """
+    datos = {
+        'metodo': request.form.get('metodo'),
+        'pagador_nombre': request.form.get('pagador_nombre'),
+        'importe_bruto': request.form.get('importe_bruto'),
+        'moneda': request.form.get('moneda', 'USD'),
+        'moneda_local': request.form.get('moneda_local'),
+        'transaction_id': request.form.get('transaction_id'),
+        'cuenta_destino': request.form.get('cuenta_destino'),
+        'notas': request.form.get('notas'),
+    }
+
+    pago, error = UnifiedIngestionService().crear_pago_manual(
+        datos, operador_id=current_user.id
+    )
+    if error:
+        flash(f'No se pudo registrar el pago: {error}', 'error')
+        return redirect(url_for('pagos.manual'))
+
+    flash(f'Pago manual #{pago.id} registrado correctamente.', 'success')
+    return redirect(url_for('pagos.detail', pago_id=pago.id))
+
+
+@pagos_bp.route('/api/calcular-manual', methods=['POST'])
+@login_required
+def api_calcular_manual():
+    """
+    Previsualiza el valor a pagar de un pago manual SIN persistir.
+
+    Devuelve los montos ya formateados en estilo europeo (string), para no
+    enviar Decimal por JSON.
+
+    POST /dashboard/pagos/api/calcular-manual
+    Body JSON: {"metodo": "ZINLI", "monto": 35.0, "moneda_local": "VES"}
+    """
+    data = request.get_json(silent=True) or {}
+    metodo = (data.get('metodo') or '').strip()
+    moneda_local = (data.get('moneda_local') or '').strip()
+
+    try:
+        monto = float(data.get('monto'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Monto inválido'}), 400
+
+    if not metodo or monto <= 0 or not moneda_local:
+        return jsonify({'error': 'Faltan datos para calcular'}), 400
+
+    resultado = CalculatorService.calcular_pago_recibido(
+        monto_base=monto,
+        currency_code=moneda_local,
+        metodo_code=metodo
+    )
+    if 'error' in resultado:
+        return jsonify(resultado), 200  # el motivo se muestra en el preview
+
+    return jsonify({
+        'valor_a_pagar': formato_eu(resultado['valor_a_pagar']),
+        'tasa_aplicada': formato_eu(resultado['tasa_aplicada'], 4),
+        'monto_base': formato_eu(monto, 2),
+        'moneda_local': resultado['moneda_local'],
+    }), 200
 
 
 @pagos_bp.route('/<int:pago_id>')
