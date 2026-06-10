@@ -16,7 +16,7 @@ detalles, direccion) sin modificarlos. Lo unico nuevo es:
 """
 import re
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Optional
 
@@ -160,12 +160,17 @@ class PaypalParser(EmailPaymentParser):
 
     @staticmethod
     def _fecha_desde_header(correo: dict) -> Optional[datetime]:
-        """Fecha del header Date como respaldo (naive, sin tz)."""
+        """Fecha del header Date como respaldo (naive en UTC)."""
         raw = correo.get('date')
         if not raw:
             return None
         try:
             dt = parsedate_to_datetime(raw)
-            return dt.replace(tzinfo=None) if dt else None
         except (TypeError, ValueError):
             return None
+        if dt is None:
+            return None
+        # Convertir a UTC ANTES de quitar el tz (ver nota en base.py).
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=None)

@@ -299,6 +299,9 @@
                                 {% set dest_nombre = dest.split('@')[0] %}
                                 {% set dest_email = dest %}
                             {% endif %}
+                            {# Zelle (BoA) trae el "To" como <correo> sin nombre:
+                               si el nombre quedó vacío, usar el prefijo del email. #}
+                            {% if not dest_nombre %}{% set dest_nombre = dest_email.split('@')[0] %}{% endif %}
                             <span title="{{ dest_email }}" style="cursor:default;">{{ dest_nombre }}</span>
                         {% else %}
                             <span style="color:var(--c-text-3);">—</span>

@@ -27,7 +27,7 @@ El dict `correo` que recibe cada parser viene de GmailService con las claves:
     message_id, subject, sender, to_raw, date, html_body, imap_uid
 """
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Optional
 
@@ -71,20 +71,28 @@ class EmailPaymentParser(ABC):
         Fecha del header Date del correo, como respaldo.
 
         Util cuando el cuerpo no expone una fecha de pago (Zelle) o el layout
-        la esconde (payouts de PayPal). Devuelve datetime naive (sin tz) para
-        ser consistente con las columnas DateTime del modelo.
+        la esconde (payouts de PayPal). Devuelve datetime naive en UTC (sin tz)
+        para ser consistente con las columnas DateTime del modelo.
 
         Args:
             correo: Dict del correo (debe traer la clave 'date').
 
         Returns:
-            datetime naive, o None si no se pudo parsear.
+            datetime naive en UTC, o None si no se pudo parsear.
         """
         raw = correo.get('date')
         if not raw:
             return None
         try:
             dt = parsedate_to_datetime(raw)
-            return dt.replace(tzinfo=None) if dt else None
         except (TypeError, ValueError):
             return None
+        if dt is None:
+            return None
+        # parsedate_to_datetime devuelve un datetime CON tz (lee el offset del
+        # header, p.ej. -0700/-0600). Hay que convertir a UTC ANTES de quitar
+        # el tz; si solo se hiciera replace(tzinfo=None) se guardaría la hora
+        # de pared del remitente como si fuera UTC (bug de zona horaria).
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=None)
