@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Conversor de Monedas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .conv-head { margin-bottom:1.5rem; }
+    .conv-title { font-size:1.4rem; font-weight:700; color:var(--c-text); }
+    .conv-sub   { font-size:0.85rem; color:var(--c-text-2); margin-top:0.25rem; }
+
+    .conv-card {
+        max-width:680px; padding:1.5rem; border-radius:0.9rem;
+        border:1px solid var(--c-border); background:var(--c-surface);
+    }
+    .conv-row { display:grid; grid-template-columns:1fr auto 1fr; gap:0.75rem; align-items:end; }
+    .conv-field label { display:block; font-size:0.78rem; font-weight:600; color:var(--c-text-2); margin-bottom:0.35rem; }
+    .conv-field select, .conv-field input {
+        width:100%; padding:0.6rem 0.75rem; border:1px solid var(--c-border);
+        border-radius:0.5rem; background:var(--c-surface); color:var(--c-text);
+        font-size:0.9rem; font-family:inherit;
+    }
+    .conv-field select:focus, .conv-field input:focus { outline:none; border-color:var(--color-primary); }
+
+    .swap-btn {
+        margin-bottom:0.15rem; width:42px; height:42px; border-radius:50%;
+        border:1px solid var(--c-border); background:var(--c-surface); color:var(--c-text);
+        cursor:pointer; transition:all 0.15s; font-size:0.9rem;
+    }
+    .swap-btn:hover { background:var(--color-primary); color:#1A1A1A; border-color:var(--color-primary); transform:rotate(180deg); }
+
+    .conv-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; }
+
+    .result-box { margin-top:1.5rem; padding:1.25rem 1.5rem; border-radius:0.7rem;
+        border:1px dashed var(--c-border); background:var(--c-surface); }
+    .result-label { font-size:0.75rem; color:var(--c-text-2); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+    .result-value { font-size:2rem; font-weight:800; color:var(--color-primary); margin:0.2rem 0; }
+    .result-detail { font-size:0.82rem; color:var(--c-text-3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rounded-xl shadow-lg p-6" style="background:var(--color-surface);">
+
+    <div class="conv-head">
+        <h2 class="conv-title">
+            <i class="fas fa-right-left mr-2" style="color:var(--color-primary);"></i>
+            Conversor de Monedas
+        </h2>
+        <p class="conv-sub">Convierte entre cualquier par de monedas. Las tasas se derivan del pivote USD que ya mantienes en Tasas de Cambio.</p>
+    </div>
+
+    <div class="conv-card">
+        <div class="conv-row">
+            <div class="conv-field">
+                <label for="selBase">De</label>
+                <select id="selBase">
+                    {% for c in currencies %}
+                    <option value="{{ c.code }}" {% if loop.index0 == 0 %}selected{% endif %}>{{ c.code }} — {{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="button" id="btnSwap" class="swap-btn" title="Permutar monedas">
+                <i class="fas fa-right-left"></i>
+            </button>
+            <div class="conv-field">
+                <label for="selQuote">A</label>
+                <select id="selQuote">
+                    {% for c in currencies %}
+                    <option value="{{ c.code }}" {% if loop.index0 == 1 %}selected{% endif %}>{{ c.code }} — {{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="conv-grid2">
+            <div class="conv-field">
+                <label for="inpMonto">Monto</label>
+                <input type="number" id="inpMonto" step="0.01" min="0.01" value="1" placeholder="0.00">
+            </div>
+            <div class="conv-field">
+                <label for="inpSpread">Spread / margen (%)</label>
+                <input type="number" id="inpSpread" step="0.1" min="0" value="0" placeholder="0">
+            </div>
+        </div>
+
+        <div class="result-box">
+            <div class="result-label">Resultado</div>
+            <div class="result-value" id="outResult">—</div>
+            <div class="result-detail" id="outDetail">Elige monedas y monto para ver la conversión.</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const URL_CONV = "{{ url_for('dashboard.api_convert') }}";
+    const selBase = document.getElementById('selBase');
+    const selQuote = document.getElementById('selQuote');
+    const inpMonto = document.getElementById('inpMonto');
+    const inpSpread = document.getElementById('inpSpread');
+    const btnSwap = document.getElementById('btnSwap');
+    const outResult = document.getElementById('outResult');
+    const outDetail = document.getElementById('outDetail');
+
+    function reset(msg) {
+        outResult.textContent = '—';
+        outDetail.textContent = msg;
+    }
+
+    function convertir() {
+        const base = selBase.value;
+        const quote = selQuote.value;
+        const monto = parseFloat(inpMonto.value);
+        const spread = parseFloat(inpSpread.value) || 0;
+
+        if (!base || !quote || !monto || monto <= 0) {
+            reset('Elige monedas y monto para ver la conversión.');
+            return;
+        }
+        if (base === quote) {
+            reset('Elige dos monedas distintas.');
+            return;
+        }
+
+        fetch(URL_CONV, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base: base, quote: quote, monto: monto, spread: spread })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.error) {
+                reset(d.error);
+            } else {
+                outResult.textContent = d.result + ' ' + d.quote;
+                outDetail.textContent = '1 ' + d.base + ' = ' + d.effective_rate + ' ' + d.quote
+                    + '  (tasa media ' + d.cross_rate + ')';
+            }
+        })
+        .catch(function () { reset('No se pudo calcular en este momento.'); });
+    }
+
+    let timer = null;
+    function debounced() { clearTimeout(timer); timer = setTimeout(convertir, 300); }
+
+    btnSwap.addEventListener('click', function () {
+        const tmp = selBase.value;
+        selBase.value = selQuote.value;
+        selQuote.value = tmp;
+        convertir();
+    });
+
+    [selBase, selQuote, inpMonto, inpSpread].forEach(function (el) {
+        el.addEventListener('change', debounced);
+        el.addEventListener('input', debounced);
+    });
+
+    // Cálculo inicial
+    convertir();
+</script>
+{% endblock %}

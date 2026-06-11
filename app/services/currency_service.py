@@ -57,8 +57,10 @@ class CurrencyService:
             db.session.add(currency)
             db.session.flush()  # Para obtener el ID sin hacer commit completo
             
-            # Crear tasas de cambio automáticamente
-            success, message = currency.create_default_exchange_rates(initial_rate)
+            # Crear tasa de cambio y cotizaciones para todos los métodos de pago.
+            # initialize_for_trading() es el método real del modelo Currency; hace
+            # el commit internamente y retorna (success, message, details).
+            success, message, _detalles = currency.initialize_for_trading(initial_rate)
             
             if not success:
                 # Si falla la creación de tasas, revertir todo

@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from app.services import QuoteService, ExchangeRateService, CurrencyService, PaymentMethodService
 from app.services.operator_service import OperatorService
 from app.routes.auth import login_required
+from app.utils import formato_eu
 from app.models import db  # ← AGREGAR ESTA LÍNEA
 import os
 from werkzeug.utils import secure_filename
@@ -53,6 +54,55 @@ def manage_rates():
     
     rates = ExchangeRateService.get_all_rates()
     return render_template('dashboard/rates.html', rates=rates)
+
+
+# ==================== CONVERSOR DE MONEDAS ====================
+
+@dashboard_bp.route('/conversor')
+@login_required
+def converter():
+    """Conversor de monedas usando cross-rates derivados del pivote USD."""
+    currencies = CurrencyService.get_all()
+    return render_template('dashboard/conversor.html', currencies=currencies)
+
+
+@dashboard_bp.route('/api/convertir', methods=['POST'])
+@login_required
+def api_convert():
+    """Calcula una conversión entre dos monedas SIN persistir.
+
+    Devuelve los montos ya formateados (estilo europeo) como string, para
+    no enviar valores crudos al preview.
+
+    POST JSON: {"base": "COP", "quote": "PEN", "monto": 100000, "spread": 0}
+    """
+    data = request.get_json(silent=True) or {}
+    base = (data.get('base') or '').strip()
+    quote = (data.get('quote') or '').strip()
+
+    try:
+        monto = float(data.get('monto'))
+        spread = float(data.get('spread') or 0)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Monto o spread inválido'}), 400
+
+    if not base or not quote or monto <= 0:
+        return jsonify({'error': 'Faltan datos para convertir'}), 400
+
+    resultado = ExchangeRateService.convert(monto, base, quote, spread)
+    if resultado is None:
+        return jsonify({'error': f'No hay tasa registrada para {base} o {quote}'}), 200
+
+    return jsonify({
+        'base': resultado['base'],
+        'quote': resultado['quote'],
+        'cross_rate': formato_eu(resultado['cross_rate'], 6),
+        'effective_rate': formato_eu(resultado['effective_rate'], 6),
+        'amount': formato_eu(resultado['amount'], 2),
+        'result': formato_eu(resultado['result'], 2),
+    }), 200
+
+
 # ==================== CRUD MONEDAS ====================
 
 @dashboard_bp.route('/currencies')

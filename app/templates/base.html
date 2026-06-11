@@ -148,6 +148,11 @@
                    {% if request.endpoint == 'dashboard.manage_rates' %}active{% endif %}">
                     <i class="fas fa-exchange-alt w-4"></i><span>Tasas de Cambio</span>
                 </a>
+                <a href="{{ url_for('dashboard.converter') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint == 'dashboard.converter' %}active{% endif %}">
+                    <i class="fas fa-right-left w-4"></i><span>Conversor</span>
+                </a>
                 <a href="{{ url_for('dashboard.manage_currencies') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.manage_currencies' %}active{% endif %}">
