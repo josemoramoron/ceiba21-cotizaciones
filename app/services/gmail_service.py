@@ -52,6 +52,9 @@ class GmailService:
                 self.IMAP_PORT,
                 timeout=self.IMAP_TIMEOUT
             )
+            # El timeout de IMAP4_SSL() solo cubre el connect en Python 3.13.
+            # Setearlo en el socket subyacente lo extiende a fetch/search/store.
+            self._connection.socket().settimeout(self.IMAP_TIMEOUT)
             self._connection.login(self.user, self.password)
             logger.info(f"Gmail IMAP conectado: {self.user}")
             return True
@@ -135,7 +138,7 @@ class GmailService:
         Returns:
             dict con los datos del correo, o None si falló el fetch
         """
-        status, msg_data = self._connection.fetch(uid, '(RFC822)')
+        status, msg_data = self._connection.uid('FETCH', uid, '(RFC822)')
 
         if status != 'OK':
             return None
@@ -197,7 +200,7 @@ class GmailService:
                 f'(UNSEEN FROM "{self.PAYPAL_SENDER}" '
                 f'SUBJECT "{self.PAYPAL_SUBJECT}")'
             )
-            status, message_ids = self._connection.search(None, search_criteria)
+            status, message_ids = self._connection.uid('SEARCH', None, search_criteria)
 
             if status != 'OK' or not message_ids[0]:
                 logger.info("No hay correos nuevos de PayPal")
@@ -239,7 +242,7 @@ class GmailService:
 
         try:
             self._connection.select('INBOX')
-            status, _ = self._connection.store(
+            status, _ = self._connection.uid('STORE',
                 imap_uid,
                 '+FLAGS',
                 '\\Seen'
@@ -273,7 +276,7 @@ class GmailService:
         try:
             self._connection.select('INBOX')
             conjunto = ','.join(str(u) for u in uids)
-            status, _ = self._connection.store(conjunto, '+FLAGS', '\\Seen')
+            status, _ = self._connection.uid('STORE', conjunto, '+FLAGS', '\\Seen')
             return len(uids) if status == 'OK' else 0
         except (imaplib.IMAP4.error, OSError) as e:
             logger.error(f"Error marcando correos como leídos en lote: {e}")
@@ -297,7 +300,7 @@ class GmailService:
 
         try:
             self._connection.select('INBOX')
-            status, data = self._connection.search(None, 'ALL')
+            status, data = self._connection.uid('SEARCH', None, 'ALL')
             count = len(data[0].split()) if status == 'OK' and data[0] else 0
 
             return {
@@ -327,8 +330,8 @@ class GmailService:
         emails = []
         try:
             self._connection.select('INBOX')
-            status, message_ids = self._connection.search(
-                None, self._build_from_criteria(remitentes)
+            status, message_ids = self._connection.uid(
+                'SEARCH', None, self._build_from_criteria(remitentes)
             )
             if status != 'OK' or not message_ids[0]:
                 logger.info("No hay correos nuevos de las fuentes vigiladas")
@@ -399,7 +402,7 @@ class GmailService:
             self._connection.select('INBOX')
             from_criteria = self._build_from_criteria(remitentes, solo_no_leidos=False)
             criteria = f'(SINCE "{desde_imap}" {from_criteria})'
-            status, message_ids = self._connection.search(None, criteria)
+            status, message_ids = self._connection.uid('SEARCH', None, criteria)
 
             if status != 'OK' or not message_ids[0]:
                 logger.info(f"No hay correos desde {desde_imap}")
@@ -421,7 +424,7 @@ class GmailService:
                     correo = self._fetch_email_by_uid(uid)
                     if correo:
                         emails.append(correo)
-                except (UnicodeDecodeError, KeyError, AttributeError) as e:
+                except (UnicodeDecodeError, KeyError, AttributeError, OSError) as e:
                     logger.error(f"Error procesando correo UID {uid}: {e}")
                     continue
 
