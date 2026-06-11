@@ -87,7 +87,12 @@ class GmailService:
         result = ''
         for part, encoding in decoded_parts:
             if isinstance(part, bytes):
-                result += part.decode(encoding or 'utf-8', errors='replace')
+                try:
+                    result += part.decode(encoding or 'utf-8', errors='replace')
+                except LookupError:
+                    # Charset desconocido/no soportado (p. ej. 'unknown-8bit'):
+                    # caer a utf-8 tolerante para no romper la ingesta.
+                    result += part.decode('utf-8', errors='replace')
             else:
                 result += str(part)
         return result
