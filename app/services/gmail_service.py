@@ -31,6 +31,7 @@ class GmailService:
     PAYPAL_SUBJECT = 'Ha recibido un pago'
     IMAP_HOST = 'imap.gmail.com'
     IMAP_PORT = 993
+    IMAP_TIMEOUT = 30  # segundos: evita que una conexión trabada cuelgue el worker
 
     def __init__(self) -> None:
         """Inicializa con credenciales desde variables de entorno."""
@@ -48,7 +49,8 @@ class GmailService:
         try:
             self._connection = imaplib.IMAP4_SSL(
                 self.IMAP_HOST,
-                self.IMAP_PORT
+                self.IMAP_PORT,
+                timeout=self.IMAP_TIMEOUT
             )
             self._connection.login(self.user, self.password)
             logger.info(f"Gmail IMAP conectado: {self.user}")
@@ -241,6 +243,36 @@ class GmailService:
         except (imaplib.IMAP4.error, OSError) as e:
             logger.error(f"Error marcando correo {imap_uid} como leído: {e}")
             return False
+        finally:
+            self._disconnect()
+
+    def mark_multiple_as_read(self, uids: list) -> int:
+        """Marca varios correos como leídos en UNA sola conexión IMAP.
+
+        Reemplaza el patrón de reconectar por cada correo (que con lotes
+        grandes excedía el timeout del worker de gunicorn): abre una conexión,
+        hace un único STORE con todos los UID y cierra.
+
+        Args:
+            uids: Lista de imap_uid (strings) a marcar como leídos.
+
+        Returns:
+            Cantidad de UID enviados a marcar, o 0 si la lista venía vacía
+            o falló la conexión.
+        """
+        if not uids:
+            return 0
+        if not self._connect():
+            return 0
+
+        try:
+            self._connection.select('INBOX')
+            conjunto = ','.join(str(u) for u in uids)
+            status, _ = self._connection.store(conjunto, '+FLAGS', '\\Seen')
+            return len(uids) if status == 'OK' else 0
+        except (imaplib.IMAP4.error, OSError) as e:
+            logger.error(f"Error marcando correos como leídos en lote: {e}")
+            return 0
         finally:
             self._disconnect()
 

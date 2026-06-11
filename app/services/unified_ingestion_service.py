@@ -88,6 +88,7 @@ class UnifiedIngestionService:
             resumen['mensaje'] = "No hay correos nuevos"
             return resumen
 
+        uids_a_marcar = []
         for correo in correos:
             try:
                 resultado = self._procesar_correo(correo, fuentes, web_user_id)
@@ -95,6 +96,11 @@ class UnifiedIngestionService:
                     resumen['duplicados'] += 1
                 elif resultado == 'no_reconocido':
                     resumen['no_reconocidos'] += 1
+                    logger.warning(
+                        f"Correo no reconocido por ningún parser: "
+                        f"sender={correo.get('sender')} "
+                        f"msg_id={correo.get('message_id')}"
+                    )
                 elif resultado == 'error':
                     resumen['errores'] += 1
                 else:  # es un Payment guardado
@@ -102,13 +108,18 @@ class UnifiedIngestionService:
                     resumen['nuevos'].append(self._resumen_pago(resultado))
 
                 if marcar_leidos:
-                    self.gmail.mark_as_read(correo['imap_uid'])
+                    uids_a_marcar.append(correo['imap_uid'])
 
             except (ValueError, SQLAlchemyError) as e:
                 logger.error(
                     f"Error procesando correo {correo.get('message_id', '?')}: {e}"
                 )
                 resumen['errores'] += 1
+
+        # Marcar como leídos en UNA sola conexión IMAP (antes era una
+        # reconexión por correo, que excedía el timeout del worker).
+        if marcar_leidos and uids_a_marcar:
+            self.gmail.mark_multiple_as_read(uids_a_marcar)
 
         resumen['success'] = True
         resumen['mensaje'] = (
