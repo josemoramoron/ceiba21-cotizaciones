@@ -10,7 +10,7 @@ Solo orquestacion: la logica vive en los services.
 """
 import imaplib
 import logging
-from datetime import timedelta
+from datetime import timedelta, date
 
 from flask import (
     Blueprint, render_template, request, jsonify,
@@ -82,7 +82,8 @@ def index():
         monedas=monedas,
         estados=PaymentStatus,
         metodos=PaymentProvider,
-        timedelta=timedelta
+        timedelta=timedelta,
+        hoy=date.today().strftime('%Y-%m-%d')
     )
 
 
