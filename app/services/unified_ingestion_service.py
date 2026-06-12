@@ -482,6 +482,7 @@ class UnifiedIngestionService:
             resumen['mensaje'] = f"No hay correos desde {desde_imap}"
             return resumen
 
+        uids_a_marcar = []
         for correo in correos:
             try:
                 resultado = self._procesar_correo(correo, fuentes, web_user_id)
@@ -494,14 +495,20 @@ class UnifiedIngestionService:
                 else:
                     resumen['procesados'] += 1
                     resumen['nuevos'].append(self._resumen_pago(resultado))
-                # Importación histórica: siempre marcar como leído
-                self.gmail.mark_as_read(correo['imap_uid'])
+                # Importación histórica: marcar como leído (en lote al final)
+                uids_a_marcar.append(correo['imap_uid'])
             except (ValueError, SQLAlchemyError) as e:
                 logger.error(
                     f"Error procesando correo "
                     f"{correo.get('message_id', '?')}: {e}"
                 )
                 resumen['errores'] += 1
+
+        # Marcado en lote: una sola conexión IMAP para todos los UID, en vez de
+        # reconectar (login completo) por cada correo, lo que excedía el timeout
+        # de Gunicorn (120s) y mataba al worker en la fase de marcado.
+        if uids_a_marcar:
+            self.gmail.mark_multiple_as_read(uids_a_marcar)
 
         resumen['success'] = True
         resumen['mensaje'] = (
