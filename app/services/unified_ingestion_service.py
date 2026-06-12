@@ -430,7 +430,8 @@ class UnifiedIngestionService:
     def procesar_desde_fecha(
         self,
         desde_imap: str,
-        web_user_id: Optional[int]
+        web_user_id: Optional[int],
+        limite: Optional[int] = None
     ) -> dict:
         """
         Importación histórica one-time: procesa TODOS los correos (leídos y
@@ -443,6 +444,9 @@ class UnifiedIngestionService:
         Args:
             desde_imap: Fecha en formato IMAP, ej. '01-Jun-2026'.
             web_user_id: ID del WebUser que disparó la ejecución.
+            limite: Máximo de correos a procesar (los más recientes). None =
+                sin límite (backfill completo por CLI). Se acota desde el
+                dashboard para no exceder el timeout de Gunicorn.
 
         Returns:
             dict con el resumen de la importación.
@@ -465,7 +469,9 @@ class UnifiedIngestionService:
         )
 
         try:
-            correos = self.gmail.get_emails_desde_fecha(remitentes, desde_imap)
+            correos = self.gmail.get_emails_desde_fecha(
+                remitentes, desde_imap, limite=limite
+            )
         except (imaplib.IMAP4.error, OSError) as e:
             logger.error(f"Error conectando a Gmail: {e}")
             resumen['mensaje'] = f"Error conectando a Gmail: {str(e)}"

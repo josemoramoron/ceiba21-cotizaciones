@@ -29,6 +29,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 
+# Import por HTTP acotado: el botón del dashboard solo hace "catch-up" reciente.
+# Un backfill grande por HTTP excede el timeout de Gunicorn (120s) y mata al
+# worker a mitad. Para rangos amplios/antiguos se usa el CLI importar_historico.py.
+MAX_DIAS_IMPORT_HTTP = 7      # no aceptar fechas más viejas que esto por HTTP
+LIMITE_IMPORT_HTTP = 50       # tope de correos (los más recientes) por HTTP
+
 pagos_bp = Blueprint(
     'pagos',
     __name__,
@@ -451,9 +457,30 @@ def api_importar_desde():
     except ValueError:
         return jsonify({'success': False, 'error': 'Formato de fecha inválido (esperado YYYY-MM-DD)'}), 400
 
+    # Blindaje: por HTTP solo se permite un rango reciente y acotado, para no
+    # exceder el timeout de Gunicorn. Rangos amplios -> script CLI.
+    dias_atras = (_dt.now() - dt).days
+    if dias_atras > MAX_DIAS_IMPORT_HTTP:
+        return jsonify({
+            'success': False,
+            'error': (
+                f'Rango demasiado amplio para el dashboard '
+                f'(máximo {MAX_DIAS_IMPORT_HTTP} días). '
+                f'Para importar desde {desde_iso} usa el script por terminal: '
+                f'python scripts/importar_historico.py {desde_iso}'
+            )
+        }), 400
+
     try:
         service = UnifiedIngestionService()
-        result = service.procesar_desde_fecha(desde_imap, current_user.id)
+        result = service.procesar_desde_fecha(
+            desde_imap, current_user.id, limite=LIMITE_IMPORT_HTTP
+        )
+        if isinstance(result, dict):
+            result['nota'] = (
+                f'Procesados hasta {LIMITE_IMPORT_HTTP} correos más recientes. '
+                f'Para un backfill completo usa el script CLI.'
+            )
         return jsonify(result), 200
     except SQLAlchemyError as e:
         logger.error(f"Error DB en api_importar_desde: {e}")
