@@ -56,7 +56,10 @@ def index():
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
-    query = Payment.query.order_by(Payment.id.desc())
+    query = Payment.query.order_by(
+        Payment.fecha_pago.desc().nullslast(),
+        Payment.id.desc()
+    )
     if estado:
         query = query.filter_by(estado=estado)
     if metodo:
