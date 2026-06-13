@@ -54,8 +54,13 @@
         z-index: 1;
     }
     .calc-main-tab.active {
-        color: var(--color-primary);
-        background: var(--calc-tab-active-bg);
+        /* Texto blanco brillante (no amarillo sobre fondo amarillo tenue).
+           El slider inferior amarillo ya marca el tab activo. */
+        color: #FFFFFF;
+        background: rgba(247, 217, 23, 0.16);
+    }
+    .calc-main-tab.active i {
+        color: var(--color-primary);   /* solo el ícono en amarillo de marca */
     }
 
     /* ── Nivel 2: subtabs Recibir / Enviar ── */
