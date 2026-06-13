@@ -80,6 +80,15 @@
         color: var(--calc-subtab-active);
         background: rgba(255, 255, 255, 0.06);
     }
+    /* Alta especificidad por ID para garantizar visibilidad sin importar overrides */
+    #sub-tab-receive.calc-sub-tab.active,
+    #sub-tab-send.calc-sub-tab.active {
+        color: var(--calc-subtab-active);
+    }
+    #sub-tab-receive.calc-sub-tab:not(.active),
+    #sub-tab-send.calc-sub-tab:not(.active) {
+        color: var(--calc-subtab-inactive);
+    }
 
     /* ── Slider compartido por ambos niveles ── */
     .tab-slider {
@@ -174,22 +183,35 @@
     }
 
     /*
+     * El ícono <i> rota — NO el botón.
+     * Rotar el botón completo crea stacking context que conflictúa con
+     * overflow:hidden del contenedor padre y lo hace desaparecer.
+     * Rotar solo el <i> da el mismo efecto visual sin ese bug.
+     */
+    .conv-swap-btn i {
+        display: inline-block;
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /*
      * Alta especificidad (ID + clase + pseudo) para que ninguna regla global
      * de dark mode sobreescriba el color del ícono (#1A1A1A oscuro sobre amarillo).
-     * Apunta también al <i> interno explícitamente por el mismo motivo.
      */
-    #convSwapBtn.conv-swap-btn:hover:not(:disabled),
-    #convSwapBtn.conv-swap-btn:hover:not(:disabled) i {
+    #convSwapBtn.conv-swap-btn:hover:not(:disabled) {
         background-color: #FFD60A;
         border-color:     #FFD60A;
         color:            #1A1A1A;
     }
 
-    #convSwapBtn.conv-swap-btn:active:not(:disabled),
-    #convSwapBtn.conv-swap-btn:active:not(:disabled) i {
+    #convSwapBtn.conv-swap-btn:hover:not(:disabled) i {
+        color:     #1A1A1A;
+        transform: rotate(180deg);
+    }
+
+    #convSwapBtn.conv-swap-btn:active:not(:disabled) {
         background-color: #FFD60A;
         color:            #1A1A1A;
-        transform:        scale(0.88);
+        transform:        scale(0.90);
     }
 
     .conv-swap-btn:disabled {
