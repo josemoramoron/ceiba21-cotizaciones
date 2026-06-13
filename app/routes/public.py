@@ -3,6 +3,8 @@ Rutas públicas (sin autenticación)
 """
 from flask import Blueprint, render_template, request, jsonify
 from app.services import QuoteService, ExchangeRateService
+from app.services.calculator_service import CalculatorService
+from app.services.system_config_service import SystemConfigService
 
 public_bp = Blueprint('public', __name__)
 
@@ -81,9 +83,6 @@ def api_calcular():
         JSON con tasa_ref, tasa_efectiva, resultado y margen,
         o JSON con 'error' si faltan datos o no hay tasa.
     """
-    from app.services.calculator_service import CalculatorService
-    from app.services.system_config_service import SystemConfigService
-
     data = request.get_json(silent=True) or {}
     tengo = (data.get('tengo') or '').strip().upper()
     quiero = (data.get('quiero') or '').strip().upper()

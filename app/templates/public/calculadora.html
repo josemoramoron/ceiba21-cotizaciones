@@ -5,11 +5,37 @@
 {% block extra_css %}
 <style>
     /* ================================================================
-       CALCULADORA — estilos locales
-       Todos los colores adaptativos via variables CSS.
+       CALCULADORA — variables locales del componente
+       Definidas en :root y [data-theme="dark"] conforme a .clinerules.
        ================================================================ */
 
+    /*
+     * El tab bar siempre tiene fondo oscuro (gradiente corporativo).
+     * En light mode --color-text-secondary = #6C757D (gris, ilegible sobre negro).
+     * Se definen variables propias de la calculadora para estos textos.
+     */
+    :root {
+        --calc-tab-inactive:    rgba(255, 255, 255, 0.50);
+        --calc-subtab-inactive: rgba(255, 255, 255, 0.40);
+        --calc-subtab-active:   rgba(255, 255, 255, 0.90);
+        --calc-tab-active-bg:   rgba(247, 217, 23, 0.10);
+        --calc-conv-send:       #A855F7;   /* acento decorativo panel Enviar */
+    }
+
+    [data-theme="dark"] {
+        --calc-tab-inactive:    rgba(255, 255, 255, 0.45);
+        --calc-subtab-inactive: rgba(255, 255, 255, 0.38);
+        --calc-subtab-active:   rgba(255, 255, 255, 0.88);
+        --calc-tab-active-bg:   rgba(247, 217, 23, 0.10);
+        --calc-conv-send:       #C084FC;   /* versión más visible en dark */
+    }
+
     /* ── Nivel 1: tabs principales PayPal / Conversor Fiat ── */
+    /*
+     * El fondo del tab bar es hardcodeado oscuro (#1A1A1A/#2D2D2D).
+     * --color-text-secondary en light mode = #6C757D (gris que no contrasta).
+     * Se usan blancos semitransparentes: siempre legibles sobre negro.
+     */
     .calc-main-tab {
         flex: 1;
         display: flex;
@@ -22,14 +48,14 @@
         cursor: pointer;
         border: none;
         background: transparent;
-        color: var(--color-text-secondary);
+        color: var(--calc-tab-inactive);
         transition: color 0.2s, background 0.2s;
         position: relative;
         z-index: 1;
     }
     .calc-main-tab.active {
         color: var(--color-primary);
-        background: rgba(247, 217, 23, 0.08);
+        background: var(--calc-tab-active-bg);
     }
 
     /* ── Nivel 2: subtabs Recibir / Enviar ── */
@@ -45,13 +71,13 @@
         cursor: pointer;
         border: none;
         background: transparent;
-        color: var(--color-text-secondary);
+        color: var(--calc-subtab-inactive);
         transition: color 0.2s, background 0.2s;
         position: relative;
         z-index: 1;
     }
     .calc-sub-tab.active {
-        color: var(--color-text);
+        color: var(--calc-subtab-active);
         background: rgba(255, 255, 255, 0.06);
     }
 
@@ -94,19 +120,23 @@
         border: 1px solid rgba(16, 185, 129, 0.25);
     }
     .result-send {
-        background-color: rgba(247, 217, 23, 0.08);
-        border: 1px solid rgba(247, 217, 23, 0.3);
+        /* Sin fondo: evita blanco sobre amarillo en dark mode.
+           El borde destaca el bloque sin sacrificar legibilidad. */
+        background-color: transparent;
+        border: 1.5px solid rgba(247, 217, 23, 0.55);
+        border-radius: 0.4rem;
     }
     .result-conv {
         background-color: rgba(59, 130, 246, 0.08);
         border: 1px solid rgba(59, 130, 246, 0.3);
     }
 
-    /* ── Inputs ── */
-    input[type="number"]:focus, select:focus {
+    /* ── Inputs: especificidad suficiente para anular Tailwind sin !important ── */
+    .calc-panel input[type="number"]:focus,
+    .calc-panel select:focus {
         outline: none;
-        border-color: var(--color-primary) !important;
-        box-shadow: 0 0 0 3px rgba(247, 217, 23, 0.18) !important;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(247, 217, 23, 0.18);
     }
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -126,6 +156,7 @@
     }
 
     /* ── Botón swap — siempre visible en light/dark ── */
+    /* Base del botón swap */
     .conv-swap-btn {
         display: flex;
         align-items: center;
@@ -133,26 +164,34 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        border: 1.5px solid var(--color-primary);
+        border: 2px solid var(--color-primary);
         color: var(--color-primary);
-        background: transparent;
+        background-color: transparent;
         cursor: pointer;
         font-size: 1rem;
         flex-shrink: 0;
-        /* SIN transform en la transición: evita conflicto con overflow:hidden del padre */
         transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
-    .conv-swap-btn:hover:not(:disabled) {
-        /* Solo cambio de color, ningún transform, ningún stacking context nuevo */
-        background-color: var(--color-primary);
-        border-color: var(--color-primary);
-        color: #1A1A1A;
+
+    /*
+     * Alta especificidad (ID + clase + pseudo) para que ninguna regla global
+     * de dark mode sobreescriba el color del ícono (#1A1A1A oscuro sobre amarillo).
+     * Apunta también al <i> interno explícitamente por el mismo motivo.
+     */
+    #convSwapBtn.conv-swap-btn:hover:not(:disabled),
+    #convSwapBtn.conv-swap-btn:hover:not(:disabled) i {
+        background-color: #FFD60A;
+        border-color:     #FFD60A;
+        color:            #1A1A1A;
     }
-    .conv-swap-btn:active:not(:disabled) {
-        background-color: var(--color-primary);
-        color: #1A1A1A;
-        transform: scale(0.88);
+
+    #convSwapBtn.conv-swap-btn:active:not(:disabled),
+    #convSwapBtn.conv-swap-btn:active:not(:disabled) i {
+        background-color: #FFD60A;
+        color:            #1A1A1A;
+        transform:        scale(0.88);
     }
+
     .conv-swap-btn:disabled {
         opacity: 0.25;
         cursor: not-allowed;
@@ -310,7 +349,7 @@
                 </div>
 
                 <div id="receiveConvertedBox" class="hidden p-3 rounded"
-                     style="background-color: rgba(59,130,246,0.08); border-left: 4px solid #3B82F6;">
+                     style="background-color: rgba(59,130,246,0.08); border-left: 4px solid var(--color-info);">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs mb-1" style="color: var(--color-text);">
@@ -321,7 +360,7 @@
                                 Cotización PayPal: <span id="receiveQuoteRate">—</span>
                             </p>
                         </div>
-                        <span class="text-xl font-bold" style="color: #3B82F6;" id="receiveConverted">—</span>
+                        <span class="text-xl font-bold" style="color: var(--color-info);" id="receiveConverted">—</span>
                     </div>
                 </div>
 
@@ -387,7 +426,7 @@
                 </div>
 
                 <div id="sendConvertedBox" class="hidden p-3 rounded"
-                     style="background-color: rgba(168,85,247,0.08); border-left: 4px solid #A855F7;">
+                     style="background-color: rgba(168,85,247,0.08); border-left: 4px solid var(--calc-conv-send);">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs mb-1" style="color: var(--color-text);">
@@ -398,7 +437,7 @@
                                 Cotización PayPal: <span id="sendQuoteRate">—</span>
                             </p>
                         </div>
-                        <span class="text-xl font-bold" style="color: #A855F7;" id="sendConverted">—</span>
+                        <span class="text-xl font-bold" style="color: var(--calc-conv-send);" id="sendConverted">—</span>
                     </div>
                 </div>
 
@@ -476,13 +515,13 @@
                     <div class="flex justify-between items-start gap-2">
                         <div style="min-width: 0;">
                             <p class="text-sm font-semibold mb-1" style="color: var(--color-text);">
-                                <i class="fas fa-coins mr-1" style="color: #3B82F6;"></i>
+                                <i class="fas fa-coins mr-1" style="color: var(--color-info);"></i>
                                 Recibes <span id="convQuieroLabel">—</span>:
                             </p>
                             <p class="text-xs" style="color: var(--color-text-secondary); word-break: break-word;"
                                id="convRateDetail">—</p>
                         </div>
-                        <span class="text-2xl font-bold flex-shrink-0" style="color: #3B82F6;"
+                        <span class="text-2xl font-bold flex-shrink-0" style="color: var(--color-info);"
                               id="convResultado">—</span>
                     </div>
                 </div>
@@ -490,7 +529,7 @@
                 <!-- Error -->
                 <div id="convErrorBox" class="hidden p-3 rounded-lg"
                      style="background-color: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);">
-                    <p class="text-sm" style="color: #EF4444;" id="convErrorMsg">—</p>
+                    <p class="text-sm" style="color: var(--color-error);" id="convErrorMsg">—</p>
                 </div>
 
                 <!-- WhatsApp -->
@@ -519,7 +558,7 @@
                     cotizaciones en tiempo real. El botón ↔ permuta monedas (solo fiat↔fiat).
                 </p>
                 <div class="p-3 rounded"
-                     style="background-color: rgba(245,158,11,0.1); border-left: 4px solid #F59E0B;">
+                     style="background-color: rgba(245,158,11,0.1); border-left: 4px solid var(--color-warning);">
                     <p class="text-xs" style="color: var(--color-text);">
                         <i class="fas fa-info-circle mr-1"></i>
                         <strong>Nota:</strong> Las tasas son de referencia. Contáctanos para confirmar la operación.

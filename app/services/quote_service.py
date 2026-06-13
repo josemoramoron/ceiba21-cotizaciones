@@ -102,7 +102,7 @@ class QuoteService:
             try:
                 calc_usd = eval(quote.usd_formula)
                 quote.calculated_usd = calc_usd
-            except Exception:
+            except (SyntaxError, NameError, TypeError, ValueError):
                 quote.calculated_usd = 0
 
         # Obtener tasa de cambio y calcular valor final

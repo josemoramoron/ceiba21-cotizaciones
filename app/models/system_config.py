@@ -6,6 +6,8 @@ necesidad de redeploy ni modificación de .env.
 """
 from typing import Any, Optional
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.models import db
 from app.models.base import BaseModel
 
@@ -90,6 +92,6 @@ class SystemConfig(BaseModel):
                 db.session.add(row)
             db.session.commit()
             return True
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             db.session.rollback()
             return False
