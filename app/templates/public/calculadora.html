@@ -133,21 +133,21 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        /* Borde y color del ícono en --color-primary para contraste garantizado */
         border: 1.5px solid var(--color-primary);
         color: var(--color-primary);
         background: transparent;
         cursor: pointer;
         font-size: 1rem;
         flex-shrink: 0;
-        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+        /* SIN transform en la transición: evita conflicto con overflow:hidden del padre */
+        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
     .conv-swap-btn:hover:not(:disabled) {
+        /* Solo cambio de color, ningún transform, ningún stacking context nuevo */
         background-color: var(--color-primary);
         border-color: var(--color-primary);
         color: #1A1A1A;
     }
-
     .conv-swap-btn:active:not(:disabled) {
         background-color: var(--color-primary);
         color: #1A1A1A;
