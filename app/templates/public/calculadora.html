@@ -15,18 +15,18 @@
      * Se definen variables propias de la calculadora para estos textos.
      */
     :root {
-        --calc-tab-inactive:    rgba(255, 255, 255, 0.50);
-        --calc-subtab-inactive: rgba(255, 255, 255, 0.40);
-        --calc-subtab-active:   rgba(255, 255, 255, 0.90);
-        --calc-tab-active-bg:   rgba(247, 217, 23, 0.10);
+        --calc-tab-inactive:    rgba(255, 255, 255, 0.72);
+        --calc-subtab-inactive: rgba(255, 255, 255, 0.68);
+        --calc-subtab-active:   #FFFFFF;
+        --calc-tab-active-bg:   rgba(247, 217, 23, 0.12);
         --calc-conv-send:       #A855F7;   /* acento decorativo panel Enviar */
     }
 
     [data-theme="dark"] {
-        --calc-tab-inactive:    rgba(255, 255, 255, 0.45);
-        --calc-subtab-inactive: rgba(255, 255, 255, 0.38);
-        --calc-subtab-active:   rgba(255, 255, 255, 0.88);
-        --calc-tab-active-bg:   rgba(247, 217, 23, 0.10);
+        --calc-tab-inactive:    rgba(255, 255, 255, 0.70);
+        --calc-subtab-inactive: rgba(255, 255, 255, 0.65);
+        --calc-subtab-active:   #FFFFFF;
+        --calc-tab-active-bg:   rgba(247, 217, 23, 0.12);
         --calc-conv-send:       #C084FC;   /* versión más visible en dark */
     }
 
@@ -134,6 +134,14 @@
         background-color: transparent;
         border: 1.5px solid rgba(247, 217, 23, 0.55);
         border-radius: 0.4rem;
+    }
+    /* Monto destacado con color de marca — legible en ambos temas
+       sin caja de fondo (evita texto-sobre-amarillo). */
+    .send-amount {
+        color: var(--color-primary-dark);
+    }
+    [data-theme="dark"] .send-amount {
+        color: var(--color-primary);
     }
     .result-conv {
         background-color: rgba(59, 130, 246, 0.08);
@@ -421,7 +429,7 @@
                             <i class="fas fa-paper-plane mr-1" style="color: var(--color-primary);"></i>
                             Hay que enviar:
                         </span>
-                        <span class="text-2xl font-bold" style="color: var(--color-text);" id="sendTotal">$106.03</span>
+                        <span class="text-2xl font-bold send-amount" id="sendTotal">$106.03</span>
                     </div>
                     <div style="border-top: 1px solid var(--color-border);" class="my-1"></div>
                     <div class="flex justify-between items-center py-1">
