@@ -12,7 +12,9 @@ public_bp = Blueprint('public', __name__)
 @public_bp.route('/')
 def home():
     """Página principal con cotizaciones reales para el hero"""
-    matrix = QuoteService.get_quotes_matrix()
+    # Matriz pública: excluye métodos pivote (REF) en cualquier superficie
+    # pública, presente o futura. El whitelist HERO_METHODS se aplica encima.
+    matrix = QuoteService.get_public_quotes_matrix()
 
     HERO_METHODS = ['paypal', 'zelle', 'usdt', 'zinli', 'wise']
 
@@ -39,11 +41,14 @@ def cotizaciones():
     """Tabla de cotizaciones pública"""
     from datetime import datetime
 
-    matrix = QuoteService.get_quotes_matrix()
+    # Matriz de la TABLA pública: sin método pivote (REF) en la fila y sin las
+    # monedas ocultas en la tabla (USD) como columna. USD sigue activa y
+    # disponible en la calculadora; solo no se lista aquí.
+    matrix = QuoteService.get_cotizaciones_matrix()
     rates = ExchangeRateService.get_rates_dict()
 
-    # get_quotes_matrix ya filtra activas; esta variable se mantiene
-    # para compatibilidad con el template existente
+    # get_cotizaciones_matrix ya filtra monedas; esta variable se mantiene
+    # para compatibilidad con el template existente (encabezado y celdas)
     active_currencies = matrix['currencies']
 
     return render_template(
@@ -58,7 +63,8 @@ def cotizaciones():
 @public_bp.route('/calculadora')
 def calculadora():
     """Calculadora de conversión — PayPal + Conversor de monedas"""
-    matrix = QuoteService.get_quotes_matrix()
+    # Matriz pública: el selector método→fiat no ofrece el pivote (REF).
+    matrix = QuoteService.get_public_quotes_matrix()
     return render_template('public/calculadora.html', matrix=matrix)
 
 
@@ -106,7 +112,8 @@ def api_calcular():
             margen_pct=margen,
         )
     elif tipo == 'method_to_fiat':
-        # Los métodos usan su cotización directa — sin margen adicional
+        # Los métodos usan su cotización directa — sin margen adicional.
+        # calcular_publico_method_to_fiat rechaza los métodos pivote (REF).
         resultado = CalculatorService.calcular_publico_method_to_fiat(
             metodo_code=tengo,
             quiero_code=quiero,

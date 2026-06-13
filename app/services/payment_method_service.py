@@ -30,6 +30,25 @@ class PaymentMethodService:
         return query.all()
 
     @staticmethod
+    def get_public_ordered(limit: int = None):
+        """
+        Obtiene los métodos de pago VISIBLES AL PÚBLICO, ordenados.
+
+        Igual que get_active_ordered, pero además excluye los métodos
+        estructurales/pivote (los que figuran en
+        PaymentMethod.CODIGOS_NO_PUBLICOS, p. ej. 'REF'), que permanecen
+        activos para el cálculo interno pero no deben aparecer en la tabla
+        pública, la calculadora ni las publicaciones de Telegram.
+
+        Args:
+            limit: Número máximo de resultados (None = todos).
+
+        Returns:
+            Lista de PaymentMethod públicos ordenados por display_order.
+        """
+        return PaymentMethod.get_visibles_publico(limit=limit)
+
+    @staticmethod
     def get_by_id(pm_id):
         """Obtener método de pago por ID"""
         return PaymentMethod.query.get(pm_id)

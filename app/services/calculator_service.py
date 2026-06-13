@@ -314,6 +314,11 @@ class CalculatorService:
         incorporado en cada Quote a través del sistema de cotizaciones.
         El margen global de la calculadora aplica SOLO a fiat↔fiat.
 
+        Defensa en profundidad: aunque el selector público nunca ofrece los
+        métodos estructurales/pivote (REF), este endpoint es público y podría
+        recibir un código pivote directo; en ese caso se rechaza con el mismo
+        mensaje que un método inexistente para no revelar su existencia.
+
         Args:
             metodo_code: Código del método de pago (ej. 'PAYPAL', 'ZELLE').
             quiero_code: Código de la moneda destino (ej. 'VES').
@@ -332,6 +337,10 @@ class CalculatorService:
                 PaymentMethod.active.is_(True),
             ).first()
         if not method:
+            return {'error': f'Método {metodo_code} no encontrado o inactivo'}
+
+        # Los métodos estructurales/pivote no se exponen al público.
+        if not method.es_visible_publico:
             return {'error': f'Método {metodo_code} no encontrado o inactivo'}
 
         currency = Currency.query.filter_by(

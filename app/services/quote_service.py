@@ -26,30 +26,21 @@ class QuoteService:
         return Quote.query.filter_by(payment_method_id=pm.id).all()
 
     @staticmethod
-    def get_quotes_matrix():
+    def _build_matrix(payment_methods, currencies):
         """
-        Obtener cotizaciones en formato matriz solo para entidades activas.
+        Construye la matriz de cotizaciones para los métodos/monedas dados.
 
-        Filtra payment_methods y currencies por active=True para que
-        todas las páginas que consuman la matriz (pública y dashboard)
-        respeten el estado de activación configurado en el panel.
+        Centraliza el armado del dict de cotizaciones para que tanto la matriz
+        completa (dashboard) como la matriz pública compartan exactamente la
+        misma estructura, sin duplicar el bucle.
+
+        Args:
+            payment_methods: Lista de PaymentMethod ya filtrada y ordenada.
+            currencies: Lista de Currency ya filtrada y ordenada.
 
         Returns:
-            dict con 'payment_methods', 'currencies' y 'quotes' (solo activos).
+            dict con 'payment_methods', 'currencies' y 'quotes'.
         """
-        payment_methods = (
-            PaymentMethod.query
-            .filter_by(active=True)
-            .order_by(PaymentMethod.display_order)
-            .all()
-        )
-        currencies = (
-            Currency.query
-            .filter_by(active=True)
-            .order_by(Currency.display_order, Currency.code)
-            .all()
-        )
-
         quotes_dict = {}
         for pm in payment_methods:
             quotes_dict[pm.code] = {}
@@ -71,6 +62,78 @@ class QuoteService:
             'currencies': [curr.to_dict() for curr in currencies],
             'quotes': quotes_dict,
         }
+
+    @staticmethod
+    def get_quotes_matrix():
+        """
+        Obtener cotizaciones en formato matriz solo para entidades activas.
+
+        Filtra payment_methods y currencies por active=True para que
+        todas las páginas que consuman la matriz (dashboard) respeten el
+        estado de activación configurado en el panel. Incluye TODOS los
+        métodos activos, incluido el pivote 'REF' (el dashboard debe verlo
+        y editarlo). Para superficies públicas usar get_public_quotes_matrix.
+
+        Returns:
+            dict con 'payment_methods', 'currencies' y 'quotes' (solo activos).
+        """
+        payment_methods = (
+            PaymentMethod.query
+            .filter_by(active=True)
+            .order_by(PaymentMethod.display_order)
+            .all()
+        )
+        currencies = (
+            Currency.query
+            .filter_by(active=True)
+            .order_by(Currency.display_order, Currency.code)
+            .all()
+        )
+        return QuoteService._build_matrix(payment_methods, currencies)
+
+    @staticmethod
+    def get_public_quotes_matrix():
+        """
+        Matriz de cotizaciones para superficies PÚBLICAS.
+
+        Igual que get_quotes_matrix, pero los métodos se restringen a los
+        visibles al público (PaymentMethod.get_visibles_publico), excluyendo
+        los estructurales/pivote como 'REF'. Las monedas siguen siendo solo
+        las activas. La estructura devuelta es idéntica a la matriz completa,
+        de modo que los templates públicos no requieren cambios.
+
+        Returns:
+            dict con 'payment_methods', 'currencies' y 'quotes' (solo públicos).
+        """
+        payment_methods = PaymentMethod.get_visibles_publico()
+        currencies = (
+            Currency.query
+            .filter_by(active=True)
+            .order_by(Currency.display_order, Currency.code)
+            .all()
+        )
+        return QuoteService._build_matrix(payment_methods, currencies)
+
+    @staticmethod
+    def get_cotizaciones_matrix():
+        """
+        Matriz para la TABLA pública /cotizaciones.
+
+        Igual que get_public_quotes_matrix (métodos sin pivote), pero además
+        excluye de las columnas las monedas ocultas en la tabla
+        (Currency.OCULTAS_EN_COTIZACIONES, p. ej. 'USD'). Esas monedas siguen
+        activas y disponibles en la calculadora pública; solo no se listan
+        como columna en /cotizaciones, donde su cotización es redundante.
+
+        La estructura devuelta es idéntica a las demás matrices, de modo que
+        el template de la tabla no requiere cambios.
+
+        Returns:
+            dict con 'payment_methods', 'currencies' y 'quotes' para la tabla.
+        """
+        payment_methods = PaymentMethod.get_visibles_publico()
+        currencies = Currency.get_visibles_en_cotizaciones()
+        return QuoteService._build_matrix(payment_methods, currencies)
 
     @staticmethod
     def update_quote(quote_id, value_type=None, usd_value=None, usd_formula=None):

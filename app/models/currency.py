@@ -1,10 +1,19 @@
 from app.models import db
 from datetime import datetime
+from typing import List, Optional
 
 class Currency(db.Model):
     """Modelo de moneda"""
     __tablename__ = 'currencies'
-    
+
+    # Monedas que están ACTIVAS (sirven en la calculadora pública) pero cuya
+    # columna NO debe mostrarse en la tabla pública /cotizaciones, porque su
+    # cotización ahí es redundante (p. ej. USD, que actúa como pivote/medida).
+    # Es la única fuente de verdad de esta visibilidad: ocultar otra moneda en
+    # la tabla a futuro = añadir su código aquí. NO afecta a `active` ni a la
+    # calculadora; solo a las columnas de /cotizaciones.
+    OCULTAS_EN_COTIZACIONES: frozenset = frozenset({'USD'})
+
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(10), unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
@@ -18,7 +27,45 @@ class Currency(db.Model):
     
     def __repr__(self):
         return f'<Currency {self.code}>'
-    
+
+    @property
+    def es_visible_en_cotizaciones(self) -> bool:
+        """Indica si la moneda debe mostrarse como columna en /cotizaciones.
+
+        Una moneda aparece en la tabla pública cuando está activa y su código
+        no figura entre las ocultas en cotizaciones (``OCULTAS_EN_COTIZACIONES``).
+        Es independiente de la calculadora pública, que sigue usando ``active``.
+
+        Returns:
+            True si la moneda debe mostrarse en la tabla /cotizaciones;
+            False si está inactiva o se oculta explícitamente en esa tabla.
+        """
+        if not self.active:
+            return False
+        return (self.code or '').upper() not in self.OCULTAS_EN_COTIZACIONES
+
+    @classmethod
+    def get_visibles_en_cotizaciones(cls) -> List['Currency']:
+        """Devuelve las monedas que se muestran en la tabla /cotizaciones.
+
+        Filtra por ``active=True`` y excluye las ocultas en cotizaciones,
+        manteniendo el mismo orden (``display_order``, luego ``code``) que la
+        matriz general, para que el encabezado de columnas quede consistente.
+
+        Returns:
+            Lista de Currency visibles en la tabla, ya ordenada.
+        """
+        activas = (
+            cls.query
+            .filter_by(active=True)
+            .order_by(cls.display_order, cls.code)
+            .all()
+        )
+        return [
+            c for c in activas
+            if (c.code or '').upper() not in cls.OCULTAS_EN_COTIZACIONES
+        ]
+
     def to_dict(self):
         """Convertir a diccionario"""
         return {
@@ -27,6 +74,7 @@ class Currency(db.Model):
             'name': self.name,
             'symbol': self.symbol,
             'active': self.active,
+            'visible_en_cotizaciones': self.es_visible_en_cotizaciones,
             'display_order': self.display_order,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }

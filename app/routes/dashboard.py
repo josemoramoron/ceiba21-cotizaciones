@@ -545,7 +545,7 @@ def telegram_publisher():
             currency_symbol = 'Bs' if publication_type == 'full_ves' else '$COP'
 
             # Obtener datos vía Services
-            payment_methods = PaymentMethodService.get_active_ordered(limit=6)
+            payment_methods = PaymentMethodService.get_public_ordered(limit=6)
             currency = CurrencyService.get_by_code(currency_code)
 
             if not currency:
@@ -607,7 +607,7 @@ def telegram_publisher():
             'REF': '📊'
         }
 
-        payment_methods = PaymentMethodService.get_active_ordered(limit=6)
+        payment_methods = PaymentMethodService.get_public_ordered(limit=6)
         currency_ves = CurrencyService.get_by_code('VES')
         currency_cop = CurrencyService.get_by_code('COP')
 
