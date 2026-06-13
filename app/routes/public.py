@@ -107,11 +107,11 @@ def api_calcular():
             margen_pct=margen,
         )
     elif tipo == 'method_to_fiat':
+        # Los métodos usan su cotización directa — sin margen adicional
         resultado = CalculatorService.calcular_publico_method_to_fiat(
             metodo_code=tengo,
             quiero_code=quiero,
             monto=monto,
-            margen_pct=margen,
         )
     else:
         return jsonify({'error': 'Tipo de conversión no válido'}), 400

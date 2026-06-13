@@ -305,22 +305,22 @@ class CalculatorService:
         metodo_code: str,
         quiero_code: str,
         monto: float,
-        margen_pct: float,
     ) -> dict:
         """
         Conversión método-de-pago→fiat para la calculadora pública.
 
-        Usa la cotización (Quote) vigente del método como precio de
-        referencia e impone el margen global sobre ese valor.
+        Usa directamente la cotización (Quote) vigente del método
+        sin aplicar margen adicional. El margen del operador ya está
+        incorporado en cada Quote a través del sistema de cotizaciones.
+        El margen global de la calculadora aplica SOLO a fiat↔fiat.
 
         Args:
             metodo_code: Código del método de pago (ej. 'PAYPAL', 'ZELLE').
             quiero_code: Código de la moneda destino (ej. 'VES').
             monto: Monto en USD (todos los métodos se nominan en USD).
-            margen_pct: Margen porcentual del operador (0 = sin margen).
 
         Returns:
-            dict con tasa_ref, tasa_efectiva, resultado y tipo,
+            dict con tasa, resultado y tipo,
             o dict con 'error' si no existe cotización activa.
         """
         method = PaymentMethod.query.filter_by(
@@ -352,18 +352,16 @@ class CalculatorService:
                 )
             }
 
-        tasa_ref = float(quote.final_value)
-        divisor = 1.0 + margen_pct / 100.0
-        tasa_efectiva = round(tasa_ref / divisor, 6)
-        resultado = round(monto * tasa_efectiva, 2)
+        tasa = float(quote.final_value)
+        resultado = round(monto * tasa, 2)
 
         return {
             'tengo': metodo_code.upper(),
             'quiero': quiero_code.upper(),
             'monto': monto,
-            'tasa_ref': round(tasa_ref, 6),
-            'tasa_efectiva': tasa_efectiva,
-            'margen': margen_pct,
+            'tasa_ref': round(tasa, 6),
+            'tasa_efectiva': round(tasa, 6),
+            'margen': 0,
             'resultado': resultado,
             'tipo': 'method_to_fiat',
         }

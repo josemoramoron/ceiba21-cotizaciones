@@ -10,16 +10,17 @@
 
     .conv-card {
         max-width:680px; padding:1.5rem; border-radius:0.9rem;
-        border:1px solid var(--c-border); background:var(--c-surface);
+        border:2px solid var(--c-border); background:var(--c-surface);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.12);
     }
     .conv-row { display:grid; grid-template-columns:1fr auto 1fr; gap:0.75rem; align-items:end; }
     .conv-field label { display:block; font-size:0.78rem; font-weight:600; color:var(--c-text-2); margin-bottom:0.35rem; }
     .conv-field select, .conv-field input {
-        width:100%; padding:0.6rem 0.75rem; border:1px solid var(--c-border);
+        width:100%; padding:0.6rem 0.75rem; border:1.5px solid var(--c-border);
         border-radius:0.5rem; background:var(--c-surface); color:var(--c-text);
         font-size:0.9rem; font-family:inherit;
     }
-    .conv-field select:focus, .conv-field input:focus { outline:none; border-color:var(--color-primary); }
+    .conv-field select:focus, .conv-field input:focus { outline:none; border-color:var(--color-primary); box-shadow: 0 0 0 2px rgba(247,217,23,0.18); }
 
     .swap-btn {
         margin-bottom:0.15rem; width:42px; height:42px; border-radius:50%;
@@ -31,7 +32,7 @@
     .conv-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; }
 
     .result-box { margin-top:1.5rem; padding:1.25rem 1.5rem; border-radius:0.7rem;
-        border:1px dashed var(--c-border); background:var(--c-surface); }
+        border:1.5px solid var(--c-border); background:var(--c-surface); }
     .result-label { font-size:0.75rem; color:var(--c-text-2); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
     .result-value { font-size:2rem; font-weight:800; color:var(--color-primary); margin:0.2rem 0; }
     .result-detail { font-size:0.82rem; color:var(--c-text-3); }
