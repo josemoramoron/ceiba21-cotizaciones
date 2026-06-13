@@ -1,6 +1,6 @@
 {% extends "public_base.html" %}
 
-{% block title %}Calculadora de PayPal - Ceiba21{% endblock %}
+{% block title %}Calculadora — Ceiba21{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -8,44 +8,40 @@
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    /* ── Tab buttons ── */
+    /* ── Tab bar (3 tabs) ── */
     .calc-tab {
         flex: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        padding: 0.85rem 1rem;
-        font-size: 1rem;
+        gap: 0.4rem;
+        padding: 0.85rem 0.5rem;
+        font-size: 0.88rem;
         font-weight: 600;
         cursor: pointer;
         border: none;
         background: transparent;
-        color: #B4BCC5;
+        color: var(--color-text-secondary);
         transition: color 0.2s ease, background 0.2s ease;
         position: relative;
         z-index: 1;
     }
 
     .calc-tab.active {
-        color: #F7D917;
+        color: var(--color-primary);
         background: rgba(247, 217, 23, 0.08);
     }
 
-    /* Sliding indicator */
+    /* Sliding indicator — 3 tabs → 33.333 % each */
     .tab-slider {
         position: absolute;
         bottom: 0;
         left: 0;
         height: 3px;
-        width: 50%;
-        background: #F7D917;
+        width: 33.333%;
+        background: var(--color-primary);
         border-radius: 3px 3px 0 0;
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .tab-slider.send {
-        transform: translateX(100%);
     }
 
     /* ── Panel animation ── */
@@ -68,17 +64,20 @@
         background-color: rgba(16, 185, 129, 0.08);
         border: 1px solid rgba(16, 185, 129, 0.25);
     }
-
     .result-send {
         background-color: rgba(247, 217, 23, 0.08);
         border: 1px solid rgba(247, 217, 23, 0.3);
     }
+    .result-conv {
+        background-color: rgba(59, 130, 246, 0.08);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
 
-    /* ── Input focus ring override ── */
+    /* ── Input focus ring ── */
     input[type="number"]:focus,
     select:focus {
         outline: none;
-        border-color: #F7D917 !important;
+        border-color: var(--color-primary) !important;
         box-shadow: 0 0 0 3px rgba(247, 217, 23, 0.18) !important;
     }
 
@@ -106,7 +105,6 @@
         transition: background-color 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
         box-shadow: 0 2px 8px rgba(37, 211, 102, 0.35);
     }
-
     .btn-whatsapp:hover {
         background-color: #1ebe5d;
         transform: translateY(-1px);
@@ -114,16 +112,10 @@
         color: #ffffff;
         text-decoration: none;
     }
+    .btn-whatsapp:active { transform: translateY(0); }
+    .btn-whatsapp svg { flex-shrink: 0; }
 
-    .btn-whatsapp:active {
-        transform: translateY(0);
-    }
-
-    .btn-whatsapp svg {
-        flex-shrink: 0;
-    }
-
-    /* ── Botón WA: oculto hasta que se elige moneda ── */
+    /* ── WA wrapper (animación reveal) ── */
     .wa-wrapper {
         overflow: hidden;
         max-height: 0;
@@ -133,11 +125,45 @@
                     margin-top 0.3s ease;
         margin-top: 0;
     }
-
     .wa-wrapper.visible {
         max-height: 60px;
         opacity: 1;
-        margin-top: 0;   /* el space-y-4 del panel ya da el gap */
+    }
+
+    /* ── Conversor: fila tengo/quiero con swap ── */
+    .conv-swap-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .conv-swap-row .conv-select-wrap {
+        flex: 1;
+    }
+    .conv-swap-btn {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+        color: var(--color-text);
+        cursor: pointer;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s, transform 0.2s, opacity 0.2s;
+        margin-top: 1.3rem; /* align with inputs */
+    }
+    .conv-swap-btn:hover:not(:disabled) {
+        background: var(--color-primary);
+        color: #1A1A1A;
+        border-color: var(--color-primary);
+        transform: rotate(180deg);
+    }
+    .conv-swap-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
     }
 </style>
 {% endblock %}
@@ -148,9 +174,9 @@
 <section class="py-8 md:py-10" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
     <div class="container mx-auto px-4 text-center">
         <h1 class="font-bold mb-2" style="color: white; font-size: clamp(1.4rem, 4vw, 2rem);">
-            <i class="fas fa-calculator mr-2" style="color: #F7D917;"></i> Calculadora PayPal
+            <i class="fas fa-calculator mr-2" style="color: var(--color-primary);"></i> Calculadora
         </h1>
-        <p class="text-sm md:text-lg" style="color: #B4BCC5;">Calcula cuánto recibirás o cuánto debes enviar</p>
+        <p class="text-sm md:text-lg" style="color: var(--color-text-secondary);">PayPal · Conversor de monedas y métodos</p>
     </div>
 </section>
 
@@ -164,22 +190,24 @@
             <!-- Tab bar -->
             <div style="background: linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 100%);">
                 <div class="flex relative" id="tabBar">
-                    <button class="calc-tab active" id="tabReceive" onclick="switchTab('receive')">
-                        <i class="fas fa-arrow-down"></i> Recibir Pago
+                    <button class="calc-tab active" id="tab-receive" onclick="switchTab('receive')">
+                        <i class="fas fa-arrow-down"></i> Recibir
                     </button>
-                    <button class="calc-tab" id="tabSend" onclick="switchTab('send')">
-                        <i class="fas fa-arrow-up"></i> Enviar Pago
+                    <button class="calc-tab" id="tab-send" onclick="switchTab('send')">
+                        <i class="fas fa-arrow-up"></i> Enviar
+                    </button>
+                    <button class="calc-tab" id="tab-conv" onclick="switchTab('conv')">
+                        <i class="fas fa-right-left"></i> Conversor
                     </button>
                     <div class="tab-slider" id="tabSlider"></div>
                 </div>
-                <!-- Subtitle -->
-                <p class="text-sm px-5 pb-4 pt-1" style="color: #B4BCC5;" id="tabSubtitle">
-                    ¿Cuánto me llega después de comisiones?
+                <p class="text-sm px-5 pb-4 pt-1" style="color: var(--color-text-secondary);" id="tabSubtitle">
+                    ¿Cuánto me llega después de comisiones PayPal?
                 </p>
             </div>
 
-            <!-- ── Panel: Recibir ── -->
-            <div class="calc-panel active p-5 space-y-4" id="panelReceive">
+            <!-- ── Panel: Recibir PayPal ── -->
+            <div class="calc-panel active p-5 space-y-4" id="panel-receive">
 
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">
@@ -198,7 +226,6 @@
                     </div>
                 </div>
 
-                <!-- Resultados -->
                 <div class="space-y-2 p-4 rounded-lg" style="background-color: var(--color-bg); border: 1px solid var(--color-border);">
                     <div class="flex justify-between items-center py-1">
                         <span class="text-sm" style="color: var(--color-text-secondary);">Monto enviado:</span>
@@ -217,21 +244,18 @@
                     </div>
                 </div>
 
-                <!-- Selector moneda -->
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">Moneda</label>
                     <select id="receiveSelect" onchange="calculateReceive()"
                             style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
                             class="w-full px-3 py-2 text-base rounded-lg">
                         <option value="" disabled selected>— Seleccionar moneda —</option>
-                        <option value="USD">USD - Dólar</option>
                         {% for currency in matrix.currencies %}
-                        <option value="{{ currency.code }}">{{ currency.code }} - {{ currency.name }}</option>
+                        <option value="{{ currency.code }}">{{ currency.code }} — {{ currency.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Conversión -->
                 <div id="receiveConvertedBox" class="hidden p-3 rounded"
                      style="background-color: rgba(59,130,246,0.08); border-left: 4px solid #3B82F6;">
                     <div class="flex items-center justify-between">
@@ -240,27 +264,27 @@
                                 <i class="fas fa-info-circle mr-1"></i> Monto en <span id="receiveCurrencyName">VES</span>:
                             </p>
                             <p class="text-xs" style="color: var(--color-text-secondary);">
-                                Cotización PayPal: <span id="receiveQuoteRate">287.07</span>
+                                Cotización PayPal: <span id="receiveQuoteRate">—</span>
                             </p>
                         </div>
-                        <span class="text-xl font-bold" style="color: #3B82F6;" id="receiveConverted">28,707.00</span>
+                        <span class="text-xl font-bold" style="color: #3B82F6;" id="receiveConverted">—</span>
                     </div>
                 </div>
 
-                <!-- Botón WhatsApp (aparece al seleccionar moneda) -->
                 <div class="wa-wrapper" id="waWrapperReceive">
                     <a id="btnWaReceive" href="#" target="_blank" class="btn-whatsapp" onclick="return openWhatsApp('receive')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    Hablar con un asesor
-                </a>
-                </div><!-- /wa-wrapper receive -->
+                        {% include 'public/_wa_icon.html' ignore missing %}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        Hablar con un asesor
+                    </a>
+                </div>
 
-            </div>
+            </div><!-- /panel-receive -->
 
-            <!-- ── Panel: Enviar ── -->
-            <div class="calc-panel p-5 space-y-4" id="panelSend">
+            <!-- ── Panel: Enviar PayPal ── -->
+            <div class="calc-panel p-5 space-y-4" id="panel-send">
 
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">
@@ -279,11 +303,10 @@
                     </div>
                 </div>
 
-                <!-- Resultados -->
                 <div class="space-y-2 p-4 rounded-lg" style="background-color: var(--color-bg); border: 1px solid var(--color-border);">
                     <div class="flex justify-between items-center py-2 px-3 rounded result-send">
                         <span class="font-semibold" style="color: var(--color-text);">
-                            <i class="fas fa-paper-plane mr-1" style="color: #F7D917;"></i> Hay que enviar:
+                            <i class="fas fa-paper-plane mr-1" style="color: var(--color-primary);"></i> Hay que enviar:
                         </span>
                         <span class="text-2xl font-bold" style="color: var(--color-text);" id="sendTotal">$106.03</span>
                     </div>
@@ -294,21 +317,18 @@
                     </div>
                 </div>
 
-                <!-- Selector moneda -->
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">Moneda</label>
                     <select id="sendSelect" onchange="calculateSend()"
                             style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
                             class="w-full px-3 py-2 text-base rounded-lg">
                         <option value="" disabled selected>— Seleccionar moneda —</option>
-                        <option value="USD">USD - Dólar</option>
                         {% for currency in matrix.currencies %}
-                        <option value="{{ currency.code }}">{{ currency.code }} - {{ currency.name }}</option>
+                        <option value="{{ currency.code }}">{{ currency.code }} — {{ currency.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Conversión -->
                 <div id="sendConvertedBox" class="hidden p-3 rounded"
                      style="background-color: rgba(168,85,247,0.08); border-left: 4px solid #A855F7;">
                     <div class="flex items-center justify-between">
@@ -317,48 +337,134 @@
                                 <i class="fas fa-info-circle mr-1"></i> Monto en <span id="sendCurrencyName">VES</span>:
                             </p>
                             <p class="text-xs" style="color: var(--color-text-secondary);">
-                                Cotización PayPal: <span id="sendQuoteRate">287.07</span>
+                                Cotización PayPal: <span id="sendQuoteRate">—</span>
                             </p>
                         </div>
-                        <span class="text-xl font-bold" style="color: #A855F7;" id="sendConverted">30,445.59</span>
+                        <span class="text-xl font-bold" style="color: #A855F7;" id="sendConverted">—</span>
                     </div>
                 </div>
 
-                <!-- Botón WhatsApp (aparece al seleccionar moneda) -->
                 <div class="wa-wrapper" id="waWrapperSend">
                     <a id="btnWaSend" href="#" target="_blank" class="btn-whatsapp" onclick="return openWhatsApp('send')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    Hablar con un asesor
-                </a>
-                </div><!-- /wa-wrapper send -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        Hablar con un asesor
+                    </a>
+                </div>
 
-            </div>
-        </div>
-        <!-- fin contenedor único -->
+            </div><!-- /panel-send -->
+
+            <!-- ── Panel: Conversor ── -->
+            <div class="calc-panel p-5 space-y-4" id="panel-conv">
+
+                <!-- Tengo: monto + moneda/método -->
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">Tengo</label>
+                    <div class="flex gap-2">
+                        <div class="relative" style="width: 130px; flex-shrink: 0;">
+                            <input type="number"
+                                   id="convMonto"
+                                   oninput="debounceConv()"
+                                   placeholder="100"
+                                   step="0.01"
+                                   value="100"
+                                   style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
+                                   class="w-full px-3 py-2 text-lg font-semibold rounded-lg">
+                        </div>
+                        <select id="convTengo" onchange="onTengoChange()"
+                                style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
+                                class="flex-1 px-3 py-2 text-sm rounded-lg">
+                            <optgroup label="💵 Monedas">
+                                {% for currency in matrix.currencies %}
+                                <option value="{{ currency.code }}|fiat">{{ currency.code }} — {{ currency.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="💳 Métodos de pago">
+                                {% for pm in matrix.payment_methods %}
+                                <option value="{{ pm.code }}|method">{{ pm.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botón swap -->
+                <div class="flex items-center justify-center">
+                    <button id="convSwapBtn"
+                            onclick="swapConv()"
+                            class="conv-swap-btn"
+                            title="Permutar monedas (solo fiat↔fiat)">
+                        <i class="fas fa-right-left"></i>
+                    </button>
+                </div>
+
+                <!-- Quiero -->
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-text);">Quiero</label>
+                    <select id="convQuiero" onchange="debounceConv()"
+                            style="background-color: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border);"
+                            class="w-full px-3 py-2 text-sm rounded-lg">
+                        {% for currency in matrix.currencies %}
+                        <option value="{{ currency.code }}"
+                            {% if loop.index == 2 %}selected{% endif %}>
+                            {{ currency.code }} — {{ currency.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Resultado -->
+                <div id="convResultBox" class="hidden p-4 rounded-lg result-conv">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-semibold mb-1" style="color: var(--color-text);">
+                                <i class="fas fa-coins mr-1" style="color: #3B82F6;"></i>
+                                Recibes <span id="convQuieroLabel">—</span>:
+                            </p>
+                            <p class="text-xs" style="color: var(--color-text-secondary);" id="convRateDetail">—</p>
+                        </div>
+                        <span class="text-2xl font-bold" style="color: #3B82F6;" id="convResultado">—</span>
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div id="convErrorBox" class="hidden p-3 rounded-lg"
+                     style="background-color: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);">
+                    <p class="text-sm" style="color: #EF4444;" id="convErrorMsg">—</p>
+                </div>
+
+                <!-- WhatsApp -->
+                <div class="wa-wrapper" id="waWrapperConv">
+                    <a href="#" target="_blank" class="btn-whatsapp" onclick="return openWhatsAppConv()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        Hablar con un asesor
+                    </a>
+                </div>
+
+            </div><!-- /panel-conv -->
+
+        </div><!-- fin contenedor único -->
 
         <!-- Info adicional -->
         <div class="mt-10 max-w-xl mx-auto">
-            <div class="rounded-lg shadow-lg p-6" style="background-color: var(--color-surface); border: 1px solid var(--color-border);">
+            <div class="rounded-lg shadow-lg p-6"
+                 style="background-color: var(--color-surface); border: 1px solid var(--color-border);">
                 <h3 class="text-lg font-bold mb-3 flex items-center" style="color: var(--color-text);">
-                    <i class="fas fa-question-circle mr-2" style="color: #F7D917;"></i>
+                    <i class="fas fa-question-circle mr-2" style="color: var(--color-primary);"></i>
                     ¿Cómo usar la calculadora?
                 </h3>
                 <p class="text-sm mb-3" style="color: var(--color-text);">
-                    Selecciona el modo con las pestañas superiores y llena el campo de texto. Los cálculos usan la comisión estándar de PayPal: <strong>5,4% + $0,30 USD</strong> por transacción.
-                </p>
-                <h4 class="text-base font-bold mb-2" style="color: var(--color-text);">¿Monto Bruto y Monto Neto?</h4>
-                <p class="text-sm mb-2" style="color: var(--color-text);">
-                    <strong>Bruto</strong> — el monto enviado sin descontar comisiones (lo que sale de la cuenta del pagador).
-                </p>
-                <p class="text-sm mb-4" style="color: var(--color-text);">
-                    <strong>Neto</strong> — lo que llega al destino después de descontar comisiones.
+                    Selecciona el modo con las pestañas. Los cálculos PayPal usan
+                    la comisión estándar: <strong>5,4% + $0,30 USD</strong>.
+                    El Conversor usa cotizaciones en tiempo real de Ceiba21.
                 </p>
                 <div class="p-3 rounded" style="background-color: rgba(245,158,11,0.1); border-left: 4px solid #F59E0B;">
                     <p class="text-xs" style="color: var(--color-text);">
                         <i class="fas fa-info-circle mr-1"></i>
-                        <strong>Nota:</strong> Esta calculadora no incluye comisiones de Ceiba21. Es una herramienta de referencia.
+                        <strong>Nota:</strong> Las tasas son de referencia. Contáctanos para confirmar la operación.
                     </p>
                 </div>
             </div>
@@ -368,72 +474,88 @@
 </section>
 
 <script>
-const quotesData = {{ matrix.quotes|tojson }};
-const WA_NUMBER  = '573022100056';   // ← cambia aquí el número cuando lo tengas
+/* ================================================================
+   CALCULADORA CEIBA21
+   Tabs: receive | send | conv
+   ================================================================ */
+const quotesData = {{ matrix.quotes | tojson }};
+const WA_NUMBER  = '573022100056';
 
-const subtitles = {
-    receive: '¿Cuánto me llega después de comisiones?',
-    send:    '¿Cuánto debo enviar para que llegue X cantidad?'
+/* ── Tab config ── */
+const TAB_CONFIG = {
+    receive: { idx: 0, subtitle: '¿Cuánto me llega después de comisiones PayPal?' },
+    send:    { idx: 1, subtitle: '¿Cuánto debo enviar para que llegue X cantidad?' },
+    conv:    { idx: 2, subtitle: 'Convierte entre monedas y métodos de pago' },
 };
 
-/* ── Tab switcher ── */
 function switchTab(tab) {
-    document.getElementById('tabReceive').classList.toggle('active', tab === 'receive');
-    document.getElementById('tabSend').classList.toggle('active', tab === 'send');
-    document.getElementById('tabSlider').classList.toggle('send', tab === 'send');
-    document.getElementById('panelReceive').classList.toggle('active', tab === 'receive');
-    document.getElementById('panelSend').classList.toggle('active', tab === 'send');
-    document.getElementById('tabSubtitle').textContent = subtitles[tab];
+    Object.keys(TAB_CONFIG).forEach(function (t) {
+        document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+        document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+    });
+    document.getElementById('tabSlider').style.transform =
+        'translateX(' + (TAB_CONFIG[tab].idx * 100) + '%)';
+    document.getElementById('tabSubtitle').textContent = TAB_CONFIG[tab].subtitle;
 }
 
-/* ── Cálculos ── */
+/* ================================================================
+   PAYPAL — Recibir
+   ================================================================ */
 function calculateReceive() {
-    const bruto    = parseFloat(document.getElementById('receiveInput').value) || 0;
-    const currency = document.getElementById('receiveSelect').value;
-    const commission = (bruto * 0.054) + 0.30;
-    const neto       = Math.round((bruto - commission) * 100) / 100;
+    var bruto    = parseFloat(document.getElementById('receiveInput').value) || 0;
+    var currency = document.getElementById('receiveSelect').value;
+    var commission = (bruto * 0.054) + 0.30;
+    var neto       = Math.round((bruto - commission) * 100) / 100;
 
     document.getElementById('receiveSent').textContent       = '$' + bruto.toFixed(2);
     document.getElementById('receiveCommission').textContent = '$' + commission.toFixed(2);
     document.getElementById('receiveNet').textContent        = '$' + neto.toFixed(2);
 
-    const waWrapper = document.getElementById('waWrapperReceive');
+    var waWrapper = document.getElementById('waWrapperReceive');
 
     if (currency && currency !== 'USD') {
-        const q = quotesData['PAYPAL'][currency];
-        document.getElementById('receiveConvertedBox').classList.remove('hidden');
-        document.getElementById('receiveCurrencyName').textContent = currency;
-        document.getElementById('receiveQuoteRate').textContent    = q.value.toFixed(2);
-        document.getElementById('receiveConverted').textContent    = formatNumber(neto * q.value);
-        waWrapper.classList.add('visible');
+        var pm = _firstPaypalKey();
+        var q  = pm && quotesData[pm] && quotesData[pm][currency];
+        if (q && q.value) {
+            document.getElementById('receiveConvertedBox').classList.remove('hidden');
+            document.getElementById('receiveCurrencyName').textContent = currency;
+            document.getElementById('receiveQuoteRate').textContent    = q.value.toFixed(2);
+            document.getElementById('receiveConverted').textContent    = formatNumber(neto * q.value);
+            waWrapper.classList.add('visible');
+        }
     } else if (currency === 'USD') {
         document.getElementById('receiveConvertedBox').classList.add('hidden');
         waWrapper.classList.add('visible');
     } else {
-        // Sin selección: ocultar todo
         document.getElementById('receiveConvertedBox').classList.add('hidden');
         waWrapper.classList.remove('visible');
     }
 }
 
+/* ================================================================
+   PAYPAL — Enviar
+   ================================================================ */
 function calculateSend() {
-    const neto     = parseFloat(document.getElementById('sendInput').value) || 0;
-    const currency = document.getElementById('sendSelect').value;
-    const bruto      = (neto + 0.30) / 0.946;
-    const commission = bruto - neto;
+    var neto     = parseFloat(document.getElementById('sendInput').value) || 0;
+    var currency = document.getElementById('sendSelect').value;
+    var bruto      = (neto + 0.30) / 0.946;
+    var commission = bruto - neto;
 
     document.getElementById('sendTotal').textContent      = '$' + bruto.toFixed(2);
     document.getElementById('sendCommission').textContent = '$' + commission.toFixed(2);
 
-    const waWrapper = document.getElementById('waWrapperSend');
+    var waWrapper = document.getElementById('waWrapperSend');
 
     if (currency && currency !== 'USD') {
-        const q = quotesData['PAYPAL'][currency];
-        document.getElementById('sendConvertedBox').classList.remove('hidden');
-        document.getElementById('sendCurrencyName').textContent = currency;
-        document.getElementById('sendQuoteRate').textContent    = q.value.toFixed(2);
-        document.getElementById('sendConverted').textContent    = formatNumber(neto * q.value);
-        waWrapper.classList.add('visible');
+        var pm = _firstPaypalKey();
+        var q  = pm && quotesData[pm] && quotesData[pm][currency];
+        if (q && q.value) {
+            document.getElementById('sendConvertedBox').classList.remove('hidden');
+            document.getElementById('sendCurrencyName').textContent = currency;
+            document.getElementById('sendQuoteRate').textContent    = q.value.toFixed(2);
+            document.getElementById('sendConverted').textContent    = formatNumber(neto * q.value);
+            waWrapper.classList.add('visible');
+        }
     } else if (currency === 'USD') {
         document.getElementById('sendConvertedBox').classList.add('hidden');
         waWrapper.classList.add('visible');
@@ -443,69 +565,199 @@ function calculateSend() {
     }
 }
 
-/* ── WhatsApp: construye el mensaje con los datos del panel activo ── */
+/* Busca la primera clave que corresponda a PayPal en quotesData */
+function _firstPaypalKey() {
+    var keys = Object.keys(quotesData);
+    for (var i = 0; i < keys.length; i++) {
+        if (keys[i].toUpperCase().indexOf('PAYPAL') !== -1) return keys[i];
+    }
+    return keys[0] || null;
+}
+
+/* ================================================================
+   CONVERSOR
+   ================================================================ */
+var _convTimer   = null;
+var _lastConvRes = null;   /* guarda último resultado para WA */
+
+function onTengoChange() {
+    var parts = (document.getElementById('convTengo').value || '|').split('|');
+    var tipo  = parts[1] || 'fiat';
+    var swapBtn = document.getElementById('convSwapBtn');
+    swapBtn.disabled = (tipo === 'method');
+    debounceConv();
+}
+
+function debounceConv() {
+    clearTimeout(_convTimer);
+    _convTimer = setTimeout(_doCalcConv, 320);
+}
+
+function _doCalcConv() {
+    var tengoRaw = document.getElementById('convTengo').value || '';
+    var quiero   = document.getElementById('convQuiero').value || '';
+    var monto    = parseFloat(document.getElementById('convMonto').value) || 0;
+
+    _hideConvResult();
+
+    if (!tengoRaw || !quiero || monto <= 0) return;
+
+    var parts = tengoRaw.split('|');
+    var tengo = parts[0];
+    var tipo  = parts[1] === 'method' ? 'method_to_fiat' : 'fiat_to_fiat';
+
+    /* caso trivial: misma moneda */
+    if (tipo === 'fiat_to_fiat' && tengo === quiero) {
+        _showConvResult({
+            tengo: tengo, quiero: quiero, monto: monto,
+            resultado: monto, tasa_ref: 1, tasa_efectiva: 1, margen: 0,
+            tipo: 'fiat_to_fiat'
+        });
+        return;
+    }
+
+    fetch('/api/calcular', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tengo: tengo, quiero: quiero, monto: monto, tipo: tipo })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        if (d.error) {
+            _showConvError(d.error);
+        } else {
+            _showConvResult(d);
+        }
+    })
+    .catch(function () {
+        _showConvError('No se pudo calcular en este momento.');
+    });
+}
+
+function _showConvResult(d) {
+    _lastConvRes = d;
+    document.getElementById('convErrorBox').classList.add('hidden');
+    document.getElementById('convResultBox').classList.remove('hidden');
+    document.getElementById('convQuieroLabel').textContent = d.quiero;
+    document.getElementById('convResultado').textContent   = formatNumber(d.resultado);
+
+    var detail = 'Tasa: ' + formatRate(d.tasa_efectiva);
+    if (d.margen > 0) {
+        detail += ' — REF: ' + formatRate(d.tasa_ref) + ' · Margen: ' + d.margen + '%';
+    }
+    document.getElementById('convRateDetail').textContent = detail;
+    document.getElementById('waWrapperConv').classList.add('visible');
+}
+
+function _showConvError(msg) {
+    _lastConvRes = null;
+    document.getElementById('convResultBox').classList.add('hidden');
+    document.getElementById('convErrorBox').classList.remove('hidden');
+    document.getElementById('convErrorMsg').textContent = msg;
+    document.getElementById('waWrapperConv').classList.remove('visible');
+}
+
+function _hideConvResult() {
+    document.getElementById('convResultBox').classList.add('hidden');
+    document.getElementById('convErrorBox').classList.add('hidden');
+    document.getElementById('waWrapperConv').classList.remove('visible');
+    _lastConvRes = null;
+}
+
+function swapConv() {
+    var tengoSel  = document.getElementById('convTengo');
+    var quieroSel = document.getElementById('convQuiero');
+    var parts     = (tengoSel.value || '|').split('|');
+    var tengoCode = parts[0];
+    var tipo      = parts[1] || 'fiat';
+
+    if (tipo === 'method') return;   /* métodos no permiten swap */
+
+    var quieroCode = quieroSel.value;
+
+    /* solo swap si la opción existe en el select de tengo */
+    var newTengoVal = quieroCode + '|fiat';
+    var opt = tengoSel.querySelector('option[value="' + newTengoVal + '"]');
+    if (!opt) return;
+
+    tengoSel.value  = newTengoVal;
+    quieroSel.value = tengoCode;
+    onTengoChange();
+}
+
+/* ================================================================
+   WHATSAPP
+   ================================================================ */
 function openWhatsApp(mode) {
-    let lines = [];
+    var lines = ['Hola 👋 Quiero consultar sobre la siguiente operación:', ''];
 
     if (mode === 'receive') {
-        const bruto      = document.getElementById('receiveSent').textContent;
-        const commission = document.getElementById('receiveCommission').textContent;
-        const neto       = document.getElementById('receiveNet').textContent;
-        const currency   = document.getElementById('receiveSelect').value;
-
-        lines.push('Hola 👋 Quiero consultar sobre la siguiente operación:');
-        lines.push('');
+        var bruto      = document.getElementById('receiveSent').textContent;
+        var commission = document.getElementById('receiveCommission').textContent;
+        var neto       = document.getElementById('receiveNet').textContent;
+        var currency   = document.getElementById('receiveSelect').value;
         lines.push('📥 *Recibir Pago PayPal*');
         lines.push('━━━━━━━━━━━━━━━━━━');
-        lines.push('Monto enviado:    ' + bruto);
-        lines.push('Comisión PayPal:  ' + commission);
-        lines.push('Recibes neto:     ' + neto);
-
-        if (currency !== 'USD') {
-            const rate      = document.getElementById('receiveQuoteRate').textContent;
-            const converted = document.getElementById('receiveConverted').textContent;
+        lines.push('Monto enviado:   ' + bruto);
+        lines.push('Comisión PayPal: ' + commission);
+        lines.push('Recibes neto:    ' + neto);
+        if (currency && currency !== 'USD') {
             lines.push('');
             lines.push('💱 *Conversión a ' + currency + '*');
-            lines.push('Cotización:  ' + rate);
-            lines.push('Monto ' + currency + ':   ' + converted);
+            lines.push('Cotización: ' + document.getElementById('receiveQuoteRate').textContent);
+            lines.push('Monto ' + currency + ': ' + document.getElementById('receiveConverted').textContent);
         }
-
-    } else {
-        const total      = document.getElementById('sendTotal').textContent;
-        const commission = document.getElementById('sendCommission').textContent;
-        const neto       = document.getElementById('sendInput').value || '0';
-        const currency   = document.getElementById('sendSelect').value;
-
-        lines.push('Hola 👋 Quiero consultar sobre la siguiente operación:');
-        lines.push('');
+    } else if (mode === 'send') {
+        var total      = document.getElementById('sendTotal').textContent;
+        var commission = document.getElementById('sendCommission').textContent;
+        var neto       = document.getElementById('sendInput').value || '0';
+        var currency   = document.getElementById('sendSelect').value;
         lines.push('📤 *Enviar Pago PayPal*');
         lines.push('━━━━━━━━━━━━━━━━━━');
         lines.push('Para que llegue: $' + parseFloat(neto).toFixed(2));
         lines.push('Hay que enviar:  ' + total);
         lines.push('Comisión PayPal: ' + commission);
-
-        if (currency !== 'USD') {
-            const rate      = document.getElementById('sendQuoteRate').textContent;
-            const converted = document.getElementById('sendConverted').textContent;
+        if (currency && currency !== 'USD') {
             lines.push('');
             lines.push('💱 *Conversión a ' + currency + '*');
-            lines.push('Cotización:  ' + rate);
-            lines.push('Monto ' + currency + ':   ' + converted);
+            lines.push('Cotización: ' + document.getElementById('sendQuoteRate').textContent);
+            lines.push('Monto ' + currency + ': ' + document.getElementById('sendConverted').textContent);
         }
     }
 
-    lines.push('');
-    lines.push('¿Me pueden ayudar? 🙏');
-
-    const text = lines.join('\n');
-    const url  = 'https://api.whatsapp.com/send/?phone=' + WA_NUMBER
-               + '&text=' + encodeURIComponent(text)
-               + '&type=phone_number&app_absent=0';
-
-    window.open(url, '_blank');
-    return false;   // evita que el <a href="#"> haga scroll al top
+    lines.push(''); lines.push('¿Me pueden ayudar? 🙏');
+    _openWA(lines.join('\n'));
+    return false;
 }
 
+function openWhatsAppConv() {
+    if (!_lastConvRes) return false;
+    var d = _lastConvRes;
+    var lines = ['Hola 👋 Quiero consultar sobre la siguiente operación:', ''];
+    lines.push('💱 *Conversor Ceiba21*');
+    lines.push('━━━━━━━━━━━━━━━━━━');
+    lines.push('Tengo:    ' + d.monto + ' ' + d.tengo);
+    lines.push('Quiero:   ' + d.quiero);
+    lines.push('Resultado: ' + formatNumber(d.resultado) + ' ' + d.quiero);
+    lines.push('Tasa:     ' + formatRate(d.tasa_efectiva));
+    if (d.margen > 0) {
+        lines.push('(REF: ' + formatRate(d.tasa_ref) + ' · Margen: ' + d.margen + '%)');
+    }
+    lines.push(''); lines.push('¿Me pueden ayudar? 🙏');
+    _openWA(lines.join('\n'));
+    return false;
+}
+
+function _openWA(text) {
+    var url = 'https://api.whatsapp.com/send/?phone=' + WA_NUMBER
+            + '&text=' + encodeURIComponent(text)
+            + '&type=phone_number&app_absent=0';
+    window.open(url, '_blank');
+}
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
 function formatNumber(num) {
     return new Intl.NumberFormat('es-ES', {
         minimumFractionDigits: 2,
@@ -513,9 +765,26 @@ function formatNumber(num) {
     }).format(num);
 }
 
+function formatRate(rate) {
+    if (!rate && rate !== 0) return '—';
+    if (rate < 0.01) {
+        return new Intl.NumberFormat('es-ES', {
+            minimumFractionDigits: 6,
+            maximumFractionDigits: 6
+        }).format(rate);
+    }
+    return new Intl.NumberFormat('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4
+    }).format(rate);
+}
+
+/* ── Init ── */
 document.addEventListener('DOMContentLoaded', function () {
     calculateReceive();
     calculateSend();
+    onTengoChange();
+    debounceConv();
 });
 </script>
 {% endblock %}

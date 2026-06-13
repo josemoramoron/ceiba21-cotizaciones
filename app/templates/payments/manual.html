@@ -87,7 +87,9 @@
                 <label for="selMoneda">Moneda del pago</label>
                 <select name="moneda" id="selMoneda">
                     <option value="USD" selected>USD</option>
-                    <option value="EUR">EUR</option>
+                    {% for c in monedas if c.code != 'USD' %}
+                    <option value="{{ c.code }}">{{ c.code }}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>

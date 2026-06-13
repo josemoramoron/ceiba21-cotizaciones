@@ -26,6 +26,10 @@ from app.models.web_user import WebUser
 # Pagos (sistema unificado)
 from app.models.payment import Payment, PaymentProvider, PaymentStatus, PaypalSubtipo
 from app.models.payment_source import PaymentSource
+
+# Configuración del sistema
+from app.models.system_config import SystemConfig
+
 # Exportar para facilitar importación
 __all__ = [
     'db',
@@ -51,5 +55,7 @@ __all__ = [
     'PaymentProvider',
     'PaymentStatus',
     'PaypalSubtipo',
-    'PaymentSource'
+    'PaymentSource',
+    # Configuración del sistema
+    'SystemConfig',
 ]

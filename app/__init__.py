@@ -65,8 +65,8 @@ def create_app(config_class=Config):
     sess.init_app(app)
     db.init_app(app)
     login_manager.init_app(app)
-
-    # Filtro Jinja para formato de números europeo (1.234,56)
+    
+    # Filtros Jinja personalizados
     from app.utils import formato_eu
     app.add_template_filter(formato_eu, 'eu')
     

@@ -21,11 +21,14 @@ from app.services.accounting_service import AccountingService
 from app.services.bot_service import BotService
 from app.services.operator_service import OperatorService
 
+# Configuración del sistema
+from app.services.system_config_service import SystemConfigService
+
 __all__ = [
     # Servicios existentes
-    'QuoteService', 
-    'ExchangeRateService', 
-    'CurrencyService', 
+    'QuoteService',
+    'ExchangeRateService',
+    'CurrencyService',
     'PaymentMethodService',
     'APIService',
     # Nuevos servicios - Fase 2
@@ -40,4 +43,6 @@ __all__ = [
     'BotService',
     # Operadores
     'OperatorService',
+    # Configuración del sistema
+    'SystemConfigService',
 ]

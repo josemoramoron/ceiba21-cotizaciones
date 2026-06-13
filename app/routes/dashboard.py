@@ -4,6 +4,7 @@ Rutas del Dashboard CRUD
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from app.services import QuoteService, ExchangeRateService, CurrencyService, PaymentMethodService
 from app.services.operator_service import OperatorService
+from app.services.system_config_service import SystemConfigService
 from app.routes.auth import login_required
 from app.utils import formato_eu
 from app.models import db  # ← AGREGAR ESTA LÍNEA
@@ -63,7 +64,12 @@ def manage_rates():
 def converter():
     """Conversor de monedas usando cross-rates derivados del pivote USD."""
     currencies = CurrencyService.get_all()
-    return render_template('dashboard/conversor.html', currencies=currencies)
+    margen_actual = SystemConfigService.get_public_calculator_margin()
+    return render_template(
+        'dashboard/conversor.html',
+        currencies=currencies,
+        margen_actual=margen_actual,
+    )
 
 
 @dashboard_bp.route('/api/convertir', methods=['POST'])
@@ -101,6 +107,51 @@ def api_convert():
         'amount': formato_eu(resultado['amount'], 2),
         'result': formato_eu(resultado['result'], 2),
     }), 200
+
+
+@dashboard_bp.route('/api/config/margen-calculadora', methods=['GET'])
+@login_required
+def api_get_margen_calculadora():
+    """
+    Retorna el margen actual de la calculadora pública.
+
+    GET /dashboard/api/config/margen-calculadora
+
+    Returns:
+        JSON con {'margen': float}
+    """
+    return jsonify({
+        'margen': SystemConfigService.get_public_calculator_margin()
+    }), 200
+
+
+@dashboard_bp.route('/api/config/margen-calculadora', methods=['POST'])
+@login_required
+def api_set_margen_calculadora():
+    """
+    Guarda el margen de la calculadora pública.
+
+    POST /dashboard/api/config/margen-calculadora
+    Body JSON: {"margen": 5.0}
+
+    Returns:
+        JSON con {'ok': True, 'margen': float} o {'error': str}
+    """
+    data = request.get_json(silent=True) or {}
+    try:
+        margen = float(data.get('margen', 0))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Valor de margen inválido'}), 400
+
+    try:
+        ok = SystemConfigService.set_public_calculator_margin(margen)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    if not ok:
+        return jsonify({'error': 'No se pudo guardar el margen'}), 500
+
+    return jsonify({'ok': True, 'margen': margen}), 200
 
 
 # ==================== CRUD MONEDAS ====================
