@@ -140,13 +140,18 @@
         cursor: pointer;
         font-size: 1rem;
         flex-shrink: 0;
-        transition: background 0.15s, transform 0.22s, opacity 0.15s;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
     }
-    .conv-swap-btn:hover:not(:disabled),
-    .conv-swap-btn:active:not(:disabled) {
-        background: var(--color-primary);
+    .conv-swap-btn:hover:not(:disabled) {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
         color: #1A1A1A;
-        transform: rotate(180deg);
+    }
+
+    .conv-swap-btn:active:not(:disabled) {
+        background-color: var(--color-primary);
+        color: #1A1A1A;
+        transform: scale(0.88);
     }
     .conv-swap-btn:disabled {
         opacity: 0.25;
