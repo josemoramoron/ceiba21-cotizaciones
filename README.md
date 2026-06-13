@@ -1,6 +1,6 @@
 # 🌳 Ceiba21 — Sistema de Cotizaciones
 
-Plataforma completa de exchange de criptomonedas y divisas construida con Flask 3.1, PostgreSQL 17 y Python 3.13. Gestiona cotizaciones, publica automáticamente en Telegram, procesa pagos PayPal, y proporciona un dashboard administrativo para operadores.
+Plataforma completa de exchange de criptomonedas y divisas construida con Flask 3.1, PostgreSQL 17 y Python 3.13. Gestiona cotizaciones, publica automáticamente en Telegram, ingesta pagos multi-método (PayPal, Zelle y los que se agreguen) en una tabla unificada, ofrece una calculadora pública con conversor de monedas, y proporciona un dashboard administrativo para operadores.
 
 Desplegada sobre Raspberry Pi 5 con Cloudflare Tunnel — sin exponer puertos, sin IP pública, con SSL automático.
 
@@ -44,13 +44,27 @@ Las cotizaciones se recalculan automáticamente cuando cambia una tasa de cambio
 ### 📱 Publicación en Telegram
 Genera imágenes de cotizaciones con Pillow/CairoSVG y las publica en un canal de Telegram. Soporta publicación VES y COP, imagen personalizada opcional, y mensaje adicional.
 
-### 💳 Ingesta de Pagos PayPal
-Lee automáticamente los correos de pago de Gmail vía IMAP cada 5 minutos (APScheduler). Para cada correo:
-1. Parsea el HTML con BeautifulSoup para extraer monto, comisión, tipo (G&S / F&F), transaction ID y fecha
+### 💳 Ingesta de Pagos Unificada (Multi-método)
+Sistema de ingesta que lee correos de pago de Gmail vía IMAP y los unifica en una sola tabla `payments`, sin importar el método. Reemplaza conceptualmente al antiguo `PaypalPayment`. Cada fuente de correo (remitente y método asociado) se configura desde el dashboard mediante el modelo `PaymentSource`, de modo que agregar un nuevo método no requiere tocar código. Para cada correo:
+1. Parsea el HTML con BeautifulSoup para extraer monto, comisión, tipo (G&S / F&F en PayPal), transaction ID y fecha
 2. Verifica duplicados por `message_id` y `transaction_id`
-3. Aplica cotización automática si es USD
-4. Guarda en PostgreSQL
+3. Aplica cotización automática del método correspondiente
+4. Guarda en PostgreSQL (tabla unificada `payments`)
 5. Marca el correo como leído
+
+**Ejecución programada (producción):** un script CLI one-shot `scripts/run_ingesta.py` se invoca por `cron` mediante un wrapper shell (`ceiba21_ingesta.sh`). El `APScheduler` embebido queda restringido a `FLASK_ENV=development` para evitar conflictos de múltiples schedulers entre workers de Gunicorn. Para importaciones históricas masivas (que exceden el timeout de Gunicorn) existe `scripts/importar_historico.py`, que acepta una fecha `YYYY-MM-DD` y procesa sin restricción de tiempo HTTP.
+
+### 🧮 Calculadora Pública (Todo-en-uno)
+Calculadora en `/calculadora` con dos modos en pestañas de dos niveles:
+- **PayPal** (subtabs Recibir / Enviar): calcula comisiones PayPal (5,4% + $0,30 USD) en ambas direcciones, con conversión opcional a moneda local usando la cotización PayPal vigente.
+- **Conversor Fiat**: convierte entre cualquier par de monedas (fiat↔fiat) y de método de pago a fiat (método→fiat), usando cotizaciones en tiempo real vía el endpoint `/api/calcular`. El botón de permutación ↔ aplica solo a pares fiat↔fiat.
+
+Las conversiones fiat↔fiat aplican un **margen global configurable** sobre el precio de referencia (`precio_cliente = tasa_ref / (1 + margen/100)`); las conversiones método→fiat usan directamente la cotización del método (que ya incorpora su propio margen). El margen se administra desde el dashboard y se persiste en la tabla `system_config`.
+
+USD funciona como moneda en los selectores (no solo como pivote interno), permitiendo cálculos `USD → COP`, `COP → USD`, etc.
+
+### 🔄 Conversor de Monedas (Dashboard)
+Herramienta interna en `/dashboard/conversor` que convierte entre cualquier par de monedas vía cross-rate derivado del pivote USD, con spread configurable por operación. Incluye la sección de configuración del margen de la calculadora pública.
 
 ### 🤖 Bot Conversacional Multicanal
 Bot de conversación con máquina de estados que opera en Telegram, Web y WhatsApp (patrón Strategy). Maneja consultas de cotizaciones, inicio de órdenes y seguimiento.
@@ -73,9 +87,6 @@ Registro de transacciones con precisión `Decimal` (nunca `float`). Genera repor
 - Distribución de órdenes por moneda
 - Comparativa hoy vs ayer
 - Serie temporal de fees diarios
-
-### 🧮 Calculadora PayPal
-Calculadora pública que muestra cuánto recibirá el usuario en moneda local dado un monto en USD, considerando la comisión PayPal según el tipo de transacción.
 
 ---
 
@@ -241,17 +252,20 @@ ceiba21-cotizaciones/
 │   │   ├── user.py          # Usuarios del bot conversacional
 │   │   ├── web_user.py      # Usuarios del dashboard web
 │   │   ├── message.py       # Mensajes del bot
-│   │   ├── paypal_payment.py# Pagos PayPal ingresados por Gmail
+│   │   ├── paypal_payment.py# (legacy) Pagos PayPal — reemplazado por payment.py
+│   │   ├── payment.py        # Pagos unificados multi-método (tabla `payments`)
+│   │   ├── payment_source.py # Fuentes de ingesta (remitente → método)
+│   │   ├── system_config.py  # Configuración key-value (margen calculadora, etc.)
 │   │   └── blacklist.py     # Reportes y apelaciones de blacklist
 │   │
 │   ├── routes/              # Blueprints Flask — solo orquestación
 │   │   ├── auth.py          # Login / logout
-│   │   ├── dashboard.py     # Panel administrativo CRUD
+│   │   ├── dashboard.py     # Panel administrativo CRUD + conversor + config margen
 │   │   ├── main.py          # API REST pública
-│   │   ├── public.py        # Páginas públicas (home, calculadora)
+│   │   ├── public.py        # Páginas públicas (home, calculadora, API /api/calcular)
 │   │   ├── operator_dashboard.py  # Dashboard de operadores
 │   │   ├── blacklist.py     # CRUD de blacklist
-│   │   ├── payments.py      # Gestión de pagos PayPal
+│   │   ├── payments_unified.py # Dashboard de pagos unificado (/dashboard/pagos)
 │   │   └── bot_control.py   # Control del bot conversacional
 │   │
 │   ├── services/            # Lógica de negocio — toda aquí
@@ -266,10 +280,11 @@ ceiba21-cotizaciones/
 │   │   ├── auth_service.py
 │   │   ├── blacklist_service.py
 │   │   ├── accounting_service.py
-│   │   ├── calculator_service.py
+│   │   ├── calculator_service.py     # Cálculos PayPal + conversor público
+│   │   ├── system_config_service.py  # Lectura/escritura tipada de system_config
 │   │   ├── gmail_service.py          # Lectura IMAP de Gmail
 │   │   ├── paypal_parser_service.py  # Parseo HTML de correos PayPal
-│   │   ├── payment_ingestion_service.py # Orquesta ingesta PayPal + scheduler
+│   │   ├── payment_ingestion_service.py # Orquesta ingesta multi-método + scheduler
 │   │   ├── api_service.py            # APIs externas (BCV, Binance)
 │   │   ├── image_service.py
 │   │   ├── notification_service.py
@@ -325,6 +340,11 @@ ceiba21-cotizaciones/
 └── scripts/                 # Migraciones y utilidades
     ├── create_tables.py
     ├── seed_data.py
+    ├── seed_payment_sources.py       # Siembra fuentes de pago (idempotente)
+    ├── seed_usd_currency.py          # Agrega USD como moneda pivote activa
+    ├── run_ingesta.py                # Ingesta one-shot para cron (producción)
+    ├── importar_historico.py         # Importación histórica masiva (CLI, sin timeout)
+    ├── migrate_paypal_to_payments.py # Migración legacy → tabla unificada
     ├── health_check.py
     └── safe_restart.sh
 ```
@@ -603,6 +623,21 @@ Cotizaciones de una moneda específica.
 curl https://ceiba21.com/api/quotes/VES
 ```
 
+#### `POST /api/calcular`
+Calculadora pública: conversión fiat↔fiat o método→fiat. Aplica el margen global a las conversiones fiat↔fiat.
+```bash
+curl -X POST https://ceiba21.com/api/calcular \
+  -H "Content-Type: application/json" \
+  -d '{"tengo":"USD","quiero":"COP","monto":100,"tipo":"fiat_to_fiat"}'
+```
+```json
+{
+  "tengo": "USD", "quiero": "COP", "monto": 100,
+  "tasa_ref": 4200.0, "tasa_efectiva": 4000.0,
+  "margen": 5, "resultado": 400000.0, "tipo": "fiat_to_fiat"
+}
+```
+
 ### Endpoints del Dashboard (requieren autenticación)
 
 | Método | Ruta | Descripción |
@@ -611,16 +646,26 @@ curl https://ceiba21.com/api/quotes/VES
 | `POST` | `/dashboard/api/recalculate` | Recalcular todas las cotizaciones |
 | `POST` | `/dashboard/api/fetch-rate/<currency>` | Obtener tasa desde API externa |
 | `GET` | `/dashboard/api/test-providers` | Probar proveedores de tasas |
+| `POST` | `/dashboard/api/convertir` | Convertir entre monedas (conversor interno) |
+| `GET` | `/dashboard/api/config/margen-calculadora` | Leer margen de la calculadora pública |
+| `POST` | `/dashboard/api/config/margen-calculadora` | Guardar margen de la calculadora pública |
 
 ### Endpoints de Pagos (requieren autenticación)
 
+Blueprint unificado con prefijo `/dashboard/pagos`.
+
 | Método | Ruta | Descripción |
 |---|---|---|
-| `POST` | `/payments/api/ingestar` | Disparar ingesta manual de Gmail |
-| `POST` | `/payments/api/calcular/<id>` | Calcular cotización de un pago |
-| `PUT` | `/payments/api/editar/<id>` | Editar un pago |
-| `GET` | `/payments/api/resumen` | Resumen de pagos por estado |
-| `GET` | `/payments/api/test-gmail` | Verificar conexión IMAP |
+| `POST` | `/dashboard/pagos/api/ingestar` | Disparar ingesta manual de Gmail |
+| `POST` | `/dashboard/pagos/api/calcular/<id>` | Calcular cotización de un pago |
+| `POST` | `/dashboard/pagos/api/editar/<id>` | Editar un pago |
+| `POST` | `/dashboard/pagos/api/calcular-manual` | Previsualizar un pago manual |
+| `GET` | `/dashboard/pagos/api/resumen` | Resumen de pagos por estado/método |
+| `GET` | `/dashboard/pagos/api/test-gmail` | Verificar conexión IMAP |
+| `GET` | `/dashboard/pagos/api/scheduler/estado` | Estado del scheduler de ingesta |
+| `POST` | `/dashboard/pagos/api/scheduler/pausar` | Pausar ingesta automática (dev) |
+| `POST` | `/dashboard/pagos/api/scheduler/reanudar` | Reanudar ingesta automática (dev) |
+| `POST` | `/dashboard/pagos/api/importar_desde` | Importar pagos desde una fecha |
 
 ---
 
@@ -650,6 +695,7 @@ ls -lht /var/backups/ceiba21/database/ | head -5
 
 ### Cron jobs
 ```
+*/5  * * * *    Ingesta de pagos (run_ingesta.py vía ceiba21_ingesta.sh)
 */15 * * * *    Monitor de servicios críticos
 */30 * * * *    Alerta de temperatura CPU (umbral: 75°C)
 06:00 diario    Monitor de espacio en disco (umbral: 80%)
@@ -675,7 +721,9 @@ Cada alerta incluye temperatura, CPU, RAM, disco, uptime y links a dashboards.
 | Dashboard | URL | Descripción |
 |---|---|---|
 | Aplicación | https://ceiba21.com | Cotizaciones públicas |
+| Calculadora | https://ceiba21.com/calculadora | Calculadora PayPal + conversor |
 | Admin | https://ceiba21.com/dashboard | Panel administrativo |
+| Pagos | https://ceiba21.com/dashboard/pagos | Dashboard de pagos unificado |
 | Netdata | https://monitor.ceiba21.com | Métricas del sistema en tiempo real |
 | Temperatura | https://temp.ceiba21.com | CPU y NVMe (actualización 3s) |
 
@@ -727,10 +775,10 @@ redis-cli ping
 sudo systemctl restart redis
 ```
 
-### Ingesta PayPal no funciona
+### Ingesta de pagos no funciona
 ```bash
 # Probar conexión IMAP desde el dashboard
-curl -X GET https://ceiba21.com/payments/api/test-gmail \
+curl -X GET https://ceiba21.com/dashboard/pagos/api/test-gmail \
   -H "Cookie: session=..."
 
 # O directamente en el servidor
@@ -742,7 +790,17 @@ with app.app_context():
     from app.services.gmail_service import GmailService
     print(GmailService().test_connection())
 "
+
+# Verificar que el cron de ingesta esté activo y revisar su log
+crontab -l | grep ingesta
+tail -f ~/logs/ingesta.log
+
+# Forzar una corrida manual
+python scripts/run_ingesta.py
 ```
+
+> ⚠️ En producción `FLASK_ENV` debe ser `production` para que el `APScheduler`
+> embebido no compita con el cron. Verifica con `grep FLASK_ENV .env`.
 
 ### Tests fallan al correr
 ```bash
@@ -757,8 +815,17 @@ psql -U postgres -c "\l" | grep ceiba21_dev
 
 ## 🗺️ Roadmap
 
+### Completado recientemente
+
+- ✅ **Sistema de pagos unificado (multi-método)** — tabla `payments`, `PaymentSource` configurable, ingesta vía cron one-shot
+- ✅ **Calculadora pública todo-en-uno** — PayPal (recibir/enviar) + Conversor Fiat (fiat↔fiat y método→fiat)
+- ✅ **Margen global configurable** — `system_config` + administración desde el dashboard
+- ✅ **USD como moneda en la calculadora** — además de su rol de pivote interno
+- ✅ **Filtro de monedas activas en la matriz** — `get_quotes_matrix()` respeta `active=True` en todas las páginas
+
 ### En desarrollo
 
+- ⬜ **Fases restantes de ingesta** — Zelle (Bank of America), transferencias bancarias, integración con órdenes, notificaciones push
 - ⬜ **Tests unitarios para Services** — cubrir `PaypalParserService`, `BlacklistService`, `AccountingService`, `GmailService`
 - ⬜ **API REST documentada con Swagger/OpenAPI** — documentación interactiva en `/api/docs`
 - ⬜ **Gráficos de histórico de cotizaciones** — dashboard con Chart.js, tendencias por período
@@ -766,6 +833,7 @@ psql -U postgres -c "\l" | grep ceiba21_dev
 
 ### Backlog
 
+- ⬜ Conversiones método↔método y fiat→método en la calculadora pública
 - ⬜ Multi-idioma (inglés, portugués)
 - ⬜ Exportar cotizaciones a PDF
 - ⬜ Webhooks para integración con sistemas externos
