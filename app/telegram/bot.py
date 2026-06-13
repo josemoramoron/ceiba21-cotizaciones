@@ -122,7 +122,7 @@ class TelegramPublisher:
                     url,
                     data=data,
                     files=files,
-                    timeout=30
+                    timeout=(5, 60)
                 )
             
             # Procesar respuesta
