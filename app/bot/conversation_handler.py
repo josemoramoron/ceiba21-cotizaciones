@@ -15,10 +15,13 @@ from app.models.payment_method import PaymentMethod
 from app.models.order import Order, OrderStatus
 from app.models.user import User
 from decimal import Decimal
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, TYPE_CHECKING
 import redis
 import json
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from app.models.operator import Operator
 
 
 class ConversationHandler:
@@ -897,21 +900,35 @@ Para nueva operación: /start''',
     # CREACIÓN DE ÓRDENES
     # ==========================================
     
-    def _create_order_draft(self, user: User, data: Dict[str, Any]) -> Order:
+    def _create_order_draft(self, user: User, data: Dict[str, Any],
+                            channel: Optional[str] = None,
+                            channel_chat_id: Optional[str] = None) -> Order:
         """
         Crear orden en estado DRAFT.
-        
+
+        El canal y el chat_id se derivan del usuario cuando no se especifican,
+        de modo que la orden registre el canal real por el que llegó
+        (telegram, whatsapp, webchat, app) sin acoplarse a uno fijo.
+
         Args:
             user: Usuario
             data: Datos de conversación
-            
+            channel: Canal de origen (si es None, se deriva del usuario)
+            channel_chat_id: ID de chat en el canal (si es None, se deriva del usuario)
+
         Returns:
             Order creada
-            
+
         Raises:
             Exception si falla la creación
         """
         calc = data['calculation']
+
+        # Derivar el canal real del usuario cuando no se especifica
+        if channel is None:
+            channel = user.get_primary_channel() or 'telegram'
+        if channel_chat_id is None:
+            channel_chat_id = user.get_contact_id(channel)
         
         # Preparar datos de pago del cliente (ahora con teléfono)
         client_payment_data = {
@@ -934,8 +951,8 @@ Para nueva operación: /start''',
             net_usd=Decimal(str(calc['net_usd'])),
             exchange_rate=Decimal(str(calc['exchange_rate'])),
             client_payment_data=client_payment_data,
-            channel='telegram',
-            channel_chat_id=str(user.telegram_id) if hasattr(user, 'telegram_id') else None
+            channel=channel,
+            channel_chat_id=channel_chat_id
         )
         
         if not success or not order:
@@ -947,24 +964,35 @@ Para nueva operación: /start''',
     # INTERVENCIÓN MANUAL
     # ==========================================
     
-    def transfer_to_operator(self, order: Order, operator):
+    def transfer_to_operator(self, order: Order, operator: 'Operator') -> Tuple[bool, str]:
         """
         Transferir conversación a atención manual de operador.
-        
+
+        La orden pasa a IN_PROCESS (queda asignada al operador) y la
+        conversación del usuario se marca en MANUAL_ATTENTION para que el bot
+        ceda el control. Si la orden no admite la transición (por ejemplo, si
+        aún está en DRAFT), se cede igualmente el control y se devuelve el
+        resultado para que el llamador decida cómo proceder.
+
         Args:
             order: Orden a transferir
             operator: Operador que toma la conversación
+
+        Returns:
+            Tupla (success, message) del cambio de estado de la orden
         """
-        # Cambiar estado de orden
-        order.transition_to(OrderStatus.MANUAL_ATTENTION, operator=operator)
-        
-        # Marcar en Redis
+        # La orden queda asignada al operador (PENDING -> IN_PROCESS)
+        success, msg = order.transition_to(OrderStatus.IN_PROCESS, operator=operator)
+
+        # Marcar en Redis que la orden está en atención manual
         self.redis_client.setex(
             f'manual_order:{order.id}',
             7200,  # 2 horas
             operator.id
         )
-        
-        # Actualizar estado de conversación del usuario
+
+        # Ceder el control: la conversación del usuario pasa a atención manual
         user = order.user
         self.set_state(user, ConversationState.MANUAL_ATTENTION)
+
+        return success, msg
