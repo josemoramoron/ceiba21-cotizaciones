@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.auth_service import AuthService
 from app.models.operator import Operator
+from app.decorators import home_endpoint_for_role
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -20,9 +21,9 @@ def login():
     - Crea sesión en Redis
     - Registra último acceso
     """
-    # Si ya está autenticado, redirigir al dashboard
+    # Si ya está autenticado, redirigir a su inicio según el rol
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard.index'))
+        return redirect(url_for(home_endpoint_for_role(current_user.role)))
     
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -51,11 +52,11 @@ def login():
             
             flash(f'✅ Bienvenido {operator.full_name}', 'success')
             
-            # Redirigir a página solicitada o dashboard
+            # Redirigir a página solicitada o al inicio según el rol
             next_page = request.args.get('next')
             if next_page and next_page.startswith('/'):
                 return redirect(next_page)
-            return redirect(url_for('dashboard.index'))
+            return redirect(url_for(home_endpoint_for_role(operator.role)))
         else:
             flash('❌ Credenciales inválidas', 'error')
     

@@ -18,10 +18,22 @@ class OperatorRole(Enum):
     ADMIN: Acceso total al sistema, puede gestionar operadores y configuración
     OPERATOR: Puede procesar órdenes, responder mensajes, gestionar clientes
     VIEWER: Solo lectura, puede ver órdenes pero no procesarlas
+    BOT: Actor automatizado del sistema (no inicia sesión interactiva)
     """
     ADMIN = 'admin'
     OPERATOR = 'operator'
     VIEWER = 'viewer'
+    BOT = 'bot'
+
+    @property
+    def label(self) -> str:
+        """Etiqueta legible del rol para la interfaz."""
+        return {
+            'admin': 'Admin',
+            'operator': 'Operador',
+            'viewer': 'Visor',
+            'bot': 'Bot',
+        }.get(self.value, self.value)
 
 
 class Operator(BaseModel, UserMixin):
@@ -211,6 +223,21 @@ class Operator(BaseModel, UserMixin):
                 'send_messages': False
             }
         
+        # Bot: actor automatizado del sistema (interactúa con clientes/operadores)
+        if self.role == OperatorRole.BOT:
+            return {
+                'view_orders': True,
+                'take_orders': False,
+                'approve_orders': False,
+                'cancel_orders': False,
+                'view_reports': False,
+                'manage_operators': False,
+                'edit_rates': False,
+                'manage_users': False,
+                'view_messages': True,
+                'send_messages': True
+            }
+
         # Combinar permisos por defecto con personalizados
         if self.permissions:
             default_permissions.update(self.permissions)
@@ -381,7 +408,11 @@ class Operator(BaseModel, UserMixin):
             ...     operator.set_online()
         """
         operator = cls.get_by_username(username)
-        
+
+        # El operador-bot es un actor de sistema: no inicia sesión interactiva.
+        if operator and operator.role == OperatorRole.BOT:
+            return None
+
         if operator and operator.is_active and operator.check_password(password):
             return operator
         

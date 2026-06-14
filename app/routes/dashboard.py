@@ -12,8 +12,16 @@ import os
 from werkzeug.utils import secure_filename
 from app.telegram.bot import TelegramPublisher
 from app.telegram.image_generator import TelegramImageGenerator
+from app.models.operator import OperatorRole
+from app.decorators import require_roles
 
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
+
+
+@dashboard_bp.before_request
+def _require_admin():
+    """Todo el panel /dashboard es exclusivo de administradores."""
+    return require_roles(OperatorRole.ADMIN)
 
 @dashboard_bp.route('/')
 @login_required
@@ -379,7 +387,7 @@ def add_operator():
     password = request.form.get('password', '').strip()
     full_name = request.form.get('full_name', '').strip()
     email = request.form.get('email', '').strip()
-    role = request.form.get('role', 'agent')
+    role = request.form.get('role', 'operator')
 
     if not username or not password or not full_name:
         flash('❌ Usuario, contraseña y nombre completo son obligatorios', 'error')

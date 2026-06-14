@@ -42,6 +42,14 @@ pagos_bp = Blueprint(
 )
 
 
+@pagos_bp.before_request
+def _require_operator():
+    """La sección de pagos es accesible para administradores y operadores."""
+    from app.models.operator import OperatorRole
+    from app.decorators import require_roles
+    return require_roles(OperatorRole.ADMIN, OperatorRole.OPERATOR)
+
+
 # -- Vistas --------------------------------------------------------------------
 
 @pagos_bp.route('/')

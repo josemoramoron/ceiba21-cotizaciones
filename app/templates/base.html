@@ -138,6 +138,7 @@
         <div class="p-5">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Menú</h2>
             <nav class="space-y-1">
+                {% if current_user.is_authenticated and current_user.role.value == 'admin' %}
                 <a href="{{ url_for('dashboard.index') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
@@ -168,6 +169,7 @@
                    {% if request.endpoint and 'blacklist' in request.endpoint %}active{% endif %}">
                     <i class="fas fa-ban w-4 text-red-500"></i><span>Blacklist</span>
                 </a>
+                {% endif %}
 
                 <a href="{{ url_for('pagos.index') }}"
                     class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
@@ -178,6 +180,7 @@
 
                 <div class="pt-2 pb-1"><hr class="border-gray-200"></div>
 
+                {% if current_user.is_authenticated and current_user.role.value == 'admin' %}
                 <a href="{{ url_for('dashboard.telegram_publisher') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.telegram_publisher' %}active{% endif %}">
@@ -196,6 +199,7 @@
                     <i class="fas fa-thermometer-half w-4"></i><span>Temperatura</span>
                     <i class="fas fa-external-link-alt text-xs ml-auto text-gray-400"></i>
                 </a>
+                {% endif %}
             </nav>
 
             <!-- Acciones rápidas (solo visible en drawer móvil) -->
@@ -240,6 +244,7 @@
 <!-- ── Barra inferior móvil ── -->
 <div class="dash-action-bar md:hidden fixed bottom-0 left-0 right-0 z-40 flex"
      style="padding-bottom: env(safe-area-inset-bottom);">
+    {% if current_user.is_authenticated and current_user.role.value == 'admin' %}
     <a href="{{ url_for('dashboard.index') }}"
        class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70"
        style="color: {% if request.endpoint == 'dashboard.index' %}#1A1A1A{% else %}#6C757D{% endif %}; text-decoration:none;">
@@ -261,6 +266,7 @@
         <span class="text-xs font-semibold">Blacklist</span>
     </a>
     <div style="width:1px; background:#DEE2E6; margin:8px 0;"></div>
+    {% endif %}
     <button onclick="document.getElementById('sidebarToggle').click()"
             class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70 border-none bg-transparent"
             style="color:#6C757D;">

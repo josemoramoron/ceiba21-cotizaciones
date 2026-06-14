@@ -79,11 +79,16 @@ class OperatorService:
         if Operator.get_by_username(username):
             return None, f"El usuario {username} ya existe"
 
+        try:
+            role_enum = OperatorRole(role)
+        except ValueError:
+            return None, f"Rol inválido: {role}"
+
         operator = Operator(
             username=username,
             full_name=full_name,
             email=email,
-            role=OperatorRole(role)
+            role=role_enum
         )
         operator.set_password(password)
 
