@@ -1,12 +1,29 @@
 """
 Rutas públicas (sin autenticación)
 """
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, session, make_response
 from app.services import QuoteService, ExchangeRateService
 from app.services.calculator_service import CalculatorService
 from app.services.system_config_service import SystemConfigService
+from app.services.cookie_consent_service import CookieConsentService
+from app.services.client_session_service import ClientSessionService
 
 public_bp = Blueprint('public', __name__)
+
+
+@public_bp.before_request
+def _ensure_client_session() -> None:
+    """Garantizar un identificador de sesión para el visitante web."""
+    ClientSessionService.ensure_session()
+
+
+@public_bp.context_processor
+def _inject_cookie_consent() -> dict:
+    """Exponer estado y configuración del consentimiento a los templates."""
+    return {
+        'cookie_consent': CookieConsentService.get_consent(request),
+        'cookie_cfg': CookieConsentService.get_client_config(),
+    }
 
 
 @public_bp.route('/')
@@ -144,3 +161,21 @@ def condiciones():
 def tienda():
     """Tienda online"""
     return render_template('public/tienda.html')
+
+
+@public_bp.route('/cookies/consent', methods=['POST'])
+def cookies_consent():
+    """
+    Registrar la elección de consentimiento de cookies del visitante.
+
+    Acepta JSON ``{"categories": {"preferences": bool, "analytics": bool}}`` y
+    devuelve el estado normalizado, escribiendo la cookie de consentimiento.
+
+    Returns:
+        JSON con las categorías aplicadas y código 200.
+    """
+    data = request.get_json(silent=True) or {}
+    categories = CookieConsentService.normalize_categories(data.get('categories'))
+
+    response = make_response(jsonify({'ok': True, 'categories': categories}))
+    return CookieConsentService.apply_consent_cookie(response, categories)

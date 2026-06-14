@@ -1,6 +1,8 @@
 """
 Inicialización de la aplicación Flask
 """
+import os
+
 from flask import Flask
 from app.config import Config
 from app.models import db
@@ -35,7 +37,15 @@ def create_app(config_class=Config):
     app.config['SESSION_REDIS'] = Redis(host='localhost', port=6379, db=1)
     app.config['SESSION_PERMANENT'] = True  # Sesión persistente
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 horas
-    app.config['SESSION_COOKIE_SECURE'] = False  # True solo con HTTPS
+    # Seguridad de cookies de sesión:
+    #   - HTTPONLY: el JavaScript no puede leer la cookie de sesión.
+    #   - SECURE: solo se envía por HTTPS. Activo en producción (detrás de
+    #     Cloudflare); en desarrollo (localhost sin TLS) debe ir en False o la
+    #     sesión no se enviaría.
+    #   - SAMESITE 'Lax': mitiga CSRF en navegación entre sitios.
+    _is_production = os.environ.get('FLASK_ENV', '').lower() == 'production'
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SECURE'] = _is_production
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
     # ✨ Configuración de Connection Pooling PostgreSQL
@@ -124,7 +134,6 @@ def create_app(config_class=Config):
     #     levantaría su propio scheduler (3 workers = 3 schedulers compitiendo
     #     por los mismos correos). En prod la ingesta la dispara cron cada 5 min
     #     vía scripts/run_ingesta.py (un único proceso por ejecución).
-    import os
     if os.environ.get('FLASK_ENV', '').lower() == 'development':
         from app.services.unified_ingestion_service import (
             inicializar_scheduler_unificado

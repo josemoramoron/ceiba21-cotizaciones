@@ -28,6 +28,11 @@ class Config:
     GMAIL_IMAP_PASSWORD = os.getenv('GMAIL_IMAP_PASSWORD')
     DEFAULT_LOCAL_CURRENCY = os.getenv('DEFAULT_LOCAL_CURRENCY', 'VES')
 
+    # Cookies / consentimiento (banner + categorías)
+    COOKIE_CONSENT_NAME = os.getenv('COOKIE_CONSENT_NAME', 'ceiba21_consent')
+    COOKIE_CONSENT_VERSION = os.getenv('COOKIE_CONSENT_VERSION', '1')
+    COOKIE_CONSENT_MAX_AGE_DAYS = int(os.getenv('COOKIE_CONSENT_MAX_AGE_DAYS', '180'))
+
 class DevelopmentConfig(Config):
     DEBUG = True
 
