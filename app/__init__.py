@@ -114,6 +114,7 @@ def create_app(config_class=Config):
     from app.routes.operator_dashboard import operator_bp
     from app.routes.blacklist import blacklist_bp
     from app.routes.payments_unified import pagos_bp
+    from app.routes.sms import sms_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
@@ -123,6 +124,7 @@ def create_app(config_class=Config):
     app.register_blueprint(operator_bp)
     app.register_blueprint(blacklist_bp)
     app.register_blueprint(pagos_bp)
+    app.register_blueprint(sms_bp)
 
     # Crear tablas si no existen
     with app.app_context():

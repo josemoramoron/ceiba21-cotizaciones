@@ -66,3 +66,36 @@ class SystemConfigService:
             value=round(margin, 4),
             description=cls._MARGIN_DESCRIPTION,
         )
+
+    # ── Slot SIM activo del módulo SMS ─────────────────────────────────────
+    _KEY_SMS_ACTIVE_SLOT = 'sms_active_sim_slot'
+    _SMS_SLOT_DESCRIPTION = 'Número de slot SIM activo en el board multi-SIM.'
+
+    @classmethod
+    def get_sms_active_slot(cls):
+        """Devuelve el número de slot SIM activo, o None si no se ha fijado.
+
+        Returns:
+            int con el slot activo, o None.
+        """
+        raw = SystemConfig.get_value(cls._KEY_SMS_ACTIVE_SLOT)
+        try:
+            return int(raw) if raw is not None else None
+        except (ValueError, TypeError):
+            return None
+
+    @classmethod
+    def set_sms_active_slot(cls, slot_number: int) -> bool:
+        """Persiste el slot SIM activo.
+
+        Args:
+            slot_number: Número de slot del board.
+
+        Returns:
+            True si se guardó correctamente.
+        """
+        return SystemConfig.set_value(
+            key=cls._KEY_SMS_ACTIVE_SLOT,
+            value=int(slot_number),
+            description=cls._SMS_SLOT_DESCRIPTION,
+        )

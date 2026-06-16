@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Historial SMS — Ceiba21{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6" style="color:#1A1A1A;">
+    <i class="fas fa-clock-rotate-left mr-2 text-blue-600"></i>Historial de enviados
+</h1>
+
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    {% if messages.items %}
+    <table class="w-full">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+            <tr>
+                <th class="text-left px-5 py-3">Número</th>
+                <th class="text-left px-5 py-3">Mensaje</th>
+                <th class="text-left px-5 py-3">SIM</th>
+                <th class="text-left px-5 py-3">Estado</th>
+                <th class="text-left px-5 py-3">Enviado</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for m in messages.items %}
+            <tr>
+                <td class="px-5 py-3 font-mono text-sm font-semibold text-gray-800">{{ m.phone }}</td>
+                <td class="px-5 py-3 text-sm text-gray-600 max-w-xs truncate">{{ m.text }}</td>
+                <td class="px-5 py-3 text-sm">
+                    {% if m.sim_slot and slots.get(m.sim_slot) %}
+                    <span class="text-xs px-2 py-1 rounded-full text-gray-800"
+                          style="background-color: {{ slots[m.sim_slot].color }}40;">
+                        {{ slots[m.sim_slot].display_name }}
+                    </span>
+                    {% else %}<span class="text-gray-400">—</span>{% endif %}
+                </td>
+                <td class="px-5 py-3">{% include 'sms/_status_badge.html' %}</td>
+                <td class="px-5 py-3 text-sm text-gray-400 whitespace-nowrap">{{ m.created_at.strftime('%d/%m/%y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if messages.pages > 1 %}
+    {% include 'sms/_pagination.html' %}
+    {% endif %}
+
+    {% else %}
+    <div class="px-5 py-12 text-center text-gray-400">
+        <i class="fas fa-paper-plane text-3xl mb-3 block"></i>
+        <a href="{{ url_for('sms.send') }}"
+           class="inline-block mt-3 px-4 py-2 rounded-lg font-semibold"
+           style="background-color:var(--color-primary); color:#1A1A1A;">Enviar primer SMS</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

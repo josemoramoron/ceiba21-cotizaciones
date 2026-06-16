@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}SMS — Ceiba21{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold" style="color:#1A1A1A;">
+        <i class="fas fa-comment-sms mr-2" style="color:var(--color-primary);"></i>Mensajería SMS
+    </h1>
+    <a href="{{ url_for('sms.send') }}"
+       class="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
+       style="background-color:var(--color-primary); color:#1A1A1A;">
+        <i class="fas fa-paper-plane mr-1"></i> Nuevo SMS
+    </a>
+</div>
+
+<!-- Estado del gateway -->
+<div class="mb-6 flex items-center gap-2 text-sm">
+    <span id="gw-indicator" class="inline-flex items-center gap-2 px-3 py-1 rounded-full
+        {% if health %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+        <span class="w-2 h-2 rounded-full {% if health %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
+        <span id="gw-text">{% if health %}{{ health.get('model', 'Gateway online') }}{% else %}Gateway offline{% endif %}</span>
+    </span>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-3xl font-bold" style="color:#1A1A1A;" id="stat-unread">{{ unread }}</div>
+        <div class="text-sm text-gray-500 mt-1"><i class="fas fa-envelope mr-1"></i>Sin leer</div>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-3xl font-bold" style="color:#1A1A1A;">{{ recent_outbound|length }}</div>
+        <div class="text-sm text-gray-500 mt-1"><i class="fas fa-paper-plane mr-1"></i>Enviados</div>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-3xl font-bold" style="color:#1A1A1A;">{{ slots|selectattr('active')|list|length }}</div>
+        <div class="text-sm text-gray-500 mt-1"><i class="fas fa-sim-card mr-1"></i>SIMs activas</div>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-3xl font-bold" style="color:#1A1A1A;">{{ active_slot or '—' }}</div>
+        <div class="text-sm text-gray-500 mt-1"><i class="fas fa-bullseye mr-1"></i>Slot activo</div>
+    </div>
+</div>
+
+<!-- Selector rápido de SIM -->
+<div class="bg-white rounded-xl shadow-sm mb-6">
+    <div class="flex justify-between items-center px-5 py-3 border-b border-gray-100">
+        <span class="font-semibold text-gray-700"><i class="fas fa-sim-card mr-2" style="color:var(--color-primary);"></i>Cambiar SIM activa</span>
+        <a href="{{ url_for('sms.sims') }}" class="text-sm text-blue-600 hover:underline">Gestionar SIMs</a>
+    </div>
+    <div class="p-4 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+        {% for s in slots %}
+        <button onclick="activarSim({{ s.slot_number }})"
+                id="slot-btn-{{ s.slot_number }}"
+                class="text-left p-2 rounded-lg border-2 transition
+                {% if active_slot == s.slot_number %}border-yellow-400 bg-yellow-50{% else %}border-transparent bg-gray-50 hover:border-gray-200{% endif %}
+                {% if not s.active %}opacity-40{% endif %}">
+            <div class="text-xs text-gray-400 font-semibold uppercase">Slot {{ s.slot_number }}</div>
+            <div class="text-sm font-semibold text-gray-800 truncate">{{ s.display_name }}</div>
+            <div class="text-xs text-gray-500">{{ s.operator or '—' }}</div>
+        </button>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Actividad reciente -->
+<div class="grid md:grid-cols-2 gap-4">
+    <div class="bg-white rounded-xl shadow-sm">
+        <div class="flex justify-between items-center px-5 py-3 border-b border-gray-100">
+            <span class="font-semibold text-gray-700"><i class="fas fa-inbox mr-2 text-green-600"></i>Recibidos</span>
+            <a href="{{ url_for('sms.inbox') }}" class="text-sm text-blue-600 hover:underline">Ver todos</a>
+        </div>
+        <div class="divide-y divide-gray-50">
+            {% for m in recent_inbound %}
+            <div class="px-5 py-3 {% if not m.is_read %}bg-yellow-50{% endif %}">
+                <div class="flex justify-between">
+                    <span class="font-mono text-sm font-semibold text-gray-800">{{ m.phone }}</span>
+                    <span class="text-xs text-gray-400">{{ m.created_at.strftime('%H:%M') }}</span>
+                </div>
+                <div class="text-sm text-gray-600 truncate">{{ m.text }}</div>
+            </div>
+            {% else %}
+            <div class="px-5 py-8 text-center text-gray-400">
+                <i class="fas fa-inbox text-2xl mb-2 block"></i>Sin mensajes recibidos
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm">
+        <div class="flex justify-between items-center px-5 py-3 border-b border-gray-100">
+            <span class="font-semibold text-gray-700"><i class="fas fa-paper-plane mr-2 text-blue-600"></i>Enviados</span>
+            <a href="{{ url_for('sms.history') }}" class="text-sm text-blue-600 hover:underline">Ver todos</a>
+        </div>
+        <div class="divide-y divide-gray-50">
+            {% for m in recent_outbound %}
+            <div class="px-5 py-3">
+                <div class="flex justify-between items-center">
+                    <span class="font-mono text-sm font-semibold text-gray-800">{{ m.phone }}</span>
+                    {% include 'sms/_status_badge.html' %}
+                </div>
+                <div class="text-sm text-gray-600 truncate">{{ m.text }}</div>
+            </div>
+            {% else %}
+            <div class="px-5 py-8 text-center text-gray-400">
+                <i class="fas fa-paper-plane text-2xl mb-2 block"></i>Sin envíos
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Webhook -->
+<div class="bg-white rounded-xl shadow-sm mt-6 p-5">
+    <div class="text-sm font-semibold text-gray-700 mb-2">
+        <i class="fas fa-link mr-2" style="color:var(--color-primary);"></i>Webhook (configurar en la app del teléfono)
+    </div>
+    <code class="text-sm bg-gray-100 px-3 py-1 rounded block">https://ceiba21.com/dashboard/sms/webhook/incoming</code>
+    <div class="text-xs text-gray-400 mt-2">Evento: <code>sms:received</code> · método POST</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function activarSim(slot) {
+    document.querySelectorAll('[id^="slot-btn-"]').forEach(b => {
+        b.classList.remove('border-yellow-400', 'bg-yellow-50');
+        b.classList.add('border-transparent', 'bg-gray-50');
+    });
+    const btn = document.getElementById('slot-btn-' + slot);
+    btn.classList.add('border-yellow-400', 'bg-yellow-50');
+    btn.classList.remove('border-transparent', 'bg-gray-50');
+
+    await fetch('/dashboard/sms/api/sims/' + slot + '/activar', { method: 'POST' });
+}
+
+async function pollUnread() {
+    try {
+        const r = await fetch('/dashboard/sms/api/unread');
+        const d = await r.json();
+        document.getElementById('stat-unread').textContent = d.unread;
+    } catch (e) {}
+}
+setInterval(pollUnread, 15000);
+
+async function pollHealth() {
+    try {
+        const r = await fetch('/dashboard/sms/api/health');
+        const d = await r.json();
+        const ind = document.getElementById('gw-indicator');
+        const txt = document.getElementById('gw-text');
+        if (d.online) {
+            ind.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800';
+            txt.textContent = d.model || 'Gateway online';
+        } else {
+            ind.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-800';
+            txt.textContent = 'Gateway offline';
+        }
+    } catch (e) {}
+}
+setInterval(pollHealth, 30000);
+</script>
+{% endblock %}

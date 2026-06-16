@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar SIMs — Ceiba21{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold" style="color:#1A1A1A;">
+        <i class="fas fa-sim-card mr-2" style="color:var(--color-primary);"></i>Gestionar SIMs
+    </h1>
+    <span class="text-sm text-gray-400">{{ total }} slots en el board</span>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for s in slots %}
+    <div class="bg-white rounded-xl shadow-sm p-4" style="border-top: 3px solid {{ s.color }};">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-xs text-gray-400 font-semibold uppercase">Slot {{ s.slot_number }}</span>
+            <span class="text-xs px-2 py-1 rounded-full
+                {% if active_slot == s.slot_number %}bg-yellow-100 text-yellow-800
+                {% elif s.active %}bg-green-100 text-green-800
+                {% else %}bg-gray-100 text-gray-500{% endif %}">
+                {% if active_slot == s.slot_number %}Activa ahora{% elif s.active %}Instalada{% else %}Vacía{% endif %}
+            </span>
+        </div>
+        <div class="font-bold text-gray-800">{{ s.display_name }}</div>
+        <div class="text-sm font-mono text-gray-500">{{ s.phone_number or '—' }}</div>
+        <div class="text-xs text-gray-400">{{ s.operator or '' }}{% if s.country %} · {{ s.country }}{% endif %}</div>
+        {% if s.notes %}<div class="text-xs text-gray-400 mt-1">{{ s.notes }}</div>{% endif %}
+
+        <div class="flex gap-2 mt-3">
+            <button onclick="abrirEditor({{ s.slot_number }})"
+                    class="flex-1 text-sm px-3 py-1 rounded-lg border border-gray-300 hover:bg-gray-50">
+                <i class="fas fa-pen mr-1"></i>Editar
+            </button>
+            {% if active_slot == s.slot_number %}
+            <span class="flex-1 text-sm px-3 py-1 rounded-lg text-center bg-yellow-100 text-yellow-800 font-semibold">
+                <i class="fas fa-check mr-1"></i>Activa
+            </span>
+            {% elif s.active %}
+            <button onclick="usarSim({{ s.slot_number }})"
+                    class="flex-1 text-sm px-3 py-1 rounded-lg font-semibold"
+                    style="background-color:var(--color-primary); color:#1A1A1A;">
+                <i class="fas fa-play mr-1"></i>Usar
+            </button>
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{{ url_for('sms.sim_edit', slot=s.slot_number) }}"
+              id="form-{{ s.slot_number }}" class="hidden mt-4 pt-4 border-t border-gray-100 space-y-2">
+            <input name="label" value="{{ s.label or '' }}" placeholder="Nombre"
+                   class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            <input name="phone_number" value="{{ s.phone_number or '' }}" placeholder="+58..."
+                   class="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono">
+            <div class="grid grid-cols-2 gap-2">
+                <input name="operator" value="{{ s.operator or '' }}" placeholder="Operador"
+                       class="px-2 py-1 border border-gray-300 rounded text-sm">
+                <input name="country" value="{{ s.country or '' }}" placeholder="País"
+                       class="px-2 py-1 border border-gray-300 rounded text-sm">
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="color" name="color" value="{{ s.color }}" class="h-8 w-12 border border-gray-300 rounded">
+                <label class="text-sm flex items-center gap-1">
+                    <input type="checkbox" name="active" {% if s.active %}checked{% endif %}> Instalada
+                </label>
+            </div>
+            <textarea name="notes" rows="2" placeholder="Notas"
+                      class="w-full px-2 py-1 border border-gray-300 rounded text-sm">{{ s.notes or '' }}</textarea>
+            <button type="submit"
+                    class="w-full px-3 py-1 rounded-lg font-semibold text-sm"
+                    style="background-color:var(--color-primary); color:#1A1A1A;">Guardar</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirEditor(slot) {
+    const f = document.getElementById('form-' + slot);
+    f.classList.toggle('hidden');
+}
+async function usarSim(slot) {
+    await fetch('/dashboard/sms/api/sims/' + slot + '/activar', { method: 'POST' });
+    location.reload();
+}
+</script>
+{% endblock %}

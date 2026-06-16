@@ -24,6 +24,9 @@ from app.services.operator_service import OperatorService
 # Configuración del sistema
 from app.services.system_config_service import SystemConfigService
 
+# Módulo SMS
+from app.services.sms_service import SmsService
+
 __all__ = [
     # Servicios existentes
     'QuoteService',
@@ -45,4 +48,6 @@ __all__ = [
     'OperatorService',
     # Configuración del sistema
     'SystemConfigService',
+    # Módulo SMS
+    'SmsService',
 ]

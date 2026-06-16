@@ -30,6 +30,10 @@ from app.models.payment_source import PaymentSource
 # Configuración del sistema
 from app.models.system_config import SystemConfig
 
+# Módulo SMS
+from app.models.sim_slot import SimSlot
+from app.models.sms_message import SmsMessage, SmsDirection, SmsStatus
+
 # Exportar para facilitar importación
 __all__ = [
     'db',
@@ -58,4 +62,9 @@ __all__ = [
     'PaymentSource',
     # Configuración del sistema
     'SystemConfig',
+    # Módulo SMS
+    'SimSlot',
+    'SmsMessage',
+    'SmsDirection',
+    'SmsStatus',
 ]

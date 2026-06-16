@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Enviar SMS — Ceiba21{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6" style="color:#1A1A1A;">
+    <i class="fas fa-paper-plane mr-2" style="color:var(--color-primary);"></i>Enviar SMS
+</h1>
+
+<div class="max-w-2xl bg-white rounded-xl shadow-sm p-6">
+    <form method="POST">
+        <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Números de destino</label>
+            <input type="text" name="phones" required
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:border-yellow-400"
+                   placeholder="+573001234567, +584141234567">
+            <p class="text-xs text-gray-400 mt-1">Separados por coma · con código de país</p>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Mensaje</label>
+            <textarea name="text" rows="4" maxlength="160" required
+                      oninput="document.getElementById('cc').textContent = this.value.length"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-yellow-400"></textarea>
+            <div class="flex justify-between mt-1">
+                <span class="text-xs text-gray-400">Máx. 160 caracteres por SMS</span>
+                <span class="text-xs text-gray-400"><span id="cc">0</span>/160</span>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">SIM a usar</label>
+            <select name="sim_slot"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-yellow-400">
+                <option value="">Automático</option>
+                {% for s in slots %}
+                <option value="{{ s.slot_number }}">
+                    Slot {{ s.slot_number }} — {{ s.display_name }}{% if s.phone_number %} ({{ s.phone_number }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit"
+                class="px-5 py-2 rounded-lg font-semibold transition hover:opacity-90"
+                style="background-color:var(--color-primary); color:#1A1A1A;">
+            <i class="fas fa-paper-plane mr-1"></i> Enviar
+        </button>
+        <a href="{{ url_for('sms.index') }}" class="ml-2 px-5 py-2 rounded-lg text-sm text-gray-600 border border-gray-300 hover:bg-gray-50">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
