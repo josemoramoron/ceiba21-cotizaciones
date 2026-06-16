@@ -3,6 +3,8 @@
 {% block title %}Inbox SMS — Ceiba21{% endblock %}
 
 {% block content %}
+{% set seccion = 'Inbox' %}
+{% include 'sms/_breadcrumb.html' %}
 <h1 class="text-2xl font-bold mb-6" style="color:#1A1A1A;">
     <i class="fas fa-inbox mr-2 text-green-600"></i>Bandeja de entrada
 </h1>
@@ -31,7 +33,7 @@
                     </span>
                     {% else %}<span class="text-gray-400">—</span>{% endif %}
                 </td>
-                <td class="px-5 py-3 text-sm text-gray-400 whitespace-nowrap">{{ m.created_at.strftime('%d/%m/%y %H:%M') }}</td>
+                <td class="px-5 py-3 text-sm text-gray-400 whitespace-nowrap">{{ m.created_at | hora_co('%d/%m/%y %H:%M') }}</td>
             </tr>
             {% endfor %}
         </tbody>

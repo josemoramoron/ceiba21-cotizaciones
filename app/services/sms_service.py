@@ -161,7 +161,11 @@ class SmsService(BaseService):
 
         phone = data.get('sender') or data.get('phoneNumber') or 'desconocido'
         text = data.get('message') or data.get('text') or ''
-        sim = data.get('simNumber')
+
+        # El `simNumber` del webhook es el slot del teléfono (siempre el
+        # mismo, porque el board entra por una sola ranura física). La SIM
+        # real que recibió es la que esté activa en el board en ese momento.
+        sim = cls.get_active_slot()
 
         msg = SmsMessage(
             gateway_id=gateway_id,

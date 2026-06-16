@@ -42,13 +42,15 @@ def index():
     SmsService.ensure_slots(TOTAL_SIM_SLOTS)
     health, _ = SmsService.get_gateway_health()
     from app.models.sms_message import SmsMessage
+    slots = SimSlot.get_ordered()
     return render_template(
         'sms/index.html',
         health=health,
         unread=SmsMessage.count_unread(),
         recent_inbound=SmsMessage.get_inbound().limit(8).all(),
         recent_outbound=SmsMessage.get_outbound().limit(5).all(),
-        slots=SimSlot.get_ordered(),
+        slots=slots,
+        slots_map={s.slot_number: s for s in slots},
         active_slot=SmsService.get_active_slot(),
     )
 

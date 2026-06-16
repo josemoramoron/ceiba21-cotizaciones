@@ -77,8 +77,9 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     
     # Filtros Jinja personalizados
-    from app.utils import formato_eu
+    from app.utils import formato_eu, hora_co
     app.add_template_filter(formato_eu, 'eu')
+    app.add_template_filter(hora_co, 'hora_co')
     
     # Configurar Flask-Login
     login_manager.login_view = 'auth.login'

@@ -1,0 +1,11 @@
+<nav class="text-sm text-gray-500 mb-4 flex items-center gap-2">
+    <a href="{{ url_for('dashboard.index') }}" class="hover:text-gray-700">
+        <i class="fas fa-home"></i>
+    </a>
+    <span class="text-gray-300">/</span>
+    <a href="{{ url_for('sms.index') }}" class="hover:text-gray-700">SMS</a>
+    {% if seccion %}
+    <span class="text-gray-300">/</span>
+    <span class="text-gray-700 font-medium">{{ seccion }}</span>
+    {% endif %}
+</nav>

@@ -3,6 +3,8 @@
 {% block title %}Historial SMS — Ceiba21{% endblock %}
 
 {% block content %}
+{% set seccion = 'Historial' %}
+{% include 'sms/_breadcrumb.html' %}
 <h1 class="text-2xl font-bold mb-6" style="color:#1A1A1A;">
     <i class="fas fa-clock-rotate-left mr-2 text-blue-600"></i>Historial de enviados
 </h1>
@@ -33,7 +35,7 @@
                     {% else %}<span class="text-gray-400">—</span>{% endif %}
                 </td>
                 <td class="px-5 py-3">{% include 'sms/_status_badge.html' %}</td>
-                <td class="px-5 py-3 text-sm text-gray-400 whitespace-nowrap">{{ m.created_at.strftime('%d/%m/%y %H:%M') }}</td>
+                <td class="px-5 py-3 text-sm text-gray-400 whitespace-nowrap">{{ m.created_at | hora_co('%d/%m/%y %H:%M') }}</td>
             </tr>
             {% endfor %}
         </tbody>
