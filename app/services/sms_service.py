@@ -136,25 +136,32 @@ class SmsService(BaseService):
         cls.commit()
 
     @classmethod
-    def ingest_incoming(cls, payload: Dict) -> Optional[SmsMessage]:
+    def ingest_incoming(cls, body: Dict) -> Optional[SmsMessage]:
         """Registra un SMS entrante recibido por webhook del gateway.
 
-        Idempotente: si el gateway_id ya existe, no duplica.
+        El gateway envía la estructura anidada::
+
+            {"event": "sms:received", "payload": {"messageId": ...,
+             "message": ..., "sender": ..., "simNumber": ...}}
+
+        Se usa ``messageId`` como identificador de deduplicación (es estable
+        por contenido) y ``sender`` como remitente. Idempotente.
 
         Args:
-            payload: JSON del webhook (id, phoneNumber/from, message/text,
-                simNumber).
+            body: JSON completo del webhook (con la clave anidada ``payload``).
 
         Returns:
             El SmsMessage creado, o None si era un duplicado.
         """
-        gateway_id = payload.get('id')
+        data = body.get('payload', body)
+
+        gateway_id = data.get('messageId') or body.get('id')
         if SmsMessage.exists_gateway_id(gateway_id):
             return None
 
-        phone = payload.get('phoneNumber') or payload.get('from') or 'desconocido'
-        text = payload.get('message') or payload.get('text') or ''
-        sim = payload.get('simNumber')
+        phone = data.get('sender') or data.get('phoneNumber') or 'desconocido'
+        text = data.get('message') or data.get('text') or ''
+        sim = data.get('simNumber')
 
         msg = SmsMessage(
             gateway_id=gateway_id,
