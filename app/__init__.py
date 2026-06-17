@@ -135,6 +135,18 @@ def create_app(config_class=Config):
         from app.client_auth import current_client
         return {'current_client': current_client()}
 
+    # Exponer el consentimiento de cookies a TODAS las plantillas que extienden
+    # public_base.html (no solo las rutas de public_bp). Sin esto, páginas como
+    # /cuenta/* fallan con "cookie_consent is undefined".
+    @app.context_processor
+    def inject_cookie_consent():
+        from flask import request
+        from app.services.cookie_consent_service import CookieConsentService
+        return {
+            'cookie_consent': CookieConsentService.get_consent(request),
+            'cookie_cfg': CookieConsentService.get_client_config(),
+        }
+
     # Crear tablas si no existen
     with app.app_context():
         db.create_all()
