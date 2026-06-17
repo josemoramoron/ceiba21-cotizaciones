@@ -116,6 +116,7 @@ def create_app(config_class=Config):
     from app.routes.blacklist import blacklist_bp
     from app.routes.payments_unified import pagos_bp
     from app.routes.sms import sms_bp
+    from app.routes.cuenta import cuenta_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
@@ -126,6 +127,13 @@ def create_app(config_class=Config):
     app.register_blueprint(blacklist_bp)
     app.register_blueprint(pagos_bp)
     app.register_blueprint(sms_bp)
+    app.register_blueprint(cuenta_bp)
+
+    # Exponer el cliente autenticado (sesión) a todas las plantillas
+    @app.context_processor
+    def inject_current_client():
+        from app.client_auth import current_client
+        return {'current_client': current_client()}
 
     # Crear tablas si no existen
     with app.app_context():

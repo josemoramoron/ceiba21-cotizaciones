@@ -314,6 +314,18 @@
                     <i class="fas fa-moon text-xl nav-text" id="themeIconNav"></i>
                 </button>
 
+                {% if current_client %}
+                <a href="{{ url_for('cuenta.index') }}"
+                   class="flex items-center space-x-2 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 transition nav-text">
+                    <i class="fas fa-user text-lg"></i><span>{{ current_client.first_name }}</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('cuenta.login') }}"
+                   class="flex items-center space-x-2 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 transition nav-text">
+                    <i class="fas fa-user text-lg"></i><span>Mi cuenta</span>
+                </a>
+                {% endif %}
+
                 {% if session.get('logged_in') %}
                 <a href="{{ url_for('dashboard.index') }}"
                    class="flex items-center space-x-2 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 transition"
@@ -360,6 +372,12 @@
             <a href="{{ url_for('public.calculadora') }}"  class="block py-2 nav-text">Calculadora</a>
             <a href="#"                                    class="block py-2 nav-text">Servicios</a>
             <a href="#"                                    class="block py-2 nav-text">Tienda</a>
+
+            {% if current_client %}
+            <a href="{{ url_for('cuenta.index') }}" class="block py-2 nav-text"><i class="fas fa-user mr-2"></i>{{ current_client.first_name }}</a>
+            {% else %}
+            <a href="{{ url_for('cuenta.login') }}" class="block py-2 nav-text"><i class="fas fa-user mr-2"></i>Mi cuenta</a>
+            {% endif %}
 
             {% if session.get('logged_in') %}
             <a href="{{ url_for('dashboard.index') }}" class="block py-2" style="color:#F7D917;">
