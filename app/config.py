@@ -33,6 +33,11 @@ class Config:
     COOKIE_CONSENT_VERSION = os.getenv('COOKIE_CONSENT_VERSION', '1')
     COOKIE_CONSENT_MAX_AGE_DAYS = int(os.getenv('COOKIE_CONSENT_MAX_AGE_DAYS', '180'))
 
+    # Web Push (VAPID)
+    VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY')
+    VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY')
+    VAPID_CLAIM_EMAIL = os.getenv('VAPID_CLAIM_EMAIL', 'info@ceiba21.com')
+
 class DevelopmentConfig(Config):
     DEBUG = True
 

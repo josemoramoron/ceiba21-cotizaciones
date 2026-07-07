@@ -30,6 +30,25 @@
       {% endif %}
     </div>
 
+    <div class="mt-8 pt-6" style="border-top: 1px solid var(--color-border);">
+      <h2 class="text-lg font-semibold mb-1">Notificaciones</h2>
+      <p class="text-sm mb-4" style="color: var(--color-text-secondary);">
+        Actívalas para recibir avisos del estado de tus órdenes en este dispositivo.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <button id="btnEnablePush" type="button"
+                class="font-semibold px-4 py-2 rounded-lg transition"
+                style="background-color: #F7D917; color: #1A1A1A;">
+          <i class="fas fa-bell mr-1"></i> Activar notificaciones
+        </button>
+        <button id="btnTestPush" type="button"
+                class="font-medium px-4 py-2 rounded-lg border transition"
+                style="border-color: var(--color-border); color: var(--color-text);">
+          Enviar prueba
+        </button>
+      </div>
+    </div>
+
     <div class="mt-8 p-4 rounded-lg" style="background-color: var(--color-bg);">
       <p class="text-sm" style="color: var(--color-text-secondary);">
         🚧 Tu panel personal (órdenes, historial y datos de pago) estará disponible pronto.

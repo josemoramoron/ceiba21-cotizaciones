@@ -34,6 +34,9 @@ from app.models.system_config import SystemConfig
 from app.models.sim_slot import SimSlot
 from app.models.sms_message import SmsMessage, SmsDirection, SmsStatus
 
+# Web Push
+from app.models.push_subscription import PushSubscription
+
 # Exportar para facilitar importación
 __all__ = [
     'db',
@@ -60,6 +63,7 @@ __all__ = [
     'PaymentStatus',
     'PaypalSubtipo',
     'PaymentSource',
+    'PushSubscription',
     # Configuración del sistema
     'SystemConfig',
     # Módulo SMS
