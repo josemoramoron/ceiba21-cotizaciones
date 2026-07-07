@@ -114,6 +114,30 @@ class NotificationService(BaseService):
         return False, f"Error al enviar: {result}"
 
     @classmethod
+    def _push_to_order_client(cls, order: Order, title: str, body: str) -> None:
+        """
+        Enviar Web Push a los clientes (WebUser) vinculados al usuario de la orden.
+
+        Best-effort: si no hay WebUser vinculado o el envío falla, no interrumpe
+        el flujo de notificación por canal conversacional.
+
+        Args:
+            order: Orden cuyo cambio de estado se notifica.
+            title: Título de la notificación push.
+            body: Cuerpo de la notificación push.
+        """
+        try:
+            from app.models.web_user import WebUser
+            from app.services.push_service import PushService
+            web_users = WebUser.query.filter_by(
+                user_id=order.user_id, is_active=True
+            ).all()
+            for web_user in web_users:
+                PushService.send_to_user(web_user.id, title, body, url='/cuenta')
+        except Exception as exc:
+            cls.log_error("Error al enviar push de orden", exc)
+
+    @classmethod
     def notify_order_created(cls, order: Order) -> Tuple[bool, str]:
         """
         Notificar creación de orden (placeholder).
@@ -147,9 +171,13 @@ class NotificationService(BaseService):
             Tupla (success, message)
         """
         try:
-            # TODO: Integrar con canales
+            cls._push_to_order_client(
+                order,
+                'Ceiba21',
+                f"Recibimos tu orden {order.reference}, está en verificación.",
+            )
             cls.log_info(f"Notificación de orden enviada: {order.reference}")
-            return True, "Notificación enviada (simulated)"
+            return True, "Notificación enviada"
 
         except Exception as e:
             cls.log_error("Error al notificar orden enviada", e)
@@ -182,6 +210,11 @@ Tu orden <b>{order.reference}</b> está siendo procesada por {operator_name}.
 Te notificaremos cuando esté completada.
             """.strip()
 
+            cls._push_to_order_client(
+                order,
+                'Ceiba21',
+                f"Tu orden {order.reference} está siendo procesada ✅",
+            )
             return cls._send_to_order_channel(order, message_text)
 
         except Exception as e:
@@ -218,6 +251,11 @@ Tu orden <b>{order.reference}</b> ha sido procesada.
 ¡Gracias por usar nuestro servicio! 🌳
             """.strip()
 
+            cls._push_to_order_client(
+                order,
+                'Ceiba21',
+                f"🎉 Tu orden {order.reference} fue completada.",
+            )
             return cls._send_to_order_channel(order, message_text)
 
         except Exception as e:
@@ -252,6 +290,11 @@ Si tienes alguna duda, por favor contáctanos.
 Puedes crear una nueva orden cuando desees. 🌳
             """.strip()
 
+            cls._push_to_order_client(
+                order,
+                'Ceiba21',
+                f"Tu orden {order.reference} fue cancelada.",
+            )
             return cls._send_to_order_channel(order, message_text)
 
         except Exception as e:
