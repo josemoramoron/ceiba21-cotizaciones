@@ -11,6 +11,21 @@
     return arr;
   }
 
+  // Espera a que la registración tenga un worker ACTIVO, sin depender de
+  // navigator.serviceWorker.ready (que solo resuelve si el SW controla la
+  // página actual; el nuestro tiene scope /static/ y no controla /cuenta/).
+  async function waitForActiveWorker(reg) {
+    if (reg.active) return;
+    const worker = reg.installing || reg.waiting;
+    if (!worker) return;
+    await new Promise((resolve) => {
+      if (worker.state === 'activated') { resolve(); return; }
+      worker.addEventListener('statechange', function () {
+        if (worker.state === 'activated') resolve();
+      });
+    });
+  }
+
   async function enablePush() {
     try {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -24,7 +39,7 @@
       }
 
       const reg = await navigator.serviceWorker.register('/static/sw.js');
-      await navigator.serviceWorker.ready;
+      await waitForActiveWorker(reg);
 
       const keyRes = await fetch('/push/vapid-public-key');
       const keyData = await keyRes.json();
