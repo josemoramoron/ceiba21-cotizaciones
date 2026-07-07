@@ -12,50 +12,59 @@
   }
 
   async function enablePush() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Tu navegador no soporta notificaciones push.');
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      alert('No se concedió permiso para notificaciones.');
-      return;
-    }
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert('Tu navegador no soporta notificaciones push.');
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('No se concedió permiso para notificaciones.');
+        return;
+      }
 
-    const reg = await navigator.serviceWorker.register('/static/sw.js');
-    await navigator.serviceWorker.ready;
+      const reg = await navigator.serviceWorker.register('/static/sw.js');
+      await navigator.serviceWorker.ready;
 
-    const keyRes = await fetch('/push/vapid-public-key');
-    const { publicKey } = await keyRes.json();
-    if (!publicKey) {
-      alert('El servidor no tiene configuradas las claves de notificación (VAPID).');
-      return;
-    }
+      const keyRes = await fetch('/push/vapid-public-key');
+      const keyData = await keyRes.json();
+      const publicKey = keyData.publicKey;
+      if (!publicKey) {
+        alert('El servidor no tiene configuradas las claves de notificación (VAPID).');
+        return;
+      }
 
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
+      // Descartar cualquier suscripción previa (puede tener otra clave) y crear una nueva
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) {
+        await existing.unsubscribe();
+      }
+      const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey)
       });
-    }
 
-    const r = await fetch('/push/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub)
-    });
-    let data = {};
-    try { data = await r.json(); } catch (e) { data = {}; }
+      const r = await fetch('/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub)
+      });
+      let data = {};
+      try { data = await r.json(); } catch (e) { data = {}; }
 
-    if (r.status === 401) {
-      alert('Tu sesión expiró. Vuelve a iniciar sesión y reintenta.');
-      return;
-    }
-    if (data && data.ok) {
-      alert('✅ Notificaciones activadas.');
-    } else {
-      alert('No se guardó la suscripción (' + ((data && data.error) || r.status) + ').');
+      if (r.status === 401) {
+        alert('Tu sesión expiró. Vuelve a iniciar sesión y reintenta.');
+        return;
+      }
+      if (data && data.ok) {
+        alert('✅ Notificaciones activadas.');
+      } else {
+        alert('No se guardó la suscripción (' + ((data && data.error) || r.status) + ').');
+      }
+    } catch (err) {
+      alert('Error al activar: '
+        + (err && err.name ? err.name + ' — ' : '')
+        + (err && err.message ? err.message : err));
     }
   }
 
