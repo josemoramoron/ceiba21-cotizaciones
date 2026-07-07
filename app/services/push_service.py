@@ -42,18 +42,17 @@ class PushService(BaseService):
                 PushSubscription.deactivate_by_endpoint(sub.endpoint)
             cls.log_error(f"Error enviando push (status={status})", exc)
             return False
+        except Exception as exc:
+            # Errores no-HTTP (p. ej. clave VAPID mal formada): registrar y
+            # continuar, para no tumbar la petición con un 500.
+            cls.log_error("Error inesperado enviando push", exc)
+            return False
 
     @classmethod
     def send_to_user(cls, web_user_id: int, title: str, body: str,
                      url: str = '/cuenta') -> int:
         """
         Enviar una notificación a todas las suscripciones activas de un cliente.
-
-        Args:
-            web_user_id: Id del WebUser destinatario.
-            title: Título de la notificación.
-            body: Cuerpo de la notificación.
-            url: URL a abrir al hacer click.
 
         Returns:
             Número de envíos exitosos.

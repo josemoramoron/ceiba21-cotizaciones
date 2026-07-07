@@ -25,10 +25,10 @@
     const reg = await navigator.serviceWorker.register('/static/sw.js');
     await navigator.serviceWorker.ready;
 
-    const res = await fetch('/push/vapid-public-key');
-    const { publicKey } = await res.json();
+    const keyRes = await fetch('/push/vapid-public-key');
+    const { publicKey } = await keyRes.json();
     if (!publicKey) {
-      alert('El servidor no tiene configuradas las claves de notificación.');
+      alert('El servidor no tiene configuradas las claves de notificación (VAPID).');
       return;
     }
 
@@ -45,15 +45,39 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sub)
     });
-    alert(r.ok ? '✅ Notificaciones activadas.' : 'No se pudo guardar la suscripción.');
+    let data = {};
+    try { data = await r.json(); } catch (e) { data = {}; }
+
+    if (r.status === 401) {
+      alert('Tu sesión expiró. Vuelve a iniciar sesión y reintenta.');
+      return;
+    }
+    if (data && data.ok) {
+      alert('✅ Notificaciones activadas.');
+    } else {
+      alert('No se guardó la suscripción (' + ((data && data.error) || r.status) + ').');
+    }
   }
 
   async function testPush() {
     const r = await fetch('/push/test', { method: 'POST' });
-    const data = await r.json().catch(() => ({}));
-    if (!data.sent) {
-      alert('No hay suscripción activa. Activa las notificaciones primero.');
+    let data = {};
+    try { data = await r.json(); } catch (e) { data = {}; }
+
+    if (r.status === 401) {
+      alert('Tu sesión expiró. Vuelve a iniciar sesión y reintenta.');
+      return;
     }
+    if (data.sent > 0) {
+      alert('✅ Notificación enviada.');
+      return;
+    }
+    if (!data.subs) {
+      alert('No hay suscripción guardada. Pulsa "Activar notificaciones" primero.');
+      return;
+    }
+    alert('Tienes ' + data.subs + ' suscripción(es), pero el envío falló. '
+          + 'Suele ser un desajuste de claves VAPID en el servidor (revisa los logs).');
   }
 
   document.addEventListener('DOMContentLoaded', function () {

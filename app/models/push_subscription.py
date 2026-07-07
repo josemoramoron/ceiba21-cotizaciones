@@ -34,8 +34,14 @@ class PushSubscription(BaseModel):
 
     @classmethod
     def upsert(cls, web_user_id: int, endpoint: str, p256dh: str,
-               auth: str, user_agent: Optional[str] = None) -> 'PushSubscription':
-        """Crear o actualizar (por endpoint) una suscripción del cliente."""
+               auth: str, user_agent: Optional[str] = None
+               ) -> Optional['PushSubscription']:
+        """
+        Crear o actualizar (por endpoint) una suscripción del cliente.
+
+        Returns:
+            La suscripción guardada, o None si el guardado falló.
+        """
         sub = cls.query.filter_by(endpoint=endpoint).first()
         if sub is None:
             sub = cls(endpoint=endpoint)
@@ -44,7 +50,8 @@ class PushSubscription(BaseModel):
         sub.auth = auth
         sub.user_agent = user_agent
         sub.is_active = True
-        sub.save()
+        if not sub.save():
+            return None
         return sub
 
     @classmethod
