@@ -179,6 +179,11 @@
                    {% if request.endpoint and request.endpoint.startswith('sms.') %}active{% endif %}">
                     <i class="fas fa-comment-sms w-4" style="color:var(--color-primary);"></i><span>SMS</span>
                 </a>
+                <a href="{{ url_for('chat_admin.index') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint and request.endpoint.startswith('chat_admin.') %}active{% endif %}">
+                    <i class="fas fa-comments w-4" style="color:var(--color-primary);"></i><span>Chat web</span>
+                </a>
                 {% endif %}
 
                 <a href="{{ url_for('pagos.index') }}"

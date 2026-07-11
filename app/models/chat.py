@@ -38,6 +38,8 @@ class ChatConversation(BaseModel):
         'ChatMessage', backref='conversation', lazy='dynamic',
         order_by='ChatMessage.created_at'
     )
+    web_user = db.relationship('WebUser', foreign_keys=[web_user_id])
+    user = db.relationship('User', foreign_keys=[user_id])
 
     @property
     def display_name(self) -> str:
