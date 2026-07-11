@@ -1,8 +1,7 @@
 """
 Envío de notificaciones Web Push (pywebpush + VAPID).
 
-El envío a cada endpoint es una petición HTTP corta al servicio de push del
-navegador (FCM/Mozilla/etc.), compatible con los workers sync de Gunicorn.
+Soporta destinatarios logueados (WebUser) y anónimos (anon_id del chat).
 """
 import json
 
@@ -15,7 +14,7 @@ from app.models.push_subscription import PushSubscription
 
 
 class PushService(BaseService):
-    """Envía notificaciones Web Push a las suscripciones de un cliente."""
+    """Envía notificaciones Web Push."""
 
     @staticmethod
     def _vapid_private_key() -> Vapid01:
@@ -43,27 +42,34 @@ class PushService(BaseService):
             cls.log_error(f"Error enviando push (status={status})", exc)
             return False
         except Exception as exc:
-            # Errores no-HTTP (p. ej. clave VAPID mal formada): registrar y
-            # continuar, para no tumbar la petición con un 500.
             cls.log_error("Error inesperado enviando push", exc)
             return False
 
     @classmethod
-    def send_to_user(cls, web_user_id: int, title: str, body: str,
-                     url: str = '/cuenta') -> int:
-        """
-        Enviar una notificación a todas las suscripciones activas de un cliente.
-
-        Returns:
-            Número de envíos exitosos.
-        """
+    def _send_to_subs(cls, subs, title: str, body: str, url: str) -> int:
+        """Enviar un payload a una lista de suscripciones."""
         if not current_app.config.get('VAPID_PRIVATE_KEY'):
             cls.log_error("VAPID no configurado: no se envían push")
             return 0
-
         payload = json.dumps({'title': title, 'body': body, 'url': url})
         sent = 0
-        for sub in PushSubscription.get_active_for_user(web_user_id):
+        for sub in subs:
             if cls._send_one(sub, payload):
                 sent += 1
         return sent
+
+    @classmethod
+    def send_to_user(cls, web_user_id: int, title: str, body: str,
+                     url: str = '/cuenta') -> int:
+        """Enviar a todas las suscripciones activas de un cliente logueado."""
+        return cls._send_to_subs(
+            PushSubscription.get_active_for_user(web_user_id), title, body, url
+        )
+
+    @classmethod
+    def send_to_anon(cls, anon_id: str, title: str, body: str,
+                     url: str = '/') -> int:
+        """Enviar a todas las suscripciones activas de un visitante anónimo."""
+        return cls._send_to_subs(
+            PushSubscription.get_active_for_anon(anon_id), title, body, url
+        )

@@ -99,3 +99,29 @@ class SystemConfigService:
             value=int(slot_number),
             description=cls._SMS_SLOT_DESCRIPTION,
         )
+
+    # ── Pausa global del bot del chat web ──────────────────────────────────
+    _KEY_WEBCHAT_BOT_PAUSED = 'webchat_bot_paused'
+    _WEBCHAT_BOT_DESCRIPTION = (
+        'Si el bot del chat web está en pausa global (operación manual).'
+    )
+
+    @classmethod
+    def get_webchat_bot_paused(cls) -> bool:
+        """Devuelve True si el bot del chat web está en pausa global.
+
+        Por defecto True (operación manual mientras se valida el bot).
+        """
+        raw = SystemConfig.get_value(cls._KEY_WEBCHAT_BOT_PAUSED)
+        if raw is None:
+            return True
+        return str(raw).lower() in ('1', 'true', 't', 'yes', 'si')
+
+    @classmethod
+    def set_webchat_bot_paused(cls, paused: bool) -> bool:
+        """Persiste la pausa global del bot del chat web."""
+        return SystemConfig.set_value(
+            key=cls._KEY_WEBCHAT_BOT_PAUSED,
+            value='true' if paused else 'false',
+            description=cls._WEBCHAT_BOT_DESCRIPTION,
+        )

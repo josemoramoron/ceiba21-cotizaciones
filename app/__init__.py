@@ -118,6 +118,7 @@ def create_app(config_class=Config):
     from app.routes.sms import sms_bp
     from app.routes.cuenta import cuenta_bp
     from app.routes.push import push_bp
+    from app.routes.chat import chat_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
@@ -130,6 +131,7 @@ def create_app(config_class=Config):
     app.register_blueprint(sms_bp)
     app.register_blueprint(cuenta_bp)
     app.register_blueprint(push_bp)
+    app.register_blueprint(chat_bp)
 
     # Exponer el cliente autenticado (sesión) a todas las plantillas
     @app.context_processor

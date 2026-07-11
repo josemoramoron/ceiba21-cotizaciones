@@ -37,6 +37,9 @@ from app.models.sms_message import SmsMessage, SmsDirection, SmsStatus
 # Web Push
 from app.models.push_subscription import PushSubscription
 
+# Chat web
+from app.models.chat import ChatConversation, ChatMessage
+
 # Exportar para facilitar importación
 __all__ = [
     'db',
@@ -64,6 +67,8 @@ __all__ = [
     'PaypalSubtipo',
     'PaymentSource',
     'PushSubscription',
+    'ChatConversation',
+    'ChatMessage',
     # Configuración del sistema
     'SystemConfig',
     # Módulo SMS

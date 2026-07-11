@@ -337,11 +337,6 @@
                    class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
                     <i class="fas fa-sign-out-alt mr-2"></i> Salir
                 </a>
-                {% else %}
-                <a href="{{ url_for('auth.login') }}"
-                   class="btn-login px-6 py-2 rounded-lg">
-                    <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
-                </a>
                 {% endif %}
             </div>
 
@@ -385,10 +380,6 @@
             </a>
             <a href="{{ url_for('auth.logout') }}"
                class="block bg-red-500 text-white px-4 py-2 rounded-lg text-center">Salir</a>
-            {% else %}
-            <a href="{{ url_for('auth.login') }}" class="btn-login px-6 py-2 rounded-lg">
-                <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
-            </a>
             {% endif %}
         </div>
     </div>
