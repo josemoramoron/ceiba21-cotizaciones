@@ -467,6 +467,163 @@
     </button>
 </div>
 
+<!-- Ventana de chat web (la abre la burbuja #btn-chat) -->
+<style>
+    .chat-panel {
+        position: fixed;
+        bottom: 100px;
+        right: 24px;
+        z-index: 60;
+        display: none;
+        flex-direction: column;
+        width: 340px;
+        max-width: calc(100vw - 32px);
+        height: 460px;
+        max-height: calc(100vh - 140px);
+        border-radius: 16px;
+        overflow: hidden;
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+    }
+    .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, var(--y) 0%, var(--yd) 100%);
+        color: var(--b);
+    }
+    .chat-header__title { font-weight: 700; font-size: 0.95rem; }
+    .chat-header__sub { font-size: 0.72rem; opacity: 0.8; }
+    .chat-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--b);
+        font-size: 1rem;
+        line-height: 1;
+        padding: 4px;
+    }
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px;
+        background-color: var(--color-bg);
+    }
+    .chat-empty {
+        text-align: center;
+        font-size: 0.82rem;
+        color: var(--color-text-secondary);
+        padding: 16px 8px;
+    }
+    .chat-row { display: flex; margin-bottom: 8px; }
+    .chat-row--client { justify-content: flex-end; }
+    .chat-row--staff  { justify-content: flex-start; }
+    .chat-bubble {
+        max-width: 78%;
+        padding: 8px 12px;
+        border-radius: 14px;
+        font-size: 0.86rem;
+        line-height: 1.35;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+    }
+    .chat-bubble--client { background-color: var(--y); color: var(--b); }
+    .chat-bubble--staff {
+        background-color: var(--color-surface);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+    }
+    .chat-reminder {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        font-size: 0.78rem;
+        color: var(--color-text);
+        background-color: var(--color-surface);
+        border-top: 1px solid var(--color-border);
+    }
+    .chat-reminder__text { flex: 1; }
+    .chat-reminder__btn {
+        border: none;
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        background-color: var(--y);
+        color: var(--b);
+    }
+    .chat-reminder__dismiss {
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: var(--color-text-secondary);
+        font-size: 0.75rem;
+    }
+    .chat-form {
+        display: flex;
+        gap: 8px;
+        padding: 10px;
+        background-color: var(--color-surface);
+        border-top: 1px solid var(--color-border);
+    }
+    .chat-input {
+        flex: 1;
+        padding: 9px 12px;
+        border-radius: 10px;
+        font-size: 0.86rem;
+        outline: none;
+        background-color: var(--color-bg);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+    }
+    .chat-send {
+        border: none;
+        cursor: pointer;
+        width: 40px;
+        border-radius: 10px;
+        background-color: var(--y);
+        color: var(--b);
+    }
+    @media (max-width: 640px) {
+        .chat-panel { bottom: 90px; right: 16px; height: 70vh; }
+    }
+</style>
+
+<div id="chatPanel" class="chat-panel" role="dialog" aria-label="Chat con Ceiba21">
+    <div class="chat-header">
+        <div>
+            <div class="chat-header__title">Chat con Ceiba21</div>
+            <div class="chat-header__sub">Te respondemos lo antes posible</div>
+        </div>
+        <button type="button" id="chatClose" class="chat-close" aria-label="Cerrar chat">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div id="chatMessages" class="chat-messages"></div>
+
+    <div id="chatPushReminder" class="chat-reminder">
+        <span class="chat-reminder__text">
+            <i class="fas fa-bell mr-1"></i>
+            Activa las notificaciones y te avisamos cuando respondamos.
+        </span>
+        <button type="button" id="chatEnablePush" class="chat-reminder__btn">Activar</button>
+        <button type="button" id="chatDismissPush" class="chat-reminder__dismiss" aria-label="Descartar">Ahora no</button>
+    </div>
+
+    <form id="chatForm" class="chat-form">
+        <input type="text" id="chatInput" class="chat-input" maxlength="2000"
+               placeholder="Escribe tu mensaje..." autocomplete="off">
+        <button type="submit" class="chat-send" aria-label="Enviar">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </form>
+</div>
+
 <!-- Barra de acción fija en móvil -->
 <div class="mobile-action-bar md:hidden fixed bottom-0 left-0 right-0 z-40 flex"
      style="padding-bottom: env(safe-area-inset-bottom);">
@@ -639,6 +796,9 @@
 
 <!-- Web Push -->
 <script src="{{ url_for('static', filename='js/push.js') }}"></script>
+
+<!-- Chat web (widget del cliente) -->
+<script src="{{ url_for('static', filename='js/chat_widget.js') }}"></script>
 
 {% block extra_js %}{% endblock %}
 </body>

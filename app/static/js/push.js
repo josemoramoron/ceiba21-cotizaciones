@@ -113,4 +113,7 @@
     if (btnEnable) btnEnable.addEventListener('click', enablePush);
     if (btnTest) btnTest.addEventListener('click', testPush);
   });
+
+  // API pública: la reutiliza el widget de chat para su recordatorio de push.
+  window.Ceiba21Push = { enablePush: enablePush, testPush: testPush };
 })();
