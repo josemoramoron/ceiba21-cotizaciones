@@ -37,6 +37,7 @@ def mensaje():
         web_user=current_client(),
         text=text,
         country=ChatService.country_from_request(request),
+        label=data.get('etiqueta'),
     )
     if conv is None:
         return jsonify({'ok': False, 'error': 'mensaje_vacio'}), 400

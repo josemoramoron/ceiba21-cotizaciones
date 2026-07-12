@@ -65,7 +65,8 @@ class ChatService(BaseService):
 
     @classmethod
     def post_client_message(cls, anon_id: str, web_user, text: str,
-                            country: Optional[str] = None
+                            country: Optional[str] = None,
+                            label: Optional[str] = None
                             ) -> Tuple[Optional[ChatConversation], Optional[ChatMessage]]:
         """
         Guardar un mensaje entrante del cliente.
@@ -86,7 +87,12 @@ class ChatService(BaseService):
 
         conv = cls._resolve_conversation(anon_id, web_user, country)
 
-        msg = ChatMessage(conversation_id=conv.id, sender='client', body=text)
+        # Si el mensaje vino de pulsar un botón, se guarda su etiqueta legible
+        # ("Bolívares") y no el callback interno ("currency:1"), que no debe
+        # mostrarse ni quedar registrado en el historial.
+        cuerpo = (label or '').strip()[:MAX_MESSAGE_LEN] or text
+
+        msg = ChatMessage(conversation_id=conv.id, sender='client', body=cuerpo)
         msg.save()
 
         conv.touch(for_operator=True)

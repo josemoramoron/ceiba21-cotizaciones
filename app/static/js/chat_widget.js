@@ -201,12 +201,10 @@
       const r = await fetch('/chat/mensaje', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: text })
+        body: JSON.stringify({ texto: text, etiqueta: label || null })
       });
       const data = await r.json();
       if (data.ok && data.message) {
-        // Si vino de un botón, mostramos su etiqueta y no el callback_data
-        if (label) data.message.body = label;
         addMessage(data.message);
         (data.bot_messages || []).forEach(addMessage);
         maybeShowReminder();

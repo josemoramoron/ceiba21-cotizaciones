@@ -3,7 +3,7 @@ Calculator Service - Cálculos de conversión de divisas.
 Calcula montos, comisiones y tasas aplicando las fórmulas del sistema.
 """
 from decimal import Decimal
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from app.models.currency import Currency
 from app.models.payment_method import PaymentMethod
 from app.models.exchange_rate import ExchangeRate
@@ -16,6 +16,30 @@ class CalculatorService:
 
     Maneja comisiones de PayPal y otros métodos de pago.
     """
+
+    # Comisión de PayPal: porcentaje sobre el monto BRUTO + tarifa fija.
+    # Única fuente de verdad del sistema (bot, calculadora y cálculo inverso).
+    PAYPAL_FEE_PERCENT = Decimal('0.054')
+    PAYPAL_FEE_FIXED = Decimal('0.30')
+
+    @classmethod
+    def comision_paypal(cls, monto_bruto: Decimal) -> Tuple[Decimal, Decimal]:
+        """
+        Comisión y neto de un pago PayPal.
+
+        Args:
+            monto_bruto: Monto que envía el cliente, en USD.
+
+        Returns:
+            Tupla (comision, neto) en USD, redondeadas a 2 decimales.
+        """
+        bruto = Decimal(str(monto_bruto))
+        comision = (
+            bruto * cls.PAYPAL_FEE_PERCENT + cls.PAYPAL_FEE_FIXED
+        ).quantize(Decimal('0.01'))
+        neto = (bruto - comision).quantize(Decimal('0.01'))
+        return comision, neto
+
 
     @classmethod
     def calculate_exchange(
@@ -47,14 +71,14 @@ class CalculatorService:
         if not exchange_rate:
             raise ValueError(f"Exchange rate no encontrado para {currency.code}")
 
-        # Calcular comisión (solo PayPal tiene comisión de plataforma)
+        # Calcular comisión (solo PayPal tiene comisión de plataforma).
+        # Se usa la fórmula canónica (comision_paypal), la misma que la
+        # calculadora pública: NO duplicar el cálculo aquí.
         fee_usd = Decimal('0.00')
         net_usd = amount_usd
 
         if payment_method.name == 'PayPal':
-            # Fórmula PayPal: fee = (amount - 0.30) * 0.054
-            fee_usd = ((amount_usd - Decimal('0.30')) * Decimal('0.054')).quantize(Decimal('0.01'))
-            net_usd = (amount_usd - Decimal('0.30') - fee_usd).quantize(Decimal('0.01'))
+            fee_usd, net_usd = cls.comision_paypal(amount_usd)
 
         # Obtener quote para este método y moneda
         quote = Quote.query.filter_by(
