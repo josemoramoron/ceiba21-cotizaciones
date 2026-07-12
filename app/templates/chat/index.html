@@ -221,8 +221,12 @@
         row.className = 't-row ' + (isClient ? 't-row--client' : 't-row--staff');
         const b = document.createElement('div');
         b.className = 't-bubble t-bubble--' + m.sender;
-        b.textContent = m.body;
-        decorateProof(b, m.body);
+        if (m.sender === 'bot' && !PROOF_RE.test(m.body || '')) {
+            b.innerHTML = m.body || '';
+        } else {
+            b.textContent = m.body;
+            decorateProof(b, m.body);
+        }
         row.appendChild(b);
         const dots = thread.querySelector('.t-typing');
         if (dots) { thread.insertBefore(row, dots); } else { thread.appendChild(row); }

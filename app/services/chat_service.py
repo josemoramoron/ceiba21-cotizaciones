@@ -272,15 +272,17 @@ class ChatService(BaseService):
 
     # ── Bot (Fase 2) ───────────────────────────────────────────────────────
 
-    _TAG_RE = re.compile(r'<[^>]+>')
-
     @classmethod
     def _to_plain_text(cls, text: str) -> str:
-        """Convertir el HTML de Telegram (<b>, <i>...) a texto plano para la web."""
-        if not text:
-            return ''
-        limpio = cls._TAG_RE.sub('', text)
-        return html_lib.unescape(limpio).strip()
+        """
+        Adaptar el mensaje del bot al canal web.
+
+        El bot produce HTML de Telegram; el chat web recibe un subconjunto
+        seguro (conserva negritas y cursivas, neutraliza el resto).
+        Ver ``app/bot/formatters.py``.
+        """
+        from app.bot.formatters import formatter_for
+        return formatter_for('web').format(text)
 
     @classmethod
     def _bot_reply(cls, conv: ChatConversation, text: str

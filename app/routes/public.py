@@ -82,7 +82,14 @@ def calculadora():
     """Calculadora de conversión — PayPal + Conversor de monedas"""
     # Matriz pública: el selector método→fiat no ofrece el pivote (REF).
     matrix = QuoteService.get_public_quotes_matrix()
-    return render_template('public/calculadora.html', matrix=matrix)
+    # Las tarifas de PayPal vienen del backend (CalculatorService es la única
+    # fuente de verdad); el JS ya no las lleva hardcodeadas.
+    return render_template(
+        'public/calculadora.html',
+        matrix=matrix,
+        paypal_fee_percent=float(CalculatorService.PAYPAL_FEE_PERCENT),
+        paypal_fee_fixed=float(CalculatorService.PAYPAL_FEE_FIXED),
+    )
 
 
 @public_bp.route('/api/calcular', methods=['POST'])

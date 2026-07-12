@@ -45,8 +45,14 @@
 
     const bubble = document.createElement('div');
     bubble.className = 'chat-bubble ' + (isClient ? 'chat-bubble--client' : 'chat-bubble--staff');
-    bubble.textContent = msg.body;
-    decorateProof(bubble, msg.body || '');
+    // Los mensajes del bot traen HTML ya saneado en el servidor (negritas,
+    // cursivas). El resto se pinta como texto plano.
+    if (msg.sender === 'bot' && !PROOF_RE.test(msg.body || '')) {
+      bubble.innerHTML = msg.body || '';
+    } else {
+      bubble.textContent = msg.body;
+      decorateProof(bubble, msg.body || '');
+    }
 
     row.appendChild(bubble);
     const dots = list.querySelector('.chat-typing');

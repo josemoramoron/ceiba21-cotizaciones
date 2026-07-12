@@ -663,12 +663,28 @@ function _showPanel(panelId) {
 }
 
 /* ================================================================
+   PAYPAL — Tarifas (fuente de verdad: CalculatorService en el backend)
+   ================================================================ */
+var PAYPAL_FEE_PERCENT = {{ paypal_fee_percent }};
+var PAYPAL_FEE_FIXED   = {{ paypal_fee_fixed }};
+
+/* Comisión de un pago recibido: % sobre el bruto + tarifa fija. */
+function comisionPaypal(bruto) {
+    return (bruto * PAYPAL_FEE_PERCENT) + PAYPAL_FEE_FIXED;
+}
+
+/* Inverso: cuánto debe enviarse para que lleguen `neto`. */
+function brutoParaNeto(neto) {
+    return (neto + PAYPAL_FEE_FIXED) / (1 - PAYPAL_FEE_PERCENT);
+}
+
+/* ================================================================
    PAYPAL — Recibir
    ================================================================ */
 function calculateReceive() {
     var bruto    = parseFloat(document.getElementById('receiveInput').value) || 0;
     var currency = document.getElementById('receiveSelect').value;
-    var commission = (bruto * 0.054) + 0.30;
+    var commission = comisionPaypal(bruto);
     var neto       = Math.round((bruto - commission) * 100) / 100;
 
     document.getElementById('receiveSent').textContent       = '$' + bruto.toFixed(2);
@@ -698,7 +714,7 @@ function calculateReceive() {
 function calculateSend() {
     var neto     = parseFloat(document.getElementById('sendInput').value) || 0;
     var currency = document.getElementById('sendSelect').value;
-    var bruto      = (neto + 0.30) / 0.946;
+    var bruto      = brutoParaNeto(neto);
     var commission = bruto - neto;
 
     document.getElementById('sendTotal').textContent      = '$' + bruto.toFixed(2);
