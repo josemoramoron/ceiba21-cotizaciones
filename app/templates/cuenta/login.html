@@ -37,7 +37,11 @@
       </button>
     </form>
 
-    <p class="mt-6 text-sm text-center" style="color: var(--color-text-secondary);">
+    <p class="mt-4 text-sm text-center">
+      <a href="{{ url_for('cuenta.recuperar') }}" style="color: var(--color-text-secondary);">¿Olvidaste tu contraseña?</a>
+    </p>
+
+    <p class="mt-4 text-sm text-center" style="color: var(--color-text-secondary);">
       ¿No tienes cuenta?
       <a href="{{ url_for('cuenta.registro') }}" class="font-semibold" style="color: var(--yd);">Regístrate</a>
     </p>

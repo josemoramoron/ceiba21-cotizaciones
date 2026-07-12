@@ -61,7 +61,7 @@ class ClientAuthService(BaseService):
                 first_name=first_name,
                 last_name=last_name,
                 phone=(phone or '').strip() or None,
-                send_verification=False,  # verificación diferida
+                send_verification=True,  # genera el token de verificación
             )
         except SQLAlchemyError as exc:
             cls.rollback()
@@ -70,6 +70,22 @@ class ClientAuthService(BaseService):
 
         cls.log_info(f"Cliente registrado: {email}")
         return True, "Cuenta creada exitosamente", web_user
+
+    @classmethod
+    def solicitar_reset(cls, email: str) -> Optional[WebUser]:
+        """
+        Generar el token de restablecimiento de contraseña.
+
+        Devuelve None si el email no existe. La ruta NO debe revelar esa
+        diferencia al usuario (evita enumerar cuentas registradas).
+        """
+        web_user = WebUser.get_by_email((email or '').strip().lower())
+        if web_user is None:
+            return None
+
+        web_user.generate_reset_token()
+        web_user.save(raise_on_error=True)
+        return web_user
 
     @classmethod
     def authenticate(cls, email: str, password: str

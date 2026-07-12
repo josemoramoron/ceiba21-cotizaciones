@@ -1,0 +1,13 @@
+Hola {{ nombre }},
+
+Recibimos una solicitud para restablecer la contraseña de tu cuenta de Ceiba21.
+
+Abre este enlace para elegir una nueva contraseña:
+{{ enlace }}
+
+El enlace vence en {{ vigencia_min }} minutos.
+
+Si no fuiste tú, ignora este correo: tu contraseña actual sigue siendo válida.
+
+— Equipo Ceiba21
+ceiba21.com

@@ -1,0 +1,11 @@
+Hola {{ nombre }},
+
+Gracias por crear tu cuenta en Ceiba21.
+
+Para activarla, abre este enlace:
+{{ enlace }}
+
+Si no fuiste tú, puedes ignorar este correo.
+
+— Equipo Ceiba21
+ceiba21.com

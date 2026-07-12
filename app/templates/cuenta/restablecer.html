@@ -1,0 +1,33 @@
+{% extends "public_base.html" %}
+{% block title %}Nueva contraseña - Ceiba21{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-12 flex justify-center">
+  <div class="w-full max-w-md rounded-2xl border p-8"
+       style="background-color: var(--color-surface); color: var(--color-text); border-color: var(--color-border);">
+    <h1 class="text-2xl font-bold mb-1">Elige tu nueva contraseña</h1>
+    <p class="mb-6" style="color: var(--color-text-secondary);">Mínimo 8 caracteres.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+      <div class="mb-4 px-4 py-3 rounded-lg text-sm
+                  {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('cuenta.restablecer', token=token) }}" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Nueva contraseña</label>
+        <input type="password" name="password" required minlength="8" autocomplete="new-password"
+               class="w-full rounded-lg px-3 py-2 border focus:outline-none"
+               style="background-color: var(--color-bg); color: var(--color-text); border-color: var(--color-border);">
+      </div>
+      <button type="submit" class="w-full font-semibold py-2.5 rounded-lg transition"
+              style="background-color: var(--brand-yellow); color: var(--brand-black);">
+        Guardar contraseña
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

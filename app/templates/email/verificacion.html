@@ -1,0 +1,25 @@
+{% extends "email/base_email.html" %}
+{% block contenido %}
+    <h1 style="margin:0 0 16px; font-size:22px; color:#1A1A1A;">Hola {{ nombre }} 👋</h1>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#374151;">
+        Gracias por crear tu cuenta en <strong>Ceiba21</strong>. Solo falta un paso:
+        confirma tu correo para activarla.
+    </p>
+    <p style="margin:0 0 28px;">
+        <a href="{{ enlace }}"
+           style="display:inline-block; padding:13px 26px; border-radius:8px;
+                  background-color:#F7D917; color:#1A1A1A; font-weight:700;
+                  font-size:15px; text-decoration:none;">
+            Verificar mi cuenta
+        </a>
+    </p>
+    <p style="margin:0 0 8px; font-size:13px; color:#6B7280;">
+        Si el botón no funciona, copia y pega este enlace:
+    </p>
+    <p style="margin:0 0 24px; font-size:13px; word-break:break-all;">
+        <a href="{{ enlace }}" style="color:#B99B00;">{{ enlace }}</a>
+    </p>
+    <p style="margin:0; font-size:13px; color:#6B7280;">
+        Si no creaste esta cuenta, ignora este mensaje.
+    </p>
+{% endblock %}

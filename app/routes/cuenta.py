@@ -7,6 +7,9 @@ Flask-Login de operadores.
 from flask import (Blueprint, render_template, request, redirect,
                    url_for, flash)
 
+from app.models.web_user import WebUser
+from app.services.email_service import EmailService
+
 from app.services.client_auth_service import ClientAuthService
 from app.client_auth import (login_client, logout_client, current_client,
                              client_login_required)
@@ -50,8 +53,12 @@ def registro():
             phone=request.form.get('phone', ''),
         )
         if ok:
+            _enviar_verificacion(web_user)
             login_client(web_user)  # auto-login tras registro
-            flash('¡Bienvenido! Tu cuenta ha sido creada.', 'success')
+            flash(
+                '¡Bienvenido! Te enviamos un correo para verificar tu cuenta.',
+                'success'
+            )
             return redirect(url_for('cuenta.index'))
         flash(msg, 'error')
 
@@ -71,3 +78,105 @@ def logout():
 def index():
     """Panel personal del cliente (placeholder)."""
     return render_template('cuenta/index.html')
+
+def _enviar_verificacion(web_user) -> None:
+    """
+    Enviar el correo de verificación.
+
+    El enlace se construye AQUÍ, dentro de la petición: ``_external=True``
+    necesita conocer el dominio, y el envío ocurre en un hilo donde ya no hay
+    contexto de petición.
+    """
+    token = web_user.verification_token or web_user.generate_verification_token()
+    web_user.save(raise_on_error=True)
+
+    enlace = url_for('cuenta.verificar', token=token, _external=True)
+    EmailService.enviar_verificacion(web_user, enlace)
+
+
+@cuenta_bp.route('/verificar/<token>')
+def verificar(token: str):
+    """Verificar la cuenta con el token recibido por correo."""
+    web_user = WebUser.get_by_verification_token(token)
+
+    if web_user is None:
+        flash('El enlace de verificación no es válido o ya fue usado.', 'error')
+        return redirect(url_for('cuenta.login'))
+
+    if web_user.verify_email(token):
+        web_user.save(raise_on_error=True)
+        flash('¡Cuenta verificada! Ya puedes usar todos los servicios.', 'success')
+    else:
+        flash('No pudimos verificar la cuenta.', 'error')
+
+    return redirect(url_for('cuenta.index') if current_client()
+                    else url_for('cuenta.login'))
+
+
+@cuenta_bp.route('/reenviar-verificacion', methods=['POST'])
+@client_login_required
+def reenviar_verificacion():
+    """Reenviar el correo de verificación al cliente autenticado."""
+    web_user = current_client()
+
+    if web_user.is_verified:
+        flash('Tu cuenta ya está verificada.', 'success')
+    else:
+        _enviar_verificacion(web_user)
+        flash('Te reenviamos el correo de verificación.', 'success')
+
+    return redirect(url_for('cuenta.index'))
+
+
+@cuenta_bp.route('/recuperar', methods=['GET', 'POST'])
+def recuperar():
+    """Solicitar el restablecimiento de contraseña."""
+    if current_client():
+        return redirect(url_for('cuenta.index'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '')
+        web_user = ClientAuthService.solicitar_reset(email)
+
+        if web_user is not None:
+            enlace = url_for(
+                'cuenta.restablecer', token=web_user.reset_token, _external=True
+            )
+            EmailService.enviar_reset(web_user, enlace)
+
+        # Mismo mensaje exista o no la cuenta: no revelamos qué emails existen
+        flash(
+            'Si el correo está registrado, te enviamos un enlace para '
+            'restablecer tu contraseña.',
+            'success'
+        )
+        return redirect(url_for('cuenta.login'))
+
+    return render_template('cuenta/recuperar.html')
+
+
+@cuenta_bp.route('/restablecer/<token>', methods=['GET', 'POST'])
+def restablecer(token: str):
+    """Elegir una nueva contraseña con el token del correo."""
+    web_user = WebUser.get_by_reset_token(token)
+
+    if web_user is None or not web_user.verify_reset_token(token):
+        flash('El enlace expiró o no es válido. Solicítalo de nuevo.', 'error')
+        return redirect(url_for('cuenta.recuperar'))
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+
+        if len(password) < 8:
+            flash('La contraseña debe tener al menos 8 caracteres.', 'error')
+            return render_template('cuenta/restablecer.html', token=token)
+
+        if web_user.reset_password(token, password):
+            web_user.save(raise_on_error=True)
+            flash('Contraseña actualizada. Ya puedes iniciar sesión.', 'success')
+            return redirect(url_for('cuenta.login'))
+
+        flash('No pudimos restablecer la contraseña.', 'error')
+
+    return render_template('cuenta/restablecer.html', token=token)
+

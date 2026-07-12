@@ -38,6 +38,28 @@ class Config:
     # El límite real del comprobante (5 MB) lo valida ChatService.
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
+    # ── Correo (smtplib, sin Flask-Mail) ────────────────────────────────
+    MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.getenv('MAIL_PORT', '587'))
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'true').lower() == 'true'
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.getenv(
+        'MAIL_DEFAULT_SENDER', 'Ceiba21 <info@ceiba21.com>'
+    )
+    MAIL_REPLY_TO = os.getenv('MAIL_REPLY_TO', 'info@ceiba21.com')
+    # En dev: imprime el correo por consola en vez de enviarlo
+    MAIL_SUPPRESS_SEND = os.getenv('MAIL_SUPPRESS_SEND', 'false').lower() == 'true'
+
+    # Enlaces absolutos de los correos. El túnel de Cloudflare termina el TLS y
+    # habla HTTP con Flask, así que hay que forzar https en los enlaces.
+    PREFERRED_URL_SCHEME = os.getenv('PREFERRED_URL_SCHEME', 'https')
+    # OJO: SERVER_NAME también afecta al enrutamiento. Si se define, Flask
+    # rechaza las peticiones cuyo Host no coincida (rompería localhost en dev).
+    # Por eso se deja vacío salvo que se necesite generar URLs fuera de una
+    # petición. Los enlaces de los correos se construyen dentro de la petición.
+    SERVER_NAME = os.getenv('SERVER_NAME') or None
+
     # Web Push (VAPID)
     VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY')
     VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY')
