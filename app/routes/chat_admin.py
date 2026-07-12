@@ -10,6 +10,7 @@ from flask_login import current_user
 
 from app.decorators import require_roles
 from app.models.operator import OperatorRole
+from app.models.chat import ChatMessage
 from app.services.chat_service import ChatService
 from app.services.system_config_service import SystemConfigService
 
@@ -46,12 +47,18 @@ def api_mensajes(conversation_id: int):
     """Mensajes de una conversación (hilo completo o solo los nuevos)."""
     after_id = request.args.get('after', 0, type=int)
     if after_id:
-        from app.models.chat import ChatMessage
-        msgs = [m.to_dict() for m in ChatMessage.get_since(conversation_id, after_id)]
+        msgs = [
+            m.to_dict()
+            for m in ChatMessage.get_since(conversation_id, after_id)
+        ]
     else:
         msgs = ChatService.history(conversation_id)
         ChatService.mark_read_by_operator(conversation_id)
-    return jsonify({'ok': True, 'messages': msgs})
+    return jsonify({
+        'ok': True,
+        'messages': msgs,
+        'typing': ChatService.is_typing(conversation_id, 'client'),
+    })
 
 
 @chat_admin_bp.route('/api/<int:conversation_id>/responder', methods=['POST'])
@@ -66,6 +73,13 @@ def api_responder(conversation_id: int):
     if msg is None:
         return jsonify({'ok': False, 'error': 'mensaje_invalido'}), 400
     return jsonify({'ok': True, 'message': msg.to_dict()})
+
+
+@chat_admin_bp.route('/api/<int:conversation_id>/typing', methods=['POST'])
+def api_typing(conversation_id: int):
+    """El operador está escribiendo (lo ve el cliente en su widget)."""
+    ChatService.set_typing(conversation_id, 'operator')
+    return jsonify({'ok': True})
 
 
 @chat_admin_bp.route('/api/<int:conversation_id>/pausa', methods=['POST'])

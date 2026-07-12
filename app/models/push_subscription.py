@@ -1,9 +1,11 @@
 """
-Suscripción Web Push de un cliente (WebUser) o de un visitante anónimo.
+Suscripción Web Push.
 
 Cada navegador/dispositivo produce una suscripción con un endpoint único y dos
-claves (p256dh, auth). Se asocia a un WebUser (logueado) o a un ``anon_id``
-(visitante anónimo del chat), nunca a ambos.
+claves (p256dh, auth). Se asocia a UNO de estos destinatarios:
+- ``web_user_id``: cliente logueado.
+- ``anon_id``: visitante anónimo del chat.
+- ``operator_id``: operador/admin (avisos del panel, p. ej. chat entrante).
 """
 from typing import List, Optional
 
@@ -12,12 +14,15 @@ from app.models.base import BaseModel
 
 
 class PushSubscription(BaseModel):
-    """Suscripción Web Push (de un WebUser o de un anónimo)."""
+    """Suscripción Web Push (cliente, anónimo u operador)."""
 
     __tablename__ = 'push_subscriptions'
 
     web_user_id = db.Column(
         db.Integer, db.ForeignKey('web_users.id'), nullable=True, index=True
+    )
+    operator_id = db.Column(
+        db.Integer, db.ForeignKey('operators.id'), nullable=True, index=True
     )
     anon_id = db.Column(db.String(100), index=True)
     endpoint = db.Column(db.String(500), unique=True, nullable=False)
@@ -37,11 +42,10 @@ class PushSubscription(BaseModel):
     def upsert(cls, endpoint: str, p256dh: str, auth: str,
                web_user_id: Optional[int] = None,
                anon_id: Optional[str] = None,
+               operator_id: Optional[int] = None,
                user_agent: Optional[str] = None) -> Optional['PushSubscription']:
         """
         Crear o actualizar (por endpoint) una suscripción.
-
-        Se asocia a ``web_user_id`` (logueado) o a ``anon_id`` (anónimo).
 
         Returns:
             La suscripción guardada, o None si el guardado falló.
@@ -51,6 +55,7 @@ class PushSubscription(BaseModel):
             sub = cls(endpoint=endpoint)
         sub.web_user_id = web_user_id
         sub.anon_id = anon_id
+        sub.operator_id = operator_id
         sub.p256dh = p256dh
         sub.auth = auth
         sub.user_agent = user_agent
@@ -70,6 +75,13 @@ class PushSubscription(BaseModel):
     def get_active_for_anon(cls, anon_id: str) -> List['PushSubscription']:
         """Suscripciones activas de un visitante anónimo."""
         return cls.query.filter_by(anon_id=anon_id, is_active=True).all()
+
+    @classmethod
+    def get_active_for_operators(cls) -> List['PushSubscription']:
+        """Suscripciones activas de todos los operadores/admins."""
+        return cls.query.filter(
+            cls.operator_id.isnot(None), cls.is_active.is_(True)
+        ).all()
 
     @classmethod
     def deactivate_by_endpoint(cls, endpoint: str) -> None:

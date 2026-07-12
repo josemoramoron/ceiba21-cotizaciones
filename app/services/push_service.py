@@ -1,7 +1,8 @@
 """
 Envío de notificaciones Web Push (pywebpush + VAPID).
 
-Soporta destinatarios logueados (WebUser) y anónimos (anon_id del chat).
+Destinatarios soportados: clientes logueados (WebUser), visitantes anónimos
+(anon_id del chat) y operadores/admins (avisos del panel).
 """
 import json
 
@@ -72,4 +73,12 @@ class PushService(BaseService):
         """Enviar a todas las suscripciones activas de un visitante anónimo."""
         return cls._send_to_subs(
             PushSubscription.get_active_for_anon(anon_id), title, body, url
+        )
+
+    @classmethod
+    def send_to_operators(cls, title: str, body: str,
+                          url: str = '/dashboard/chat/') -> int:
+        """Enviar a todos los operadores/admins suscritos (avisos del panel)."""
+        return cls._send_to_subs(
+            PushSubscription.get_active_for_operators(), title, body, url
         )

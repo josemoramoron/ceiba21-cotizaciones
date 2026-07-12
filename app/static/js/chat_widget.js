@@ -8,6 +8,30 @@
   let lastId = 0;
   let pollTimer = null;
   let isOpen = false;
+  let typingSentAt = 0;
+
+  function setTypingIndicator(on) {
+    if (!list) return;
+    let el = list.querySelector('.chat-typing');
+    if (on && !el) {
+      el = document.createElement('div');
+      el.className = 'chat-row chat-row--staff chat-typing';
+      el.innerHTML = '<div class="chat-bubble chat-bubble--staff chat-dots">'
+                   + '<span></span><span></span><span></span></div>';
+      list.appendChild(el);
+      list.scrollTop = list.scrollHeight;
+    } else if (!on && el) {
+      el.remove();
+    }
+  }
+
+  // Avisa al servidor que el cliente escribe (como mucho 1 vez cada 3 s)
+  function notifyTyping() {
+    const now = Date.now();
+    if (now - typingSentAt < 3000) return;
+    typingSentAt = now;
+    fetch('/chat/typing', { method: 'POST' }).catch(function () {});
+  }
 
   function scrollToEnd() {
     if (list) list.scrollTop = list.scrollHeight;
@@ -24,7 +48,8 @@
     bubble.textContent = msg.body;
 
     row.appendChild(bubble);
-    list.appendChild(row);
+    const dots = list.querySelector('.chat-typing');
+    if (dots) { list.insertBefore(row, dots); } else { list.appendChild(row); }
     if (msg.id && msg.id > lastId) lastId = msg.id;
     scrollToEnd();
   }
@@ -60,8 +85,10 @@
       const msgs = data.messages || [];
       if (msgs.length) {
         clearEmptyHint();
+        setTypingIndicator(false);
         msgs.forEach(addMessage);
       }
+      setTypingIndicator(!!data.typing);
     } catch (e) {
       // Silencioso: el polling reintenta en el siguiente ciclo
     }
@@ -148,6 +175,10 @@
     }
 
     if (btnClose) btnClose.addEventListener('click', closePanel);
+
+    if (input) {
+      input.addEventListener('input', notifyTyping);
+    }
 
     if (form) {
       form.addEventListener('submit', function (e) {

@@ -5,12 +5,14 @@ Resuelve (o crea) el ``User`` de canal webchat y la ``ChatConversation`` del
 visitante, guarda mensajes y expone lo nuevo para el polling. En la Fase 1 el
 bot no responde: el operador atiende manualmente desde el dashboard.
 """
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 from app.services.base_service import BaseService
 from app.models import db
 from app.models.user import User
 from app.models.chat import ChatConversation, ChatMessage
+from app.utils.fecha import hora_co
 
 MAX_MESSAGE_LEN = 2000
 
@@ -84,6 +86,9 @@ class ChatService(BaseService):
         conv.touch(for_operator=True)
         conv.save()
 
+        if not cls.is_bot_active_for(conv):
+            cls._notify_operators(conv, text)
+
         cls.log_info(f"Chat: mensaje de cliente en conversación {conv.id}")
         return conv, msg
 
@@ -118,9 +123,7 @@ class ChatService(BaseService):
             'unread': c.unread_for_operator or 0,
             'bot_paused': c.bot_paused,
             'is_client': c.web_user_id is not None,
-            'last_message_at': (
-                c.last_message_at.isoformat() if c.last_message_at else None
-            ),
+            'last_time': cls._short_time(c.last_message_at),
         } for c in convs]
 
     @classmethod
@@ -201,4 +204,51 @@ class ChatService(BaseService):
         if SystemConfigService.get_webchat_bot_paused():
             return False
         return not conv.bot_paused
+
+    # ── Utilidades de presentación y estado efímero ────────────────────────
+
+    @staticmethod
+    def _short_time(dt) -> str:
+        """Hora compacta en zona Colombia: 'HH:MM' si es hoy, si no 'dd/mm'."""
+        if dt is None:
+            return ''
+        hoy = hora_co(datetime.utcnow(), '%d/%m')
+        return (
+            hora_co(dt, '%H:%M') if hora_co(dt, '%d/%m') == hoy
+            else hora_co(dt, '%d/%m')
+        )
+
+    @classmethod
+    def _notify_operators(cls, conv: ChatConversation, text: str) -> None:
+        """Avisar por push a los operadores de un mensaje entrante. Best-effort."""
+        try:
+            from app.services.push_service import PushService
+            PushService.send_to_operators(
+                title=f"Chat: {conv.display_name}",
+                body=text[:80],
+                url='/dashboard/chat/',
+            )
+        except Exception as exc:
+            cls.log_error("Error al notificar chat a operadores", exc)
+
+    # Indicador "escribiendo": estado efímero en caché (Redis), con TTL.
+    _TYPING_TTL = 6
+
+    @staticmethod
+    def _typing_key(conversation_id: int, who: str) -> str:
+        """Clave de caché del indicador de escritura."""
+        return f"chat:typing:{conversation_id}:{who}"
+
+    @classmethod
+    def set_typing(cls, conversation_id: int, who: str) -> None:
+        """Marcar que 'client' u 'operator' está escribiendo (expira solo)."""
+        from app.services.cache_service import CacheService
+        CacheService.set(cls._typing_key(conversation_id, who), 1,
+                         ttl=cls._TYPING_TTL)
+
+    @classmethod
+    def is_typing(cls, conversation_id: int, who: str) -> bool:
+        """True si la otra parte está escribiendo ahora mismo."""
+        from app.services.cache_service import CacheService
+        return bool(CacheService.get(cls._typing_key(conversation_id, who)))
 

@@ -9,8 +9,13 @@
     .conv-item { display: block; width: 100%; text-align: left; padding: 12px 14px; border: none; cursor: pointer; background: none; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
     .conv-item:hover { background-color: var(--color-bg); }
     .conv-item.active { background-color: var(--color-bg); border-left: 3px solid var(--color-primary); }
+    .conv-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
     .conv-name { font-weight: 600; font-size: 0.88rem; }
-    .conv-meta { font-size: 0.72rem; color: var(--color-text-secondary); margin-top: 2px; }
+    .conv-time { font-size: 0.7rem; color: var(--color-text-secondary); white-space: nowrap; }
+    .conv-meta { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--color-text-secondary); margin-top: 3px; }
+    .dot-sep { opacity: 0.5; }
+    .bot-off { color: #B45309; }
+    .bot-on { color: #047857; }
     .badge-unread { background-color: #DC2626; color: #FFF; border-radius: 999px; padding: 1px 7px; font-size: 0.68rem; font-weight: 700; }
     .thread { flex: 1; overflow-y: auto; padding: 16px; background-color: var(--color-bg); }
     .t-row { display: flex; margin-bottom: 10px; }
@@ -20,7 +25,11 @@
     .t-bubble--client { background-color: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); }
     .t-bubble--operator { background-color: var(--color-primary); color: #1A1A1A; }
     .t-bubble--bot { background-color: #DBEAFE; color: #1E3A8A; }
-    .t-meta { font-size: 0.66rem; opacity: 0.7; margin-top: 3px; }
+    .t-dots { display: flex; align-items: center; gap: 4px; padding: 10px 12px; }
+    .t-dots span { width: 6px; height: 6px; border-radius: 50%; background-color: var(--color-text-secondary); animation: tDots 1.2s infinite ease-in-out; }
+    .t-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .t-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes tDots { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
     .thread-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--color-border); }
     .reply-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--color-border); }
     .reply-input { flex: 1; padding: 9px 12px; border-radius: 8px; font-size: 0.88rem; outline: none; background-color: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-border); }
@@ -28,17 +37,21 @@
     .btn-primary-c { background-color: var(--color-primary); color: #1A1A1A; }
     .btn-warn-c { background-color: #F59E0B; color: #1A1A1A; }
     .btn-ok-c { background-color: #10B981; color: #FFF; }
+    .btn-ghost-c { background-color: transparent; color: var(--color-text); border: 1px solid var(--color-border); }
     .empty-thread { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-secondary); font-size: 0.9rem; }
     @media (max-width: 900px) { .chat-wrap { grid-template-columns: 1fr; height: auto; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-4">
+<div class="flex items-center justify-between mb-4 flex-wrap gap-2">
     <h1 class="text-2xl font-bold" style="color: var(--color-text);">
         <i class="fas fa-comments mr-2"></i> Chat web
     </h1>
     <div class="flex items-center gap-3">
+        <button id="btnEnablePush" type="button" class="btn-c btn-ghost-c" title="Recibir avisos de mensajes nuevos">
+            <i class="fas fa-bell mr-1"></i> Activar avisos
+        </button>
         <span id="globalState" class="text-sm" style="color: var(--color-text-secondary);"></span>
         <button id="btnGlobalPause" type="button" class="btn-c"
                 data-paused="{{ 'true' if bot_paused_global else 'false' }}">
@@ -62,7 +75,7 @@
                 <div id="threadMeta" class="text-xs" style="color: var(--color-text-secondary);"></div>
             </div>
             <button id="btnConvPause" type="button" class="btn-c" style="display: none;" data-paused="true">
-                Bot pausado
+                Bot pausado aquí
             </button>
         </div>
 
@@ -86,7 +99,7 @@
 (function () {
     'use strict';
     const LIST_MS = 5000, THREAD_MS = 3000;
-    let currentId = null, lastId = 0, listTimer = null, threadTimer = null;
+    let currentId = null, lastId = 0, threadTimer = null, typingSentAt = 0;
 
     const convList = document.getElementById('convList');
     const thread = document.getElementById('thread');
@@ -121,19 +134,48 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'conv-item' + (c.id === currentId ? ' active' : '');
-                const flag = c.country ? c.country : '--';
-                const who = c.is_client ? 'Cliente' : 'Anónimo';
-                btn.innerHTML =
-                    '<div class="flex items-center justify-between">' +
-                    '<span class="conv-name"></span>' +
-                    (c.unread ? '<span class="badge-unread">' + c.unread + '</span>' : '') +
-                    '</div><div class="conv-meta">' + who + ' · ' + flag +
-                    (c.bot_paused ? ' · bot en pausa' : ' · bot activo') + '</div>';
-                btn.querySelector('.conv-name').textContent = c.name;
+
+                const top = document.createElement('div');
+                top.className = 'conv-top';
+                const name = document.createElement('span');
+                name.className = 'conv-name';
+                name.textContent = c.name;
+                const time = document.createElement('span');
+                time.className = 'conv-time';
+                time.textContent = c.last_time || '';
+                top.appendChild(name);
+                top.appendChild(time);
+
+                const meta = document.createElement('div');
+                meta.className = 'conv-meta';
+                const bot = c.bot_paused
+                    ? '<span class="bot-off"><i class="fas fa-pause"></i></span>'
+                    : '<span class="bot-on"><i class="fas fa-robot"></i></span>';
+                meta.innerHTML = (c.is_client ? 'Cliente' : 'Anónimo')
+                    + '<span class="dot-sep">·</span>' + (c.country || '--')
+                    + '<span class="dot-sep">·</span>' + bot
+                    + (c.unread ? ' <span class="badge-unread">' + c.unread + '</span>' : '');
+
+                btn.appendChild(top);
+                btn.appendChild(meta);
                 btn.addEventListener('click', function () { openConversation(c); });
                 convList.appendChild(btn);
             });
         } catch (e) { /* reintenta en el siguiente ciclo */ }
+    }
+
+    function setTyping(on) {
+        let el = thread.querySelector('.t-typing');
+        if (on && !el) {
+            el = document.createElement('div');
+            el.className = 't-row t-row--client t-typing';
+            el.innerHTML = '<div class="t-bubble t-bubble--client t-dots">'
+                         + '<span></span><span></span><span></span></div>';
+            thread.appendChild(el);
+            thread.scrollTop = thread.scrollHeight;
+        } else if (!on && el) {
+            el.remove();
+        }
     }
 
     function addMsg(m) {
@@ -144,7 +186,8 @@
         b.className = 't-bubble t-bubble--' + m.sender;
         b.textContent = m.body;
         row.appendChild(b);
-        thread.appendChild(row);
+        const dots = thread.querySelector('.t-typing');
+        if (dots) { thread.insertBefore(row, dots); } else { thread.appendChild(row); }
         if (m.id > lastId) lastId = m.id;
         thread.scrollTop = thread.scrollHeight;
     }
@@ -152,8 +195,8 @@
     async function openConversation(c) {
         currentId = c.id; lastId = 0;
         threadName.textContent = c.name;
-        threadMeta.textContent = (c.is_client ? 'Cliente registrado' : 'Visitante anónimo') +
-                                 (c.country ? ' · ' + c.country : '');
+        threadMeta.textContent = (c.is_client ? 'Cliente registrado' : 'Visitante anónimo')
+                               + (c.country ? ' · ' + c.country : '');
         thread.innerHTML = '';
         replyForm.style.display = 'flex';
         btnConvPause.style.display = 'inline-block';
@@ -162,8 +205,10 @@
         const r = await fetch('/dashboard/chat/api/' + c.id + '/mensajes');
         const data = await r.json();
         (data.messages || []).forEach(addMsg);
+        setTyping(!!data.typing);
         loadConversations();
-        startThreadPolling();
+        if (threadTimer) clearInterval(threadTimer);
+        threadTimer = setInterval(pollThread, THREAD_MS);
     }
 
     async function pollThread() {
@@ -171,14 +216,22 @@
         try {
             const r = await fetch('/dashboard/chat/api/' + currentId + '/mensajes?after=' + lastId);
             const data = await r.json();
-            (data.messages || []).forEach(addMsg);
+            const msgs = data.messages || [];
+            if (msgs.length) { setTyping(false); msgs.forEach(addMsg); }
+            setTyping(!!data.typing);
         } catch (e) { /* reintenta */ }
     }
 
-    function startThreadPolling() {
-        if (threadTimer) clearInterval(threadTimer);
-        threadTimer = setInterval(pollThread, THREAD_MS);
+    function notifyTyping() {
+        if (!currentId) return;
+        const now = Date.now();
+        if (now - typingSentAt < 3000) return;
+        typingSentAt = now;
+        fetch('/dashboard/chat/api/' + currentId + '/typing', { method: 'POST' })
+            .catch(function () {});
     }
+
+    replyInput.addEventListener('input', notifyTyping);
 
     replyForm.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -218,7 +271,7 @@
     });
 
     loadConversations();
-    listTimer = setInterval(loadConversations, LIST_MS);
+    setInterval(loadConversations, LIST_MS);
 })();
 </script>
 {% endblock %}

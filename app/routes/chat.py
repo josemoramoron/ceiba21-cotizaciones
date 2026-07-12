@@ -61,6 +61,7 @@ def nuevos():
         'ok': True,
         'conversation_id': conv.id,
         'messages': ChatService.get_new_for_client(conv.id, after_id),
+        'typing': ChatService.is_typing(conv.id, 'operator'),
     })
 
 
@@ -78,3 +79,15 @@ def historial():
         'conversation_id': conv.id,
         'messages': ChatService.history(conv.id),
     })
+
+
+@chat_bp.route('/typing', methods=['POST'])
+def typing():
+    """El cliente está escribiendo (estado efímero, visible para el operador)."""
+    anon_id = session.get(ANON_KEY)
+    if not anon_id:
+        return jsonify({'ok': True})
+    conv = ChatConversation.get_for_anon(anon_id)
+    if conv is not None:
+        ChatService.set_typing(conv.id, 'client')
+    return jsonify({'ok': True})
