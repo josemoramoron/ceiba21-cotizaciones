@@ -71,6 +71,7 @@ class ChatMessage(BaseModel):
     )
     sender = db.Column(db.String(20), nullable=False)
     body = db.Column(db.Text, nullable=False)
+    buttons = db.Column(db.JSON)  # botones del bot: [[{text, callback_data|url}]]
     operator_id = db.Column(
         db.Integer, db.ForeignKey('operators.id'), nullable=True
     )
@@ -82,6 +83,7 @@ class ChatMessage(BaseModel):
             'id': self.id,
             'sender': self.sender,
             'body': self.body,
+            'buttons': self.buttons or [],
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 

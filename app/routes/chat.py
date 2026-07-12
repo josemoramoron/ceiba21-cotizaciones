@@ -44,6 +44,8 @@ def mensaje():
         'ok': True,
         'conversation_id': conv.id,
         'message': msg.to_dict(),
+        # Respuesta inmediata del bot (vacío si está en pausa: atiende un humano)
+        'bot_messages': ChatService.get_new_for_client(conv.id, msg.id),
     })
 
 

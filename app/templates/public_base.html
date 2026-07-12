@@ -535,6 +535,22 @@
         color: var(--color-text);
         border: 1px solid var(--color-border);
     }
+    .chat-btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px 0; }
+    .chat-chip {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        background-color: var(--color-surface);
+        color: var(--color-text);
+        border: 1px solid var(--y);
+    }
+    .chat-chip:hover { background-color: var(--y); color: var(--b); }
+    .chat-chip--off { opacity: 0.45; cursor: default; border-color: var(--color-border); }
+    .chat-chip--off:hover { background-color: var(--color-surface); color: var(--color-text); }
     .chat-dots { display: flex; align-items: center; gap: 4px; padding: 10px 12px; }
     .chat-dots span {
         width: 6px; height: 6px; border-radius: 50%;

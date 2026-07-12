@@ -5,6 +5,8 @@ Resuelve (o crea) el ``User`` de canal webchat y la ``ChatConversation`` del
 visitante, guarda mensajes y expone lo nuevo para el polling. En la Fase 1 el
 bot no responde: el operador atiende manualmente desde el dashboard.
 """
+import html as html_lib
+import re
 from datetime import datetime
 from typing import List, Optional, Tuple
 
@@ -40,7 +42,9 @@ class ChatService(BaseService):
         if conv is None:
             conv = ChatConversation(anon_id=anon_id, channel='web')
             conv.user_id = user.id
-            conv.bot_paused = True  # operación manual (Fase 1)
+            # La pausa por conversación arranca desactivada: quien manda
+            # por defecto es el interruptor global (system_config).
+            conv.bot_paused = False
 
         if user.id and conv.user_id is None:
             conv.user_id = user.id
@@ -86,7 +90,9 @@ class ChatService(BaseService):
         conv.touch(for_operator=True)
         conv.save()
 
-        if not cls.is_bot_active_for(conv):
+        if cls.is_bot_active_for(conv):
+            cls._bot_reply(conv, text)
+        else:
             cls._notify_operators(conv, text)
 
         cls.log_info(f"Chat: mensaje de cliente en conversación {conv.id}")
@@ -165,6 +171,8 @@ class ChatService(BaseService):
 
         conv.last_message_at = msg.created_at
         conv.unread_for_operator = 0
+        # El operador toma el control: el bot deja de hablar en esta conversación
+        conv.bot_paused = True
         conv.save()
 
         cls._notify_client(conv, text)
@@ -252,3 +260,64 @@ class ChatService(BaseService):
         from app.services.cache_service import CacheService
         return bool(CacheService.get(cls._typing_key(conversation_id, who)))
 
+
+
+    # ── Bot (Fase 2) ───────────────────────────────────────────────────────
+
+    _TAG_RE = re.compile(r'<[^>]+>')
+
+    @classmethod
+    def _to_plain_text(cls, text: str) -> str:
+        """Convertir el HTML de Telegram (<b>, <i>...) a texto plano para la web."""
+        if not text:
+            return ''
+        limpio = cls._TAG_RE.sub('', text)
+        return html_lib.unescape(limpio).strip()
+
+    @classmethod
+    def _bot_reply(cls, conv: ChatConversation, text: str
+                   ) -> Optional[ChatMessage]:
+        """
+        Generar y guardar la respuesta del bot para un mensaje del cliente.
+
+        Reutiliza el ConversationHandler que ya opera en Telegram: mantiene su
+        propio estado en Redis por ``User.id``, así que el flujo de órdenes es
+        el mismo en todos los canales.
+
+        Args:
+            conv: Conversación del chat web.
+            text: Mensaje del cliente (texto libre o callback_data de un botón).
+
+        Returns:
+            El mensaje del bot, o None si no se pudo generar.
+        """
+        try:
+            from app.bot.conversation_handler import ConversationHandler
+            from app.models.user import User
+
+            user = User.query.get(conv.user_id) if conv.user_id else None
+            if user is None:
+                return None
+
+            handler = ConversationHandler()
+            respuesta = handler.handle_message(user, text)
+
+            cuerpo = cls._to_plain_text(respuesta.get('text', ''))
+            if not cuerpo:
+                return None
+
+            bot_msg = ChatMessage(
+                conversation_id=conv.id,
+                sender='bot',
+                body=cuerpo,
+                buttons=respuesta.get('buttons') or [],
+            )
+            bot_msg.save()
+
+            conv.last_message_at = bot_msg.created_at
+            conv.save()
+            return bot_msg
+
+        except Exception as exc:
+            cls.log_error("Error al generar respuesta del bot", exc)
+            return None

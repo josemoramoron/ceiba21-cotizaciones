@@ -50,8 +50,49 @@
     row.appendChild(bubble);
     const dots = list.querySelector('.chat-typing');
     if (dots) { list.insertBefore(row, dots); } else { list.appendChild(row); }
+
+    if (msg.buttons && msg.buttons.length) renderButtons(msg.buttons);
+
     if (msg.id && msg.id > lastId) lastId = msg.id;
     scrollToEnd();
+  }
+
+  // Botones del bot: fila de "chips". Al pulsar uno se envía su callback_data.
+  function renderButtons(rows) {
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-btns';
+    rows.forEach(function (row) {
+      (row || []).forEach(function (btn) {
+        if (btn.url) {
+          const a = document.createElement('a');
+          a.className = 'chat-chip';
+          a.href = btn.url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = btn.text;
+          wrap.appendChild(a);
+        } else if (btn.callback_data) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'chat-chip';
+          b.textContent = btn.text;
+          b.addEventListener('click', function () {
+            disableButtons(wrap);
+            sendMessage(btn.callback_data, btn.text);
+          });
+          wrap.appendChild(b);
+        }
+      });
+    });
+    const dots = list.querySelector('.chat-typing');
+    if (dots) { list.insertBefore(wrap, dots); } else { list.appendChild(wrap); }
+  }
+
+  function disableButtons(wrap) {
+    wrap.querySelectorAll('button').forEach(function (b) {
+      b.disabled = true;
+      b.classList.add('chat-chip--off');
+    });
   }
 
   function showEmptyHint() {
@@ -105,7 +146,7 @@
     pollTimer = null;
   }
 
-  async function sendMessage(text) {
+  async function sendMessage(text, label) {
     clearEmptyHint();
     try {
       const r = await fetch('/chat/mensaje', {
@@ -115,7 +156,10 @@
       });
       const data = await r.json();
       if (data.ok && data.message) {
+        // Si vino de un botón, mostramos su etiqueta y no el callback_data
+        if (label) data.message.body = label;
         addMessage(data.message);
+        (data.bot_messages || []).forEach(addMessage);
         maybeShowReminder();
       }
     } catch (e) {
