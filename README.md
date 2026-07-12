@@ -42,6 +42,8 @@ CRUD completo para múltiples monedas (VES, COP, BRL, MXN, etc.) y métodos de p
 
 Las cotizaciones se recalculan automáticamente cuando cambia una tasa de cambio.
 
+**Datos de cobro por método:** cada `PaymentMethod` tiene un campo `datos_receptor` (texto libre, editable en `/dashboard/payment-methods`) con el correo PayPal, la dirección USDT o la cuenta bancaria donde el cliente debe pagar. El bot lo muestra tal cual al generar la orden. **Es la única fuente de verdad** — antes estaba hardcodeado en `app/bot/responses.py`.
+
 **Visibilidad pública configurable por código (sin migración):**
 - Los métodos estructurales/pivote (p. ej. `REF`) permanecen activos para el cálculo interno pero nunca se muestran en superficies públicas (tabla `/cotizaciones`, calculadora, Telegram). La regla vive en el frozenset `PaymentMethod.CODIGOS_NO_PUBLICOS` — única fuente de verdad vía `es_visible_publico` / `get_visibles_publico()`.
 - USD se oculta de la tabla `/cotizaciones` mediante el frozenset paralelo `Currency.OCULTAS_EN_COTIZACIONES`, mientras sigue disponible en la calculadora.
@@ -90,6 +92,20 @@ Bot de conversación con máquina de estados que opera en Telegram, Web y WhatsA
 ### 📋 Sistema de Órdenes
 Gestión completa del ciclo de vida de órdenes de compra/venta: creación, asignación a operador, procesamiento, comprobantes de pago y completado.
 
+### 👤 Cuentas de Cliente
+- ✅ Registro self-service, login/logout, área `/cuenta`
+- ⬜ **Verificación de email** — diferida. `WebUser` ya tiene los métodos de token (`generate_verification_token`, `verify_email`); falta el envío. Usar `smtplib` plano (NO Flask-Mail) reutilizando el SMTP de Gmail de las alertas, con plantillas Jinja en `app/templates/email/`
+- ⬜ **Reset de contraseña** — mismo bloqueo (requiere envío de correo)
+- ⬜ `url_for(_external=True)` tras Cloudflare Tunnel necesita `SERVER_NAME`/`PREFERRED_URL_SCHEME` para generar enlaces correctos en los correos
+- ⬜ Panel del cliente: hoy es un placeholder (falta historial de órdenes, datos de pago)
+- ⬜ Vínculo `WebUser` ↔ `User` del bot: hoy se crea al chatear logueado; falta auto-vincular por teléfono/email
+
+### 🔔 Notificaciones Push
+- ✅ VAPID + Service Worker, suscripciones de cliente, anónimo y operador
+- ✅ Disparadores en cambios de estado de orden y respuestas del chat
+- ⬜ Preferencias de notificación por usuario (hoy es todo o nada)
+- ⬜ Limpieza de suscripciones inactivas (se desactivan al fallar con 404/410, pero no se purgan)
+
 ### 🚫 Blacklist y Verificación de Fraude
 Sistema de reportes de usuarios fraudulentos con:
 - Bloqueo por user_id, telegram_id, teléfono, email o DNI
@@ -107,6 +123,56 @@ Registro de transacciones con precisión `Decimal` (nunca `float`). Genera repor
 - Serie temporal de fees diarios
 
 ---
+### 👥 Roles y Control de Acceso
+
+Cuatro identidades en la plataforma, con el guard aplicado a nivel de Blueprint (`app/decorators.py`):
+
+| Rol | Acceso |
+|---|---|
+| **admin** | Todo el panel `/dashboard` |
+| **operator** | Solo `/dashboard/pagos` (el resto del nav ni se le muestra) |
+| **bot** | Actor de sistema (`ceiba_bot`). Atribuye acciones automáticas; **no puede iniciar sesión** |
+| **cliente** | Su área personal `/cuenta` (autenticación aparte, ver abajo) |
+
+Tras el login, cada operador aterriza en su inicio según el rol (`home_endpoint_for_role`).
+
+> ⚠️ **SQLAlchemy persiste el NOMBRE del miembro del Enum, no su `.value`.** Por eso el ENUM de PostgreSQL debe contener `'BOT'` en mayúsculas (ver `scripts/migrate_add_bot_role.py`).
+
+### 👤 Cuentas de Cliente (`/cuenta`)
+
+Registro self-service, login y logout sobre el modelo `WebUser`. La verificación de email y el reset de contraseña están **diferidos** (el modelo ya tiene los métodos de token; falta el envío de correo).
+
+> ⚠️ **Los clientes NO usan Flask-Login.** El `user_loader` carga `Operator`, y `Operator`/`WebUser` colisionan en `get_id()`. Los clientes usan una sesión propia: `session['client_user_id']` + `@client_login_required` + `current_client()` (ver `app/client_auth.py`).
+
+### 🍪 Consentimiento de Cookies
+
+Banner de consentimiento (categorías necessary/preferences/analytics) persistido en cookie propia + sesión de visitante en Redis. El inyector `cookie_consent` vive **a nivel de app** en `__init__.py` (si se ata a un blueprint, las demás rutas revientan con `'cookie_consent' is undefined`).
+
+### 🔔 Notificaciones Web Push (VAPID)
+
+Notificaciones que llegan **aunque la web esté cerrada**, vía Service Worker + claves VAPID (`pywebpush`). Compatible con los 3 workers sync de Gunicorn: el envío es un POST corto al servicio de push del navegador, no una conexión persistente.
+
+Una suscripción pertenece a **uno** de tres destinatarios:
+- `web_user_id` — cliente logueado (avisos del estado de su orden y respuestas del chat)
+- `anon_id` — visitante anónimo del chat (respuestas del chat)
+- `operator_id` — operador/admin (avisos de chat entrante en el panel)
+
+Las claves se generan **una sola vez** con `scripts/generate_vapid_keys.py` y son **las mismas en dev y prod**.
+
+> ⚠️ **Trampa de scope del Service Worker:** el SW se registra en `/static/sw.js`, cuyo scope es `/static/` y **no controla** `/cuenta/` ni `/`. Por eso `navigator.serviceWorker.ready` **se cuelga para siempre**; hay que esperar al worker activo de la registración (`waitForActiveWorker`).
+
+### 💬 Chat Web (bot + operador)
+
+Chat en vivo en la burbuja flotante del sitio (`#btn-chat`), para visitantes **anónimos y logueados**.
+
+**Transporte:** petición/respuesta para el bot + **polling** (4 s cliente, 3 s panel) para lo asíncrono. Sin WebSockets — bloquearían los 3 workers sync de Gunicorn.
+
+- **Bot:** reutiliza el mismo `ConversationHandler` que opera en Telegram (estado en Redis por `User.id`), así el flujo de órdenes es idéntico en todos los canales. Los botones se persisten en `chat_messages.buttons` (JSON) y se pintan como *chips*; al pulsarlos se envía su `callback_data`, pero **se guarda y muestra la etiqueta legible** ("Bolívares", no `currency:1`).
+- **Pausa del bot:** por conversación (`chat_conversations.bot_paused`) y **global** (`system_config.webchat_bot_paused`). El bot habla solo si no hay pausa global **ni** pausa local. Si un operador responde, **el bot se pausa automáticamente** en esa conversación (takeover).
+- **Panel del operador** (`/dashboard/chat`, solo admin): conversaciones apiladas con no leídos, país (`CF-IPCountry`) y hora local; hilo en vivo; indicador de escritura (**…**, estado efímero en Redis con TTL); y la tarjeta de la orden activa.
+- **Comprobantes:** el cliente adjunta imagen/PDF (≤5 MB) con el clip 📎. Se guarda en `app/static/proofs/` y se pasa a `handle_proof_received()` — el mismo camino que Telegram: adjunta el comprobante a la orden y la pasa a `PENDING`.
+- **Cierre de la orden desde el panel:** *Pago verificado* (→ `IN_PROCESS`), *Pago no encontrado* (pide reenviar comprobante) y *Ya pagué* (adjunta el comprobante del operador → `COMPLETED` y despide al cliente). Todo delega en `OrderService`, sin duplicar transiciones ni contabilidad.
+
 ## 🏗️ Arquitectura
 
 ### Capas (estricto)
@@ -208,6 +274,7 @@ Registro de transacciones con precisión `Decimal` (nunca `float`). Genera repor
 | psycopg2-binary | 2.9.11 | Driver PostgreSQL |
 | redis | 5.0.1 | Caché y sesiones |
 | APScheduler | 3.10.4 | Scheduler (ingesta en dev) |
+| pywebpush | 2.3.0 | Notificaciones Web Push (VAPID) |
 | requests | 2.32.5 | HTTP client (gateway SMS, APIs) |
 | python-dotenv | 1.2.1 | Variables de entorno |
 
@@ -286,7 +353,10 @@ ceiba21-cotizaciones/
 │   │   ├── payment_method.py# Métodos de pago (PayPal, Zelle, USDT…)
 │   │   ├── quote.py         # Cotizaciones con fórmulas programables
 │   │   ├── quote_history.py # Historial de cambios
-│   │   ├── operator.py      # Operadores del dashboard (roles: admin/operator/viewer)
+│   │   ├── operator.py
+│   │   ├── web_user.py         # Cliente web (login en /cuenta)
+│   │   ├── chat.py             # ChatConversation + ChatMessage
+│   │   ├── push_subscription.py # Suscripciones Web Push      # Operadores del dashboard (roles: admin/operator/viewer)
 │   │   ├── order.py         # Órdenes de compra/venta
 │   │   ├── transaction.py   # Transacciones completadas
 │   │   ├── user.py          # Usuarios del bot conversacional
@@ -307,7 +377,11 @@ ceiba21-cotizaciones/
 │   │   ├── public.py        # Páginas públicas (home, calculadora, API /api/calcular)
 │   │   ├── operator_dashboard.py  # Dashboard de operadores
 │   │   ├── blacklist.py     # CRUD de blacklist
-│   │   ├── payments_unified.py # Dashboard de pagos unificado (/dashboard/pagos)
+│   │   ├── payments_unified.py
+│   │   ├── cuenta.py           # Área de cliente (/cuenta)
+│   │   ├── chat.py             # Chat web — cliente (/chat)
+│   │   ├── chat_admin.py       # Chat web — operador (/dashboard/chat)
+│   │   ├── push.py             # Web Push (/push) # Dashboard de pagos unificado (/dashboard/pagos)
 │   │   ├── bot_control.py   # Control del bot conversacional
 │   │   └── sms.py            # Módulo SMS (/dashboard/sms) + webhooks
 │   │
@@ -318,6 +392,10 @@ ceiba21-cotizaciones/
 │   │   ├── currency_service.py
 │   │   ├── payment_method_service.py
 │   │   ├── operator_service.py
+│   │   ├── client_auth_service.py  # Registro/login de clientes
+│   │   ├── chat_service.py         # Chat web (bot, operador, comprobantes)
+│   │   ├── push_service.py         # Envío Web Push (VAPID)
+│   │   ├── cookie_consent_service.py
 │   │   ├── order_service.py
 │   │   ├── user_service.py
 │   │   ├── auth_service.py
@@ -494,6 +572,12 @@ SMS_GATEWAY_IP=192.168.20.16
 SMS_GATEWAY_PORT=8080
 SMS_GATEWAY_USER=sms
 SMS_GATEWAY_PASSWORD=app_password_del_gateway
+
+# Web Push (generar UNA vez con: python scripts/generate_vapid_keys.py)
+# Las MISMAS claves en dev y prod
+VAPID_PUBLIC_KEY=BAcT...   # applicationServerKey (base64url, ~87 chars)
+VAPID_PRIVATE_KEY=9fll...  # clave privada raw (base64url, 43 chars)
+VAPID_CLAIM_EMAIL=info@ceiba21.com
 
 # Moneda local por defecto
 DEFAULT_LOCAL_CURRENCY=VES
@@ -793,6 +877,57 @@ Blueprint con prefijo `/dashboard/sms`. Las vistas y la API requieren rol **admi
 
 ---
 
+
+### Endpoints de Cuentas de Cliente
+
+Blueprint `cuenta_bp` (prefijo `/cuenta`). Autenticación por sesión de cliente, independiente de Flask-Login.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET/POST` | `/cuenta/registro` | Registro self-service (auto-login) |
+| `GET/POST` | `/cuenta/login` | Login de cliente |
+| `GET` | `/cuenta/logout` | Cerrar sesión |
+| `GET` | `/cuenta/` | Panel del cliente (requiere sesión) |
+
+### Endpoints de Web Push
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/push/vapid-public-key` | Clave pública para suscribirse |
+| `POST` | `/push/subscribe` | Guardar suscripción (operador, cliente o anónimo) |
+| `POST` | `/push/unsubscribe` | Desactivar suscripción |
+| `POST` | `/push/test` | Enviar notificación de prueba al propio destinatario |
+
+### Endpoints de Chat Web
+
+**Cliente** (blueprint `chat_bp`, prefijo `/chat`, sin autenticación):
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/chat/mensaje` | Enviar mensaje (`texto` + `etiqueta` opcional del botón) |
+| `GET` | `/chat/nuevos?after=<id>` | Polling de respuestas del bot/operador (+ `typing`) |
+| `GET` | `/chat/historial` | Hilo completo al abrir el widget |
+| `POST` | `/chat/typing` | Marcar "escribiendo" (TTL en Redis) |
+| `POST` | `/chat/comprobante` | Subir comprobante (JPG/PNG/WEBP/PDF, ≤5 MB) |
+
+**Operador** (blueprint `chat_admin_bp`, prefijo `/dashboard/chat`, **solo admin**):
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/dashboard/chat/` | Panel de conversaciones |
+| `GET` | `/dashboard/chat/api/conversaciones` | Lista (polling) + estado de pausa global |
+| `GET` | `/dashboard/chat/api/<id>/mensajes` | Hilo (o solo nuevos con `?after=`) |
+| `POST` | `/dashboard/chat/api/<id>/responder` | Responder manualmente (pausa el bot ahí) |
+| `POST` | `/dashboard/chat/api/<id>/typing` | Marcar "escribiendo" |
+| `POST` | `/dashboard/chat/api/<id>/pausa` | Pausar/reanudar bot en esa conversación |
+| `POST` | `/dashboard/chat/api/pausa-global` | Pausar/reanudar bot globalmente |
+| `GET` | `/dashboard/chat/api/<id>/orden` | Orden activa del visitante |
+| `POST` | `/dashboard/chat/api/<id>/orden/verificar` | Pago verificado (→ IN_PROCESS) |
+| `POST` | `/dashboard/chat/api/<id>/orden/no-encontrado` | Pedir reenvío del comprobante |
+| `POST` | `/dashboard/chat/api/<id>/orden/completar` | Pago enviado (→ COMPLETED, con comprobante) |
+
+---
+
 ## 🛠️ Mantenimiento
 
 ### Backups
@@ -1003,10 +1138,28 @@ psql -U postgres -c "\l" | grep ceiba21_dev
 
 ### 🤖 Bot Conversacional
 - ✅ Máquina de estados multicanal (Telegram/Web/WhatsApp, patrón Strategy)
+- ✅ **Atiende el chat web** reutilizando el mismo `ConversationHandler` de Telegram
+- ✅ Paso de confirmación (`CONFIRM_DATA`): vista previa de los datos antes de crear la orden
+- ✅ Datos de cobro desde BD (`PaymentMethod.datos_receptor`), sin hardcodes
+- ⬜ **Formato por canal**: las respuestas traen HTML de Telegram (`<b>`) y el chat web las aplana a texto plano. Falta un formateador por canal (Markdown/HTML/plano)
+- ⬜ **WhatsApp**: `WhatsAppChannel` sigue sin implementar (Meta Cloud API)
+- ⬜ `WebChatChannel` es un placeholder: el chat web no pasa por el patrón Strategy de canales, habla directo con el handler
 - ⬜ Cobertura de tests del flujo conversacional
+
+### 💬 Chat Web
+- ✅ Widget en la burbuja flotante (anónimo y logueado), polling, indicador de escritura
+- ✅ Panel del operador: conversaciones apiladas, hilo en vivo, intervención manual, pausa de bot (por conversación y global)
+- ✅ Comprobantes (imagen/PDF ≤5 MB) y cierre de la orden desde el panel
+- ✅ Push a operadores cuando entra un mensaje con el bot en pausa
+- ⬜ **Historial ilimitado**: el hilo se carga completo, sin paginación. Con conversaciones largas crecerá el payload
+- ⬜ **Sin límite de tasa (rate limit)** en `/chat/mensaje` ni en `/chat/comprobante` — un anónimo podría spamear mensajes o archivos
+- ⬜ **Sin limpieza de comprobantes**: los archivos de `app/static/proofs/` se acumulan sin política de retención
+- ⬜ Archivar/cerrar conversaciones (hoy la lista crece indefinidamente)
+- ⬜ Búsqueda y filtros en el panel (por país, estado, cliente)
 
 ### 📋 Sistema de Órdenes
 - ✅ Ciclo de vida completo: creación, asignación, procesamiento, comprobantes, completado
+- ✅ Cierre operativo desde el chat (verificar pago → procesar → pagar → completar)
 - ⬜ Integración con la ingesta de pagos (conciliar pago ↔ orden automáticamente)
 
 ### 🚫 Blacklist
@@ -1019,6 +1172,11 @@ psql -U postgres -c "\l" | grep ceiba21_dev
 
 ### 🧪 Calidad / Transversal
 - ✅ 58 tests (models, routes, calculator, parsers, payment model)
+- ⬜ **Fórmula de PayPal duplicada en el frontend**: `CalculatorService.comision_paypal()` es la fuente de verdad del backend (bot + órdenes), pero la calculadora pública **recalcula la comisión en JavaScript** (`templates/public/calculadora.html`). Hoy coinciden; si PayPal cambia sus tarifas hay que tocar dos sitios. Debería consumir el backend
+- ⬜ **Tokens de diseño duplicados**: el amarillo `#F7D917` y las variables de tema viven en 3 lugares con nombres distintos (config de Tailwind `ceiba-yellow`, `:root` de `public_base.html` con `--y`/`--color-*`, y `style.css` del dashboard con `--color-primary`). Falta una única fuente de verdad
+- ⬜ **Sin tests del chat web, push ni auth de cliente** (todo lo nuevo carece de cobertura)
+- ⬜ `BaseModel.save()` se traga las excepciones y devuelve `False`; varios llamadores no comprueban el resultado, lo que vuelve invisibles los fallos de guardado
+- ⬜ `api_pausa_global` devuelve el valor solicitado, no el persistido: si el guardado fallara, la UI mostraría un estado falso
 - ⬜ Tests unitarios para Services: `PaypalParserService`, `BlacklistService`, `AccountingService`, `GmailService`, `SmsService`
 - ⬜ API REST documentada con Swagger/OpenAPI en `/api/docs`
 - ⬜ **Cleanup `datetime.utcnow()`** — `BaseModel` usa `datetime.utcnow` (deprecado en Python futuro). Migrar a `datetime.now(datetime.UTC)` timezone-aware. Genera `DeprecationWarning` en los tests; no rompe nada hoy.
@@ -1031,6 +1189,14 @@ psql -U postgres -c "\l" | grep ceiba21_dev
 
 ### Completado recientemente
 
+- ✅ **Chat web completo (cliente ↔ bot ↔ operador)** — widget en la burbuja flotante, bot reutilizando el `ConversationHandler` de Telegram, panel del operador con intervención manual y pausa de bot, comprobantes y cierre de la orden de punta a punta
+- ✅ **Notificaciones Web Push (VAPID)** — clientes, anónimos y operadores; disparadores en cambios de estado de orden y en respuestas del chat
+- ✅ **Cuentas de cliente** — registro self-service y login en `/cuenta`, con sesión propia separada de Flask-Login
+- ✅ **Control de acceso por rol** — admin / operador / bot, con guards a nivel de blueprint
+- ✅ **Datos de cobro por método de pago** — `datos_receptor` editable en el dashboard; se eliminaron los datos hardcodeados del bot
+- ✅ **Confirmación previa de datos** — el cliente revisa el resumen antes de que se cree la orden
+- ✅ **Comisión de PayPal unificada** — `CalculatorService.comision_paypal()` como fuente de verdad (corregido un descuadre de $0.02 entre bot y calculadora)
+- ✅ **Banner de consentimiento de cookies**
 - ✅ **Módulo SMS integrado** — mensajería bidireccional vía gateway Android, tablas `sms_messages`/`sms_sim_slots`, webhooks de recepción y estado, gestión de 20 slots SIM, dentro de la arquitectura de Ceiba21 sin procesos ni BD extra
 - ✅ **Filtro de hora local** — `hora_co` convierte UTC → America/Bogota en todas las vistas
 - ✅ **Sistema de pagos unificado (multi-método)** — tabla `payments`, `PaymentSource` configurable, ingesta vía cron one-shot
@@ -1041,6 +1207,9 @@ psql -U postgres -c "\l" | grep ceiba21_dev
 
 ### En desarrollo / Próximo
 
+- ⬜ **Verificación de email y reset de contraseña** — `smtplib` plano reutilizando el SMTP de Gmail (los métodos de token ya existen en `WebUser`)
+- ⬜ **WhatsApp (Meta Cloud API)** — `WhatsAppChannel` + webhook + plantillas *utility* preaprobadas (la ventana de 24 h obliga a usarlas para avisos proactivos)
+- ⬜ **Conciliación pago ↔ orden** — casar la ingesta de pagos con las órdenes automáticamente
 - ⬜ **Rotación remota de SIM** (módulo SMS) — pendiente de hardware adecuado
 - ⬜ **Fases restantes de ingesta** — transferencias bancarias, integración con órdenes, notificaciones push
 - ⬜ **Tests unitarios para Services** — cubrir parsers, blacklist, contabilidad, gmail, sms
@@ -1059,6 +1228,10 @@ psql -U postgres -c "\l" | grep ceiba21_dev
 - ⬜ Panel de analytics con estadísticas de uso de la calculadora
 - ⬜ Sistema de notificaciones cuando una tasa cambia más de X%
 - ⬜ Unificación de design tokens del frontend
+- ⬜ Unificar la fórmula de PayPal del frontend (que la calculadora consuma el backend)
+- ⬜ Rate limiting y retención de archivos en el chat web
+- ⬜ Paginación del historial de conversaciones
+- ⬜ Formateador de mensajes por canal (HTML de Telegram vs texto plano web)
 - ⬜ Cleanup de `datetime.utcnow()` deprecado en `BaseModel`
 
 ---
