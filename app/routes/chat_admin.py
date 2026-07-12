@@ -98,7 +98,11 @@ def api_pausa_global():
     data = request.get_json(silent=True) or {}
     paused = bool(data.get('paused', True))
     SystemConfigService.set_webchat_bot_paused(paused)
-    return jsonify({'ok': True, 'paused': paused})
+
+    # Releer de la BD: la UI debe reflejar lo que quedó PERSISTIDO, no lo que
+    # se pidió. Si el guardado fallara, mostrar "bot activo" sería mentir.
+    real = SystemConfigService.get_webchat_bot_paused()
+    return jsonify({'ok': real == paused, 'paused': real})
 
 def _get_conversation(conversation_id: int):
     """Conversación por id, o None."""

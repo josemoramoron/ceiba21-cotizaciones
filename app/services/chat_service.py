@@ -93,7 +93,7 @@ class ChatService(BaseService):
         cuerpo = (label or '').strip()[:MAX_MESSAGE_LEN] or text
 
         msg = ChatMessage(conversation_id=conv.id, sender='client', body=cuerpo)
-        msg.save()
+        msg.save(raise_on_error=True)
 
         conv.touch(for_operator=True)
         conv.save()
@@ -320,7 +320,7 @@ class ChatService(BaseService):
                 body=cuerpo,
                 buttons=respuesta.get('buttons') or [],
             )
-            bot_msg.save()
+            bot_msg.save(raise_on_error=True)
 
             conv.last_message_at = bot_msg.created_at
             conv.save()
@@ -411,8 +411,7 @@ class ChatService(BaseService):
             sender='client',
             body=f"📎 Comprobante enviado: {url}",
         )
-        if not msg.save():
-            return conv, None, 'No se pudo guardar el comprobante'
+        msg.save(raise_on_error=True)
 
         conv.touch(for_operator=True)
         conv.save()
@@ -447,9 +446,7 @@ class ChatService(BaseService):
                 body=cuerpo,
                 buttons=respuesta.get('buttons') or [],
             )
-            if not bot_msg.save():
-                cls.log_error("No se pudo guardar la respuesta del bot al comprobante")
-                return None
+            bot_msg.save(raise_on_error=True)
 
             conv.last_message_at = bot_msg.created_at
             conv.save()
@@ -509,9 +506,7 @@ class ChatService(BaseService):
         enviado...), sin pasar por la máquina de estados del bot.
         """
         msg = ChatMessage(conversation_id=conv.id, sender='bot', body=text)
-        if not msg.save():
-            cls.log_error("No se pudo guardar el aviso del bot")
-            return None
+        msg.save(raise_on_error=True)
 
         conv.last_message_at = msg.created_at
         conv.save()

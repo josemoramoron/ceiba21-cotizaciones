@@ -2,9 +2,13 @@
 Modelo base abstracto para todos los modelos del sistema.
 Proporciona funcionalidad común: timestamps, métodos CRUD básicos.
 """
+import logging
 from app.models import db
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseModel(db.Model):
@@ -32,16 +36,23 @@ class BaseModel(db.Model):
         nullable=False
     )
     
-    def save(self) -> bool:
+    def save(self, raise_on_error: bool = False) -> bool:
         """
         Guardar el objeto en la base de datos.
-        
-        Si es nuevo (sin id), hace INSERT.
-        Si ya existe, hace UPDATE.
-        
+
+        Si es nuevo (sin id), hace INSERT. Si ya existe, hace UPDATE.
+
+        Args:
+            raise_on_error: Si es True, propaga la excepción en vez de
+                devolver False. Úsalo en caminos críticos (órdenes, pagos,
+                comprobantes): un fallo silencioso ahí es peor que un error.
+
         Returns:
-            bool: True si se guardó exitosamente, False si hubo error
-            
+            bool: True si se guardó exitosamente, False si hubo error.
+
+        Raises:
+            SQLAlchemyError: Si falla el guardado y ``raise_on_error`` es True.
+
         Example:
             >>> user = User(username='john')
             >>> user.save()
@@ -53,7 +64,12 @@ class BaseModel(db.Model):
             return True
         except Exception as e:
             db.session.rollback()
-            print(f"Error al guardar {self.__class__.__name__}: {str(e)}")
+            logger.error(
+                "Error al guardar %s: %s",
+                self.__class__.__name__, str(e), exc_info=True
+            )
+            if raise_on_error:
+                raise
             return False
     
     def delete(self) -> bool:
