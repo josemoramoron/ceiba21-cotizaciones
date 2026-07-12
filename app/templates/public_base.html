@@ -608,6 +608,23 @@
         color: var(--color-text);
         border: 1px solid var(--color-border);
     }
+    .chat-attach {
+        border: 1px solid var(--color-border);
+        background-color: var(--color-bg);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        width: 40px;
+        border-radius: 10px;
+    }
+    .chat-attach:hover { color: var(--color-text); }
+    .chat-proof { display: block; margin-top: 6px; font-weight: 600; text-decoration: underline; }
+    .chat-proof-img {
+        display: block;
+        margin-top: 6px;
+        max-width: 180px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+    }
     .chat-send {
         border: none;
         cursor: pointer;
@@ -644,6 +661,11 @@
     </div>
 
     <form id="chatForm" class="chat-form">
+        <input type="file" id="chatFile" accept=".jpg,.jpeg,.png,.webp,.pdf" hidden>
+        <button type="button" id="chatAttach" class="chat-attach" title="Adjuntar comprobante"
+                aria-label="Adjuntar comprobante">
+            <i class="fas fa-paperclip"></i>
+        </button>
         <input type="text" id="chatInput" class="chat-input" maxlength="2000"
                placeholder="Escribe tu mensaje..." autocomplete="off">
         <button type="submit" class="chat-send" aria-label="Enviar">

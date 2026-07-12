@@ -30,6 +30,8 @@
     .t-dots span:nth-child(2) { animation-delay: 0.15s; }
     .t-dots span:nth-child(3) { animation-delay: 0.3s; }
     @keyframes tDots { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+    .t-proof { display: block; margin-top: 6px; font-weight: 600; text-decoration: underline; }
+    .t-proof-img { display: block; margin-top: 6px; max-width: 200px; border-radius: 8px; border: 1px solid var(--color-border); }
     .thread-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--color-border); }
     .reply-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--color-border); }
     .reply-input { flex: 1; padding: 9px 12px; border-radius: 8px; font-size: 0.88rem; outline: none; background-color: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-border); }
@@ -178,6 +180,30 @@
         }
     }
 
+    const PROOF_RE = /(\/static\/proofs\/[^\s]+)/;
+
+    function decorateProof(bubble, body) {
+        const m = (body || '').match(PROOF_RE);
+        if (!m) return;
+        const url = m[1];
+        bubble.textContent = '📎 Comprobante enviado';
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.className = 't-proof';
+        if (/\.pdf$/i.test(url)) {
+            link.textContent = 'Ver PDF';
+        } else {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Comprobante';
+            img.className = 't-proof-img';
+            link.appendChild(img);
+        }
+        bubble.appendChild(link);
+    }
+
     function addMsg(m) {
         const isClient = m.sender === 'client';
         const row = document.createElement('div');
@@ -185,6 +211,7 @@
         const b = document.createElement('div');
         b.className = 't-bubble t-bubble--' + m.sender;
         b.textContent = m.body;
+        decorateProof(b, m.body);
         row.appendChild(b);
         const dots = thread.querySelector('.t-typing');
         if (dots) { thread.insertBefore(row, dots); } else { thread.appendChild(row); }

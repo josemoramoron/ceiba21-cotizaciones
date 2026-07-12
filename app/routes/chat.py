@@ -93,3 +93,27 @@ def typing():
     if conv is not None:
         ChatService.set_typing(conv.id, 'client')
     return jsonify({'ok': True})
+
+@chat_bp.route('/comprobante', methods=['POST'])
+def comprobante():
+    """Recibir el comprobante de pago (imagen o PDF) desde el widget."""
+    archivo = request.files.get('archivo')
+    if archivo is None or not archivo.filename:
+        return jsonify({'ok': False, 'error': 'No se envió ningún archivo'}), 400
+
+    conv, msg, error = ChatService.post_client_proof(
+        anon_id=_anon_id(),
+        web_user=current_client(),
+        file_storage=archivo,
+        country=ChatService.country_from_request(request),
+    )
+    if error:
+        return jsonify({'ok': False, 'error': error}), 400
+
+    return jsonify({
+        'ok': True,
+        'conversation_id': conv.id,
+        'message': msg.to_dict(),
+        'bot_messages': ChatService.get_new_for_client(conv.id, msg.id),
+    })
+

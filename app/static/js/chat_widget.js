@@ -46,6 +46,7 @@
     const bubble = document.createElement('div');
     bubble.className = 'chat-bubble ' + (isClient ? 'chat-bubble--client' : 'chat-bubble--staff');
     bubble.textContent = msg.body;
+    decorateProof(bubble, msg.body || '');
 
     row.appendChild(bubble);
     const dots = list.querySelector('.chat-typing');
@@ -146,6 +147,54 @@
     pollTimer = null;
   }
 
+
+  // Un mensaje de comprobante trae la URL del archivo en /static/proofs/
+  const PROOF_RE = /(\/static\/proofs\/[^\s]+)/;
+
+  function decorateProof(bubble, body) {
+    const m = body.match(PROOF_RE);
+    if (!m) return false;
+    const url = m[1];
+    bubble.textContent = '📎 Comprobante enviado';
+    const isPdf = /\.pdf$/i.test(url);
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.className = 'chat-proof';
+    if (isPdf) {
+      link.textContent = 'Ver PDF';
+    } else {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Comprobante';
+      img.className = 'chat-proof-img';
+      link.appendChild(img);
+    }
+    bubble.appendChild(link);
+    return true;
+  }
+
+  async function uploadProof(file) {
+    if (!file) return;
+    clearEmptyHint();
+    const fd = new FormData();
+    fd.append('archivo', file);
+    try {
+      const r = await fetch('/chat/comprobante', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (!data.ok) {
+        alert(data.error || 'No se pudo enviar el comprobante.');
+        return;
+      }
+      addMessage(data.message);
+      (data.bot_messages || []).forEach(addMessage);
+      maybeShowReminder();
+    } catch (e) {
+      alert('No se pudo enviar el comprobante. Reintenta.');
+    }
+  }
+
   async function sendMessage(text, label) {
     clearEmptyHint();
     try {
@@ -222,6 +271,18 @@
 
     if (input) {
       input.addEventListener('input', notifyTyping);
+    }
+
+    const btnAttach = document.getElementById('chatAttach');
+    const fileInput = document.getElementById('chatFile');
+    if (btnAttach && fileInput) {
+      btnAttach.addEventListener('click', function () { fileInput.click(); });
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files[0]) {
+          uploadProof(fileInput.files[0]);
+          fileInput.value = '';
+        }
+      });
     }
 
     if (form) {

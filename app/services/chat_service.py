@@ -6,7 +6,9 @@ visitante, guarda mensajes y expone lo nuevo para el polling. En la Fase 1 el
 bot no responde: el operador atiende manualmente desde el dashboard.
 """
 import html as html_lib
+import os
 import re
+import secrets
 from datetime import datetime
 from typing import List, Optional, Tuple
 
@@ -321,3 +323,133 @@ class ChatService(BaseService):
         except Exception as exc:
             cls.log_error("Error al generar respuesta del bot", exc)
             return None
+
+    # ── Comprobantes de pago ───────────────────────────────────────────────
+
+    # Mismo directorio y convención de URL que usa el bot de Telegram.
+    PROOFS_DIR = os.path.join('app', 'static', 'proofs')
+    PROOF_URL_PREFIX = '/static/proofs/'
+    ALLOWED_PROOF_EXT = frozenset({'.jpg', '.jpeg', '.png', '.webp', '.pdf'})
+    MAX_PROOF_BYTES = 5 * 1024 * 1024  # 5 MB
+
+    @classmethod
+    def _save_proof_file(cls, file_storage, reference: str
+                         ) -> Tuple[bool, str, Optional[str]]:
+        """
+        Validar y guardar el archivo del comprobante en disco.
+
+        Args:
+            file_storage: Archivo recibido (werkzeug FileStorage).
+            reference: Referencia de la orden (o de la conversación).
+
+        Returns:
+            Tupla (ok, mensaje, url) con la URL pública del comprobante.
+        """
+        nombre = (file_storage.filename or '').strip()
+        ext = os.path.splitext(nombre)[1].lower()
+        if ext not in cls.ALLOWED_PROOF_EXT:
+            return False, 'Formato no admitido (usa JPG, PNG, WEBP o PDF)', None
+
+        file_storage.stream.seek(0, os.SEEK_END)
+        size = file_storage.stream.tell()
+        file_storage.stream.seek(0)
+        if size == 0:
+            return False, 'El archivo está vacío', None
+        if size > cls.MAX_PROOF_BYTES:
+            return False, 'El archivo supera los 5 MB', None
+
+        os.makedirs(cls.PROOFS_DIR, exist_ok=True)
+        filename = f"{reference}_{secrets.token_hex(8)}{ext}"
+        file_storage.save(os.path.join(cls.PROOFS_DIR, filename))
+
+        return True, 'Comprobante recibido', f"{cls.PROOF_URL_PREFIX}{filename}"
+
+    @classmethod
+    def _order_reference_for(cls, conv: ChatConversation) -> str:
+        """Referencia de la orden en curso del visitante (o un id de respaldo)."""
+        try:
+            from app.bot.conversation_handler import ConversationHandler
+            user = User.query.get(conv.user_id) if conv.user_id else None
+            if user is not None:
+                data = ConversationHandler().get_data(user)
+                referencia = data.get('order_reference')
+                if referencia:
+                    return str(referencia)
+        except Exception as exc:
+            cls.log_error("No se pudo leer la referencia de la orden", exc)
+        return f"chat{conv.id}"
+
+    @classmethod
+    def post_client_proof(cls, anon_id: str, web_user, file_storage,
+                          country: Optional[str] = None
+                          ) -> Tuple[Optional[ChatConversation], Optional[ChatMessage], Optional[str]]:
+        """
+        Recibir el comprobante de pago enviado desde el widget web.
+
+        Si el bot está activo, delega en ``handle_proof_received`` (el mismo
+        camino que usa Telegram: adjunta el comprobante a la orden y la pasa a
+        PENDING). Si está en pausa, avisa a los operadores.
+
+        Returns:
+            Tupla (conversación, mensaje, error).
+        """
+        conv = cls._resolve_conversation(anon_id, web_user, country)
+        referencia = cls._order_reference_for(conv)
+
+        ok, mensaje, url = cls._save_proof_file(file_storage, referencia)
+        if not ok:
+            return conv, None, mensaje
+
+        msg = ChatMessage(
+            conversation_id=conv.id,
+            sender='client',
+            body=f"📎 Comprobante enviado: {url}",
+        )
+        if not msg.save():
+            return conv, None, 'No se pudo guardar el comprobante'
+
+        conv.touch(for_operator=True)
+        conv.save()
+
+        if cls.is_bot_active_for(conv):
+            cls._bot_proof_reply(conv, url)
+        else:
+            cls._notify_operators(conv, 'Envió un comprobante de pago')
+
+        cls.log_info(f"Chat: comprobante recibido en conversación {conv.id}")
+        return conv, msg, None
+
+    @classmethod
+    def _bot_proof_reply(cls, conv: ChatConversation, url: str
+                         ) -> Optional[ChatMessage]:
+        """Pasar el comprobante al bot (adjunta a la orden y responde)."""
+        try:
+            from app.bot.conversation_handler import ConversationHandler
+
+            user = User.query.get(conv.user_id) if conv.user_id else None
+            if user is None:
+                return None
+
+            respuesta = ConversationHandler().handle_proof_received(user, url)
+            cuerpo = cls._to_plain_text(respuesta.get('text', ''))
+            if not cuerpo:
+                return None
+
+            bot_msg = ChatMessage(
+                conversation_id=conv.id,
+                sender='bot',
+                body=cuerpo,
+                buttons=respuesta.get('buttons') or [],
+            )
+            if not bot_msg.save():
+                cls.log_error("No se pudo guardar la respuesta del bot al comprobante")
+                return None
+
+            conv.last_message_at = bot_msg.created_at
+            conv.save()
+            return bot_msg
+
+        except Exception as exc:
+            cls.log_error("Error al procesar el comprobante con el bot", exc)
+            return None
+
