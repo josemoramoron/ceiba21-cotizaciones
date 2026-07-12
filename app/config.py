@@ -33,6 +33,11 @@ class Config:
     COOKIE_CONSENT_VERSION = os.getenv('COOKIE_CONSENT_VERSION', '1')
     COOKIE_CONSENT_MAX_AGE_DAYS = int(os.getenv('COOKIE_CONSENT_MAX_AGE_DAYS', '180'))
 
+    # Tamaño máximo de cualquier petición (16 MB). Corta las subidas gigantes
+    # en la puerta, antes de que Werkzeug reciba el cuerpo completo.
+    # El límite real del comprobante (5 MB) lo valida ChatService.
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
     # Web Push (VAPID)
     VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY')
     VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY')

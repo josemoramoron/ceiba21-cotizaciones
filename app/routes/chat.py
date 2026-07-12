@@ -9,6 +9,7 @@ import uuid
 from flask import Blueprint, jsonify, request, session
 
 from app.client_auth import current_client
+from app.decorators import rate_limit
 from app.services.chat_service import ChatService
 from app.models.chat import ChatConversation
 
@@ -28,6 +29,7 @@ def _anon_id() -> str:
 
 
 @chat_bp.route('/mensaje', methods=['POST'])
+@rate_limit('chat_msg', session_rules=((20, 60), (200, 3600)), ip_rules=((60, 60),))
 def mensaje():
     """Recibir un mensaje del cliente."""
     data = request.get_json(silent=True) or {}
@@ -85,6 +87,7 @@ def historial():
 
 
 @chat_bp.route('/typing', methods=['POST'])
+@rate_limit('chat_typing', session_rules=((40, 60),))
 def typing():
     """El cliente está escribiendo (estado efímero, visible para el operador)."""
     anon_id = session.get(ANON_KEY)
@@ -96,6 +99,7 @@ def typing():
     return jsonify({'ok': True})
 
 @chat_bp.route('/comprobante', methods=['POST'])
+@rate_limit('chat_proof', session_rules=((5, 600), (20, 86400)), ip_rules=((15, 3600),))
 def comprobante():
     """Recibir el comprobante de pago (imagen o PDF) desde el widget."""
     archivo = request.files.get('archivo')

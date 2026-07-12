@@ -12,6 +12,7 @@ from flask import Blueprint, jsonify, request, current_app, session
 from flask_login import current_user
 
 from app.client_auth import current_client
+from app.decorators import rate_limit
 from app.models.push_subscription import PushSubscription
 from app.services.push_service import PushService
 
@@ -47,6 +48,7 @@ def vapid_public_key():
 
 
 @push_bp.route('/subscribe', methods=['POST'])
+@rate_limit('push_sub', session_rules=((10, 3600),), ip_rules=((30, 3600),))
 def subscribe():
     """Guardar la suscripción Web Push (operador, cliente o anónimo)."""
     data = request.get_json(silent=True) or {}

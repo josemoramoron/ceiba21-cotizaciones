@@ -182,7 +182,12 @@
     fd.append('archivo', file);
     try {
       const r = await fetch('/chat/comprobante', { method: 'POST', body: fd });
+      if (r.status === 413) {
+        alert('El archivo es demasiado grande.');
+        return;
+      }
       const data = await r.json();
+      if (r.status === 429) { avisoLimite(data); return; }
       if (!data.ok) {
         alert(data.error || 'No se pudo enviar el comprobante.');
         return;
@@ -195,6 +200,13 @@
     }
   }
 
+
+  // El servidor limita la tasa de mensajes/archivos (429)
+  function avisoLimite(data) {
+    const s = (data && data.retry_after) ? data.retry_after : 30;
+    alert('Vas muy rápido 🙂 Espera unos ' + s + ' segundos e inténtalo de nuevo.');
+  }
+
   async function sendMessage(text, label) {
     clearEmptyHint();
     try {
@@ -204,6 +216,7 @@
         body: JSON.stringify({ texto: text, etiqueta: label || null })
       });
       const data = await r.json();
+      if (r.status === 429) { avisoLimite(data); return; }
       if (data.ok && data.message) {
         addMessage(data.message);
         (data.bot_messages || []).forEach(addMessage);

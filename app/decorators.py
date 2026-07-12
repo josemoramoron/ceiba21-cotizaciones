@@ -89,3 +89,57 @@ def admin_required(view_func):
 def operator_or_admin_required(view_func):
     """Decorador de ruta: ADMIN u OPERATOR (sección de pagos)."""
     return role_required(OperatorRole.ADMIN, OperatorRole.OPERATOR)(view_func)
+
+def rate_limit(name: str, session_rules=(), ip_rules=()):
+    """
+    Limitar la tasa de peticiones a un endpoint público.
+
+    Aplica doble llave: por sesión del visitante (``anon_id``) y por IP real
+    (``CF-Connecting-IP``), para que borrar cookies no baste para saltárselo.
+
+    Args:
+        name: Identificador del endpoint (parte de la clave en Redis).
+        session_rules: Iterable de (límite, ventana_segundos) por sesión.
+        ip_rules: Iterable de (límite, ventana_segundos) por IP.
+
+    Returns:
+        El decorador que envuelve la vista. Responde 429 si se excede.
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(*args, **kwargs):
+            from flask import jsonify, request, session
+            from app.services.rate_limit_service import RateLimitService
+
+            anon_id = session.get('chat_anon_id')
+            if anon_id:
+                for limite, ventana in session_rules:
+                    key = f"rl:{name}:s:{anon_id}:{ventana}"
+                    permitido, reintentar = RateLimitService.hit(key, limite, ventana)
+                    if not permitido:
+                        return _demasiadas_peticiones(reintentar)
+
+            ip = RateLimitService.client_ip(request)
+            for limite, ventana in ip_rules:
+                key = f"rl:{name}:i:{ip}:{ventana}"
+                permitido, reintentar = RateLimitService.hit(key, limite, ventana)
+                if not permitido:
+                    return _demasiadas_peticiones(reintentar)
+
+            return view_func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def _demasiadas_peticiones(reintentar: int):
+    """Respuesta 429 estándar para los endpoints públicos."""
+    from flask import jsonify
+    respuesta = jsonify({
+        'ok': False,
+        'error': 'demasiadas_peticiones',
+        'retry_after': reintentar,
+    })
+    respuesta.status_code = 429
+    respuesta.headers['Retry-After'] = str(reintentar)
+    return respuesta
+
