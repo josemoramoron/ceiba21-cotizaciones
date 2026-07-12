@@ -180,6 +180,7 @@ class ConversationHandler:
             ConversationState.ENTER_HOLDER: self._handle_enter_holder,
             ConversationState.ENTER_DNI: self._handle_enter_dni,
             ConversationState.ENTER_PHONE: self._handle_enter_phone,
+            ConversationState.CONFIRM_DATA: self._handle_confirm_data,
             ConversationState.AWAIT_PROOF: self._handle_await_proof,
         }
         
@@ -749,13 +750,34 @@ class ConversationHandler:
         data['phone'] = phone
         self.set_data(user, data)
         
-        # AHORA SÍ CREAR ORDEN (estado DRAFT)
+        # Antes de crear la orden, mostrar los datos para que el cliente confirme
+        self.set_state(user, ConversationState.CONFIRM_DATA)
+        
+        return Responses.confirm_data_message(data)
+    
+    def _handle_confirm_data(self, user: User, message: str) -> Dict[str, Any]:
+        """Handler para CONFIRM_DATA: crea la orden solo si el cliente confirma."""
+        from app.bot.responses import Responses
+        
+        callback = self.parser.parse_callback_data(message)
+        data = self.get_data(user)
+        
+        if callback['action'] == 'confirm' and callback['value'] == 'no':
+            return self._handle_cancel(user)
+        
+        if callback['action'] != 'confirm' or callback['value'] != 'yes':
+            # Respuesta no reconocida: volver a mostrar el resumen
+            return Responses.confirm_data_message(data)
+        
+        # Confirmado: crear la orden (estado DRAFT)
         try:
             order = self._create_order_draft(user, data)
             
-            # ✅ SERIALIZAR order antes de guardar
             data['order_id'] = order.id
             data['order_reference'] = order.reference
+            data['datos_receptor'] = self._get_datos_receptor(
+                data.get('payment_method_from_id')
+            )
             self.set_data(user, data)
             
             # Transicionar a esperar comprobante
@@ -768,6 +790,14 @@ class ConversationHandler:
                 'text': f'❌ Error al crear orden: {str(e)}\n\nContacta a soporte.',
                 'buttons': None
             }
+    
+    @staticmethod
+    def _get_datos_receptor(payment_method_id: Optional[int]) -> str:
+        """Datos de cobro del método (correo, wallet, cuenta) desde la BD."""
+        if not payment_method_id:
+            return ''
+        method = PaymentMethod.query.get(payment_method_id)
+        return (method.datos_receptor or '') if method else ''
     
     def _handle_await_proof(self, user: User, message: str) -> Dict[str, Any]:
         """Handler para AWAIT_PROOF (se llama cuando se recibe imagen)"""

@@ -305,13 +305,19 @@ def edit_payment_method(pm_id):
     """Editar método de pago"""
     name = request.form.get('name', '').strip()
     display_order = request.form.get('display_order')
+    datos_receptor = request.form.get('datos_receptor', '')
     
     try:
         display_order = int(display_order) if display_order else None
     except ValueError:
         display_order = None
     
-    pm, error = PaymentMethodService.update(pm_id, name=name, display_order=display_order)
+    pm, error = PaymentMethodService.update(
+        pm_id,
+        name=name,
+        display_order=display_order,
+        datos_receptor=datos_receptor,
+    )
     
     if error:
         flash(f'❌ {error}', 'error')

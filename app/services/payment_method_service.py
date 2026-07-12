@@ -126,7 +126,8 @@ class PaymentMethodService:
             db.session.add(quote)
     
     @staticmethod
-    def update(pm_id, code=None, name=None, display_order=None, active=None):
+    def update(pm_id, code=None, name=None, display_order=None, active=None,
+               datos_receptor=None):
         """Actualizar método de pago"""
         pm = PaymentMethodService.get_by_id(pm_id)
         if not pm:
@@ -140,6 +141,8 @@ class PaymentMethodService:
             pm.display_order = display_order
         if active is not None:
             pm.active = active
+        if datos_receptor is not None:
+            pm.datos_receptor = datos_receptor.strip() or None
         
         db.session.commit()
         return pm, None

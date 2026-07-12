@@ -38,6 +38,7 @@ class ConversationState(Enum):
     ENTER_HOLDER = 'enter_holder'
     ENTER_DNI = 'enter_dni'
     ENTER_PHONE = 'enter_phone'
+    CONFIRM_DATA = 'confirm_data'  # Vista previa de los datos antes de crear la orden
     
     # Estados finales
     AWAIT_PROOF = 'await_proof'

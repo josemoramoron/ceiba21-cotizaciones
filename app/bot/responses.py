@@ -297,7 +297,7 @@ Para que te enviemos los bolívares/pesos, necesito:
 Banco Venezuela
 01020123456789012345
 Juan Pérez
-V-19866503
+V-22333444
 04121234567
 
 <b>Opción 2:</b> Uno por uno (te iré preguntando cada dato) 📝
@@ -396,74 +396,86 @@ Ingresa tu DNI (7-8 dígitos).
         return {'text': text, 'buttons': None}
     
     @staticmethod
+    def confirm_data_message(data: Dict[str, Any]) -> Dict[str, Any]:
+        """Vista previa de los datos aportados, antes de crear la orden."""
+        calc = data.get('calculation', {})
+        method_name = data.get('payment_method_from_name', 'N/A')
+        amount_usd = data.get('amount_usd', 0)
+        amount_local = calc.get('amount_local', 0)
+        currency_code = calc.get('currency_code', data.get('currency_code', ''))
+
+        text = f'''📝 <b>Revisa tus datos</b>
+
+<b>Operación</b>
+💳 Método: {method_name}
+💵 Envías: ${amount_usd:.2f} USD
+💰 Recibes: {amount_local:,.2f} {currency_code}
+
+<b>Cuenta destino</b>
+🏦 Banco: {data.get('bank', '')}
+🔢 Cuenta: {data.get('account', '')}
+👤 Titular: {data.get('holder', '')}
+🪪 Cédula: {data.get('dni', '')}
+📱 Teléfono: {data.get('phone', '')}
+
+¿Todo correcto?'''
+
+        buttons = [
+            [
+                {'text': '✅ Confirmar', 'callback_data': 'confirm:yes'},
+                {'text': '❌ Cancelar', 'callback_data': 'confirm:no'}
+            ]
+        ]
+
+        return {'text': text, 'buttons': buttons}
+
+    @staticmethod
     def payment_instructions_message(data: Dict[str, Any]) -> Dict[str, Any]:
-        """Instrucciones de pago"""
+        """Instrucciones de pago.
+
+        Los datos de cobro (correo, wallet, cuenta) provienen del método de pago
+        en la base de datos (`PaymentMethod.datos_receptor`), no de código.
+        """
         method_name = data.get('payment_method_from_name', 'N/A')
         amount_usd = data.get('amount_usd', 0)
         order_reference = data.get('order_reference', 'N/A')
-        
+        datos_receptor = (data.get('datos_receptor') or '').strip()
+
         text = f'''Perfecto! ✅ <b>Datos verificados</b>
 
 📋 <b>ORDEN:</b> {order_reference}
 
 <b>Ahora envía tu pago:</b>
-━━━━━━━━━━━'''
-        
-        if method_name == 'PayPal':
-            text += f'''
-💳 <b>PayPal:</b> ceiba21@paypal.com
-💰 <b>Monto EXACTO:</b> ${amount_usd:.2f} USD
-📝 <b>Referencia:</b> {order_reference}
 ━━━━━━━━━━━
-
-⚠️ <b>IMPORTANTE:</b>
-• Verifica el monto exacto
-• Envía como "Bienes y Servicios" o "Amigos y Familia"
-• Guarda el comprobante'''
-        
-        elif method_name == 'Zelle':
-            text += f'''
-💵 <b>Zelle:</b> ceiba21@zelle.com
-💰 <b>Monto:</b> ${amount_usd:.2f} USD
-📝 <b>Nota:</b> {order_reference}
-━━━━━━━━━━━
-
-⚠️ <b>IMPORTANTE:</b>
-• Verifica el monto exacto
-• Incluye la referencia en la nota
-• Guarda el comprobante'''
-        
-        elif method_name == 'USDT':
-            text += f'''
-₿ <b>USDT (TRC20):</b>
-<code>TXyz123...</code> (copia la dirección completa)
-💰 <b>Monto:</b> ${amount_usd:.2f} USDT
-📝 <b>Memo:</b> {order_reference}
-━━━━━━━━━━━
-
-⚠️ <b>IMPORTANTE:</b>
-• Verifica que sea red TRC20
-• Envía el monto exacto
-• Guarda el hash de transacción'''
-        
-        else:
-            text += f'''
 💳 <b>Método:</b> {method_name}
-💰 <b>Monto:</b> ${amount_usd:.2f} USD
-📝 <b>Referencia:</b> {order_reference}
+💰 <b>Monto EXACTO:</b> ${amount_usd:.2f} USD
+📝 <b>Referencia:</b> {order_reference}'''
+
+        if datos_receptor:
+            text += f'''
+
+<b>Datos para el pago:</b>
+{datos_receptor}'''
+        else:
+            text += '''
+
+⚠️ Un operador te enviará enseguida los datos de pago.'''
+
+        text += '''
 ━━━━━━━━━━━
 
 ⚠️ <b>IMPORTANTE:</b>
 • Verifica el monto exacto
-• Guarda el comprobante'''
-        
-        text += f'''\n\nUna vez realizado el pago, <b>envía la captura de pantalla del comprobante.</b>
+• Incluye la referencia
+• Guarda el comprobante
+
+Una vez realizado el pago, <b>envía la captura de pantalla del comprobante.</b>
 
 📸 <b>El comprobante debe mostrar:</b>
 • Monto exacto
 • Fecha y hora
 • Estado: Completado/Exitoso'''
-        
+
         return {'text': text, 'buttons': None}
     
     @staticmethod

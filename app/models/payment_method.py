@@ -26,6 +26,11 @@ class PaymentMethod(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Configuración USD centralizada (aplica a todas las monedas)
+    # Datos del receptor que se muestran al cliente al pagar (correo PayPal,
+    # dirección USDT, cuenta bancaria...). Texto libre: cada método pide datos
+    # distintos, así que agregar un método nuevo no requiere tocar código.
+    datos_receptor = db.Column(db.Text, nullable=True)
+
     value_type = db.Column(db.String(20), default='manual', nullable=False)
     usd_value = db.Column(db.Numeric(10, 6), nullable=True)
     usd_formula = db.Column(db.String(200), nullable=True)
@@ -91,6 +96,7 @@ class PaymentMethod(db.Model):
             'active': self.active,
             'visible_publico': self.es_visible_publico,
             'display_order': self.display_order,
+            'datos_receptor': self.datos_receptor,
             'value_type': self.value_type,
             'usd_value': float(self.usd_value) if self.usd_value else None,
             'usd_formula': self.usd_formula
