@@ -9,6 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Ceiba21 Design System -->
+    <!-- Tokens de diseño (deben cargarse antes que style.css) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <!-- Font Awesome -->
@@ -73,7 +75,7 @@
 
 <!-- ── Navbar ── -->
 <nav class="text-white shadow-lg sticky top-0 z-50"
-     style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
+     style="background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);">
     <div class="container mx-auto px-4">
         <div class="flex justify-between items-center py-3 md:py-4">
 
@@ -87,8 +89,8 @@
                 <img src="{{ url_for('static', filename='img/favicon.svg') }}"
                      alt="Ceiba21"
                      class="h-9 w-9 rounded-full p-1"
-                     style="background-color: #F7D917;">
-                <h1 class="text-xl md:text-2xl font-bold" style="color: #F7D917;">Ceiba21</h1>
+                     style="background-color: var(--brand-yellow);">
+                <h1 class="text-xl md:text-2xl font-bold" style="color: var(--brand-yellow);">Ceiba21</h1>
                 <span class="text-sm text-gray-400 hidden md:block">— Sistema de Cotizaciones</span>
             </div>
 
@@ -104,7 +106,7 @@
                 </a>
                 <a href="/"
                    class="px-3 py-2 rounded-lg transition text-sm font-semibold"
-                   style="background-color: #F7D917; color: #1A1A1A;">
+                   style="background-color: var(--brand-yellow); color: var(--brand-black);">
                     <i class="fas fa-home"></i>
                     <span class="hidden md:inline"> Inicio</span>
                 </a>
@@ -123,12 +125,12 @@
 
         <!-- Header del drawer (solo móvil) -->
         <div class="sidebar-close flex items-center justify-between px-5 py-4 border-b border-gray-200"
-             style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
+             style="background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);">
             <div class="flex items-center gap-2">
                 <img src="{{ url_for('static', filename='img/favicon.svg') }}"
                      alt="Ceiba21" class="h-7 w-7 rounded-full p-1"
-                     style="background-color: #F7D917;">
-                <span class="font-bold text-sm" style="color: #F7D917;">Ceiba21 Admin</span>
+                     style="background-color: var(--brand-yellow);">
+                <span class="font-bold text-sm" style="color: var(--brand-yellow);">Ceiba21 Admin</span>
             </div>
             <button id="sidebarClose" class="text-gray-400 hover:text-white transition p-1">
                 <i class="fas fa-times text-lg"></i>
@@ -230,7 +232,7 @@
                 </a>
                 <a href="/"
                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-                   style="background-color: #F7D917; color: #1A1A1A;">
+                   style="background-color: var(--brand-yellow); color: var(--brand-black);">
                     <i class="fas fa-home"></i> Ir al sitio
                 </a>
             </div>
@@ -262,22 +264,22 @@
     {% if current_user.is_authenticated and current_user.role.value == 'admin' %}
     <a href="{{ url_for('dashboard.index') }}"
        class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70"
-       style="color: {% if request.endpoint == 'dashboard.index' %}#1A1A1A{% else %}#6C757D{% endif %}; text-decoration:none;">
-        <i class="fas fa-table text-lg" style="color: {% if request.endpoint == 'dashboard.index' %}#F7D917{% else %}#9CA3AF{% endif %};"></i>
+       style="color: {% if request.endpoint == 'dashboard.index' %}var(--brand-black){% else %}#6C757D{% endif %}; text-decoration:none;">
+        <i class="fas fa-table text-lg" style="color: {% if request.endpoint == 'dashboard.index' %}var(--brand-yellow){% else %}#9CA3AF{% endif %};"></i>
         <span class="text-xs font-semibold">Cotizaciones</span>
     </a>
     <div style="width:1px; background:#DEE2E6; margin:8px 0;"></div>
     <a href="{{ url_for('dashboard.manage_rates') }}"
        class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70"
-       style="color: {% if request.endpoint == 'dashboard.manage_rates' %}#1A1A1A{% else %}#6C757D{% endif %}; text-decoration:none;">
-        <i class="fas fa-exchange-alt text-lg" style="color: {% if request.endpoint == 'dashboard.manage_rates' %}#F7D917{% else %}#9CA3AF{% endif %};"></i>
+       style="color: {% if request.endpoint == 'dashboard.manage_rates' %}var(--brand-black){% else %}#6C757D{% endif %}; text-decoration:none;">
+        <i class="fas fa-exchange-alt text-lg" style="color: {% if request.endpoint == 'dashboard.manage_rates' %}var(--brand-yellow){% else %}#9CA3AF{% endif %};"></i>
         <span class="text-xs font-semibold">Tasas</span>
     </a>
     <div style="width:1px; background:#DEE2E6; margin:8px 0;"></div>
     <a href="{{ url_for('blacklist.dashboard') }}"
        class="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition hover:opacity-70"
-       style="color: {% if request.endpoint and 'blacklist' in request.endpoint %}#1A1A1A{% else %}#6C757D{% endif %}; text-decoration:none;">
-        <i class="fas fa-ban text-lg" style="color: {% if request.endpoint and 'blacklist' in request.endpoint %}#F7D917{% else %}#9CA3AF{% endif %};"></i>
+       style="color: {% if request.endpoint and 'blacklist' in request.endpoint %}var(--brand-black){% else %}#6C757D{% endif %}; text-decoration:none;">
+        <i class="fas fa-ban text-lg" style="color: {% if request.endpoint and 'blacklist' in request.endpoint %}var(--brand-yellow){% else %}#9CA3AF{% endif %};"></i>
         <span class="text-xs font-semibold">Blacklist</span>
     </a>
     <div style="width:1px; background:#DEE2E6; margin:8px 0;"></div>

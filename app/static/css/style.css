@@ -12,15 +12,15 @@
 /* ── Variables globales ── */
 :root {
   /* Marca */
-  --color-primary:       #F7D917;
-  --color-primary-dark:  #E5C500;
-  --color-primary-light: #FFFDE7;
+  --color-primary:       var(--brand-yellow);
+  --color-primary-dark:  var(--brand-yellow-dark);
+  --color-primary-light: var(--brand-yellow-light);
 
-  --color-secondary:       #1A1A1A;
-  --color-secondary-light: #2D2D2D;
+  --color-secondary:       var(--brand-black);
+  --color-secondary-light: var(--brand-black-light);
 
-  --color-accent:       #00B4D8;
-  --color-accent-hover: #0096C7;
+  --color-accent:       var(--brand-accent);
+  --color-accent-hover: var(--brand-accent-hover);
 
   /* Estado */
   --color-success: #10B981;

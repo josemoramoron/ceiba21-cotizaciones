@@ -1,0 +1,36 @@
+/* ============================================================================
+   Ceiba21 — Tokens de diseño (ÚNICA fuente de verdad)
+
+   Aquí y solo aquí se definen los valores de la marca. El resto del sistema
+   (Tailwind, public_base.html, style.css del dashboard) los consume mediante
+   variables; ningún otro archivo debe repetir un color hexadecimal de marca.
+
+   Cambiar el amarillo de Ceiba21 = cambiar una línea de este archivo.
+   ============================================================================ */
+
+:root {
+    /* Marca */
+    --brand-yellow:       #F7D917;
+    --brand-yellow-dark:  #E5C500;
+    --brand-yellow-light: #FFFDE7;
+
+    --brand-black:       #1A1A1A;
+    --brand-black-light: #2D2D2D;
+
+    --brand-accent:       #00B4D8;
+    --brand-accent-hover: #0096C7;
+
+    /* Estado */
+    --state-success: #10B981;
+    --state-error:   #EF4444;
+    --state-warning: #F59E0B;
+    --state-info:    #3B82F6;
+
+    /* Neutros */
+    --neutral-white:  #FFFFFF;
+    --neutral-100:    #F9FAFB;
+    --neutral-200:    #DEE2E6;
+    --neutral-500:    #9CA3AF;
+    --neutral-700:    #374151;
+    --neutral-900:    #0D1117;
+}

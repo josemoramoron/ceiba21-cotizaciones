@@ -32,9 +32,12 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32.png') }}">
 
+    <!-- Tokens de diseño (única fuente de verdad de la marca) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+
     <!-- PWA manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#F7D917">
+    <meta name="theme-color" content="var(--brand-yellow)">
     <meta name="mobile-web-app-capable" content="yes">
 
     <!-- Tailwind CSS con config de colores Ceiba21 -->
@@ -45,10 +48,10 @@
                 theme: {
                     extend: {
                         colors: {
-                            'ceiba-yellow':      '#F7D917',
-                            'ceiba-yellow-dark': '#E5C500',
-                            'ceiba-black':       '#1A1A1A',
-                            'ceiba-dark':        '#2D2D2D',
+                            'ceiba-yellow':      'var(--brand-yellow)',
+                            'ceiba-yellow-dark': 'var(--brand-yellow-dark)',
+                            'ceiba-black':       'var(--brand-black)',
+                            'ceiba-dark':        'var(--brand-black-light)',
                         }
                     }
                 }
@@ -63,16 +66,16 @@
     <style>
         /* ─── Variables CSS ─────────────────────────── */
         :root {
-            --y:  #F7D917;
-            --yd: #E5C500;
-            --b:  #1A1A1A;
-            --bd: #2D2D2D;
+            --y:  var(--brand-yellow);
+            --yd: var(--brand-yellow-dark);
+            --b:  var(--brand-black);
+            --bd: var(--brand-black-light);
 
             /* Colores adaptativos navbar */
-            --nav-text:    #1A1A1A;
+            --nav-text:    var(--brand-black);
             --nav-bg:      #FFFFFF;
             --nav-border:  #DEE2E6;
-            --stat-text:   #1A1A1A;
+            --stat-text:   var(--brand-black);
             --body-text:   #374151;
             --body-bg:     #F9FAFB;
 
@@ -86,7 +89,7 @@
 
         [data-theme="dark"] {
             --nav-text:    #E6EDF3;
-            --nav-bg:      #1A1A1A;
+            --nav-bg:      var(--brand-black);
             --nav-border:  #30363D;
             --stat-text:   #F3F4F6;
             --body-text:   #9CA3AF;
@@ -167,7 +170,7 @@
         }
         [data-theme="dark"] input::placeholder { color: #8B949E; }
         [data-theme="dark"] #sendTotal {
-            color: #1A1A1A;
+            color: var(--brand-black);
             background-color: var(--y);
             padding: 0.25rem 0.5rem;
             border-radius: 0.375rem;
@@ -178,7 +181,7 @@
 
         /* ─── Calculadora card ───────────────────────── */
         .calculator-card {
-            background: linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 100%);
+            background: linear-gradient(135deg, var(--brand-black-light) 0%, var(--brand-black) 100%);
             color: white;
         }
 
@@ -205,7 +208,7 @@
             border-top: 1px solid #DEE2E6;
         }
         [data-theme="dark"] .mobile-action-bar {
-            background-color: #1A1A1A;
+            background-color: var(--brand-black);
             border-top-color: #30363D;
         }
         [data-theme="dark"] .mobile-action-bar span { color: #E6EDF3; }
@@ -292,7 +295,7 @@
 
             <!-- Logo -->
             <a href="{{ url_for('public.home') }}" class="flex items-center space-x-2">
-                <div style="background-color: #F7D917; border-radius: 0.5rem; padding: 0.5rem;">
+                <div style="background-color: var(--brand-yellow); border-radius: 0.5rem; padding: 0.5rem;">
                     <img src="{{ url_for('static', filename='img/favicon.svg') }}"
                          alt="Ceiba21" class="h-8 w-8">
                 </div>
@@ -329,7 +332,7 @@
                 {% if session.get('logged_in') %}
                 <a href="{{ url_for('dashboard.index') }}"
                    class="flex items-center space-x-2 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 transition"
-                   style="color: #F7D917;">
+                   style="color: var(--brand-yellow);">
                     <i class="fas fa-user-circle text-xl"></i>
                     <span>{{ session.get('username', 'Admin') }}</span>
                 </a>
@@ -345,7 +348,7 @@
                 <!-- Botón instalar PWA (solo Android/Chrome, se oculta tras instalar) -->
                 <button id="btnInstallPwa"
                         class="hidden items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition"
-                        style="background-color: #F7D917; color: #1A1A1A;">
+                        style="background-color: var(--brand-yellow); color: var(--brand-black);">
                     <i class="fas fa-download text-xs"></i>
                     <span>Instalar</span>
                 </button>
@@ -375,7 +378,7 @@
             {% endif %}
 
             {% if session.get('logged_in') %}
-            <a href="{{ url_for('dashboard.index') }}" class="block py-2" style="color:#F7D917;">
+            <a href="{{ url_for('dashboard.index') }}" class="block py-2" style="color:var(--brand-yellow);">
                 <i class="fas fa-user-circle mr-2"></i>{{ session.get('username', 'Admin') }}
             </a>
             <a href="{{ url_for('auth.logout') }}"
@@ -462,7 +465,7 @@
     </a>
     <button id="mainContactBtn"
             class="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl relative z-10"
-            style="background: linear-gradient(135deg, #F7D917 0%, #E5C500 100%);">
+            style="background: linear-gradient(135deg, var(--brand-yellow) 0%, var(--brand-yellow-dark) 100%);">
         <i class="fas fa-headset text-white text-2xl" id="mainContactIcon"></i>
     </button>
 </div>
@@ -679,15 +682,15 @@
      style="padding-bottom: env(safe-area-inset-bottom);">
     <a href="{{ url_for('public.cotizaciones') }}"
        class="flex-1 flex flex-col items-center justify-center py-3 gap-1 hover:opacity-70 transition"
-       style="color:#1A1A1A; text-decoration:none;">
-        <i class="fas fa-chart-line text-xl" style="color:#F7D917;"></i>
+       style="color:var(--brand-black); text-decoration:none;">
+        <i class="fas fa-chart-line text-xl" style="color:var(--brand-yellow);"></i>
         <span class="text-xs font-semibold">Ver Cotizaciones</span>
     </a>
     <div style="width:1px; background-color:#DEE2E6; margin:8px 0;"></div>
     <a href="{{ url_for('public.calculadora') }}"
        class="flex-1 flex flex-col items-center justify-center py-3 gap-1 hover:opacity-70 transition"
-       style="color:#1A1A1A; text-decoration:none;">
-        <i class="fas fa-calculator text-xl" style="color:#F7D917;"></i>
+       style="color:var(--brand-black); text-decoration:none;">
+        <i class="fas fa-calculator text-xl" style="color:var(--brand-yellow);"></i>
         <span class="text-xs font-semibold">Calculadora</span>
     </a>
 </div>
@@ -709,7 +712,7 @@
                 icon.style.color = '#FFD60A';
             } else {
                 icon.className = 'fas fa-moon text-xl';
-                icon.style.color = '#1A1A1A';
+                icon.style.color = 'var(--brand-black)';
             }
         });
 
