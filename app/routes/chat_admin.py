@@ -10,7 +10,7 @@ from flask_login import current_user
 
 from app.decorators import require_roles
 from app.models.operator import OperatorRole
-from app.models.chat import ChatMessage
+from app.models.chat import ChatMessage, ChatConversation
 from app.services.chat_service import ChatService
 from app.services.system_config_service import SystemConfigService
 
@@ -99,3 +99,56 @@ def api_pausa_global():
     paused = bool(data.get('paused', True))
     SystemConfigService.set_webchat_bot_paused(paused)
     return jsonify({'ok': True, 'paused': paused})
+
+def _get_conversation(conversation_id: int):
+    """Conversación por id, o None."""
+    return ChatConversation.query.get(conversation_id)
+
+
+@chat_admin_bp.route('/api/<int:conversation_id>/orden')
+def api_orden(conversation_id: int):
+    """Resumen de la orden activa del visitante (tarjeta del panel)."""
+    conv = _get_conversation(conversation_id)
+    if conv is None:
+        return jsonify({'ok': False, 'error': 'no_encontrada'}), 404
+    return jsonify({'ok': True, 'order': ChatService.order_summary(conv)})
+
+
+@chat_admin_bp.route('/api/<int:conversation_id>/orden/verificar', methods=['POST'])
+def api_orden_verificar(conversation_id: int):
+    """Pago del cliente verificado: la orden pasa a procesamiento."""
+    conv = _get_conversation(conversation_id)
+    if conv is None:
+        return jsonify({'ok': False, 'error': 'no_encontrada'}), 404
+
+    ok, mensaje = ChatService.mark_payment_verified(conv, current_user.id)
+    if not ok:
+        return jsonify({'ok': False, 'error': mensaje}), 400
+    return jsonify({'ok': True, 'message': mensaje})
+
+
+@chat_admin_bp.route('/api/<int:conversation_id>/orden/no-encontrado', methods=['POST'])
+def api_orden_no_encontrado(conversation_id: int):
+    """El pago no aparece: se le pide al cliente revisar el comprobante."""
+    conv = _get_conversation(conversation_id)
+    if conv is None:
+        return jsonify({'ok': False, 'error': 'no_encontrada'}), 404
+
+    ok, mensaje = ChatService.mark_payment_not_found(conv)
+    return jsonify({'ok': ok, 'message': mensaje})
+
+
+@chat_admin_bp.route('/api/<int:conversation_id>/orden/completar', methods=['POST'])
+def api_orden_completar(conversation_id: int):
+    """Pago enviado al cliente: adjunta comprobante y completa la orden."""
+    conv = _get_conversation(conversation_id)
+    if conv is None:
+        return jsonify({'ok': False, 'error': 'no_encontrada'}), 404
+
+    ok, mensaje = ChatService.mark_payment_sent(
+        conv, current_user.id, file_storage=request.files.get('archivo')
+    )
+    if not ok:
+        return jsonify({'ok': False, 'error': mensaje}), 400
+    return jsonify({'ok': True, 'message': mensaje})
+

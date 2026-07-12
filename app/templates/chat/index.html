@@ -30,6 +30,14 @@
     .t-dots span:nth-child(2) { animation-delay: 0.15s; }
     .t-dots span:nth-child(3) { animation-delay: 0.3s; }
     @keyframes tDots { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+    .order-card { padding: 12px 14px; border-bottom: 1px solid var(--color-border); background-color: var(--color-surface); }
+    .order-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .order-ref { font-weight: 700; font-size: 0.88rem; color: var(--color-text); }
+    .order-status { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .st-pending { background-color: #FEF3C7; color: #92400E; }
+    .st-in_process { background-color: #DBEAFE; color: #1E3A8A; }
+    .st-draft { background-color: var(--color-bg); color: var(--color-text-secondary); }
+    .order-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
     .t-proof { display: block; margin-top: 6px; font-weight: 600; text-decoration: underline; }
     .t-proof-img { display: block; margin-top: 6px; max-width: 200px; border-radius: 8px; border: 1px solid var(--color-border); }
     .thread-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--color-border); }
@@ -80,6 +88,9 @@
                 Bot pausado aquí
             </button>
         </div>
+
+        <div id="orderCard" class="order-card" style="display:none;"></div>
+        <input type="file" id="opProofFile" accept=".jpg,.jpeg,.png,.webp,.pdf" hidden>
 
         <div id="thread" class="thread">
             <div class="empty-thread">Elige una conversación de la izquierda para ver el hilo.</div>
@@ -219,6 +230,102 @@
         thread.scrollTop = thread.scrollHeight;
     }
 
+    const orderCard = document.getElementById('orderCard');
+    const opProofFile = document.getElementById('opProofFile');
+
+    const ST_LABEL = { draft: 'Borrador', pending: 'Pago por verificar', in_process: 'Procesando' };
+
+    async function loadOrder() {
+        if (!currentId) return;
+        try {
+            const r = await fetch('/dashboard/chat/api/' + currentId + '/orden');
+            const data = await r.json();
+            renderOrder(data.order);
+        } catch (e) { /* reintenta al abrir de nuevo */ }
+    }
+
+    function renderOrder(o) {
+        if (!o) { orderCard.style.display = 'none'; orderCard.innerHTML = ''; return; }
+        orderCard.style.display = 'block';
+        orderCard.innerHTML = '';
+
+        const top = document.createElement('div');
+        top.className = 'order-top';
+        const ref = document.createElement('span');
+        ref.className = 'order-ref';
+        ref.textContent = o.reference + ' · $' + o.amount_usd.toFixed(2) + ' USD';
+        const st = document.createElement('span');
+        st.className = 'order-status st-' + o.status;
+        st.textContent = ST_LABEL[o.status] || o.status;
+        top.appendChild(ref);
+        top.appendChild(st);
+        orderCard.appendChild(top);
+
+        if (o.proof_url) {
+            const a = document.createElement('a');
+            a.href = o.proof_url; a.target = '_blank'; a.rel = 'noopener';
+            a.className = 't-proof';
+            a.textContent = 'Ver comprobante del cliente';
+            orderCard.appendChild(a);
+        }
+
+        const acts = document.createElement('div');
+        acts.className = 'order-actions';
+
+        if (o.status === 'pending') {
+            acts.appendChild(mkBtn('✅ Pago verificado', 'btn-ok-c', function () {
+                postOrder('verificar');
+            }));
+            acts.appendChild(mkBtn('⚠️ Pago no encontrado', 'btn-warn-c', function () {
+                postOrder('no-encontrado');
+            }));
+        } else if (o.status === 'in_process') {
+            acts.appendChild(mkBtn('💸 Ya pagué (adjuntar comprobante)', 'btn-primary-c', function () {
+                opProofFile.click();
+            }));
+            acts.appendChild(mkBtn('Completar sin comprobante', 'btn-ghost-c', function () {
+                completarOrden(null);
+            }));
+        }
+        orderCard.appendChild(acts);
+    }
+
+    function mkBtn(label, cls, onClick) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn-c ' + cls;
+        b.textContent = label;
+        b.addEventListener('click', onClick);
+        return b;
+    }
+
+    async function postOrder(accion) {
+        const r = await fetch('/dashboard/chat/api/' + currentId + '/orden/' + accion, { method: 'POST' });
+        const data = await r.json();
+        if (!data.ok) { alert(data.error || 'No se pudo completar la acción.'); return; }
+        await loadOrder();
+        await pollThread();
+    }
+
+    async function completarOrden(file) {
+        const fd = new FormData();
+        if (file) fd.append('archivo', file);
+        const r = await fetch('/dashboard/chat/api/' + currentId + '/orden/completar', {
+            method: 'POST', body: fd
+        });
+        const data = await r.json();
+        if (!data.ok) { alert(data.error || 'No se pudo completar la orden.'); return; }
+        await loadOrder();
+        await pollThread();
+    }
+
+    opProofFile.addEventListener('change', function () {
+        if (opProofFile.files && opProofFile.files[0]) {
+            completarOrden(opProofFile.files[0]);
+            opProofFile.value = '';
+        }
+    });
+
     async function openConversation(c) {
         currentId = c.id; lastId = 0;
         threadName.textContent = c.name;
@@ -233,6 +340,7 @@
         const data = await r.json();
         (data.messages || []).forEach(addMsg);
         setTyping(!!data.typing);
+        loadOrder();
         loadConversations();
         if (threadTimer) clearInterval(threadTimer);
         threadTimer = setInterval(pollThread, THREAD_MS);

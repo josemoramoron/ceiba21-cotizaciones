@@ -453,3 +453,152 @@ class ChatService(BaseService):
             cls.log_error("Error al procesar el comprobante con el bot", exc)
             return None
 
+    # ── Gestión de la orden desde el panel del operador ────────────────────
+
+    @classmethod
+    def order_for_conversation(cls, conv: ChatConversation):
+        """
+        Orden activa del visitante de una conversación.
+
+        Returns:
+            La Order más reciente no cerrada (DRAFT/PENDING/IN_PROCESS), o None.
+        """
+        from app.models.order import Order, OrderStatus
+        if not conv.user_id:
+            return None
+        return (
+            Order.query
+            .filter(
+                Order.user_id == conv.user_id,
+                Order.status.in_([
+                    OrderStatus.DRAFT, OrderStatus.PENDING, OrderStatus.IN_PROCESS
+                ]),
+            )
+            .order_by(Order.id.desc())
+            .first()
+        )
+
+    @classmethod
+    def order_summary(cls, conv: ChatConversation) -> Optional[dict]:
+        """Resumen de la orden activa para pintar la tarjeta del panel."""
+        order = cls.order_for_conversation(conv)
+        if order is None:
+            return None
+        return {
+            'id': order.id,
+            'reference': order.reference,
+            'status': order.status.value,
+            'amount_usd': float(order.amount_usd or 0),
+            'proof_url': order.payment_proof_url,
+            'operator_proof_url': order.operator_proof_url,
+        }
+
+    @classmethod
+    def post_bot_notice(cls, conv: ChatConversation, text: str
+                        ) -> Optional[ChatMessage]:
+        """
+        Publicar un aviso del bot en la conversación y notificar al cliente.
+
+        Se usa para los avisos que dispara el operador (pago verificado, pago
+        enviado...), sin pasar por la máquina de estados del bot.
+        """
+        msg = ChatMessage(conversation_id=conv.id, sender='bot', body=text)
+        if not msg.save():
+            cls.log_error("No se pudo guardar el aviso del bot")
+            return None
+
+        conv.last_message_at = msg.created_at
+        conv.save()
+        cls._notify_client(conv, text)
+        return msg
+
+    @classmethod
+    def mark_payment_verified(cls, conv: ChatConversation, operator_id: int
+                              ) -> Tuple[bool, str]:
+        """Pago del cliente verificado: la orden pasa a IN_PROCESS."""
+        from app.services.order_service import OrderService
+
+        order = cls.order_for_conversation(conv)
+        if order is None:
+            return False, 'No hay una orden activa en esta conversación'
+
+        ok, mensaje, _ = OrderService.assign_order(order.id, operator_id)
+        if not ok:
+            return False, mensaje
+
+        cls.post_bot_notice(conv, (
+            f"✅ ¡Pago verificado! Recibimos tu pago de la orden "
+            f"{order.reference}.\n\nYa estamos procesando tu envío. "
+            f"Te aviso apenas esté listo."
+        ))
+        return True, 'Pago verificado'
+
+    @classmethod
+    def mark_payment_not_found(cls, conv: ChatConversation) -> Tuple[bool, str]:
+        """El pago no aparece: se le pide al cliente revisar el comprobante."""
+        order = cls.order_for_conversation(conv)
+        referencia = order.reference if order else ''
+
+        cls.post_bot_notice(conv, (
+            f"⚠️ Aún no encontramos tu pago{' de la orden ' + referencia if referencia else ''}.\n\n"
+            "Verifica que hayas enviado el monto exacto y vuelve a enviarnos el "
+            "comprobante con el clip 📎. Si ya lo hiciste, escríbenos y lo revisamos."
+        ))
+        return True, 'Se avisó al cliente'
+
+    @classmethod
+    def mark_payment_sent(cls, conv: ChatConversation, operator_id: int,
+                          file_storage=None) -> Tuple[bool, str]:
+        """
+        Pago enviado al cliente: adjunta el comprobante y completa la orden.
+
+        Args:
+            conv: Conversación del cliente.
+            operator_id: Operador que realiza el pago.
+            file_storage: Comprobante del operador (opcional).
+        """
+        from app.services.order_service import OrderService
+
+        order = cls.order_for_conversation(conv)
+        if order is None:
+            return False, 'No hay una orden activa en esta conversación'
+
+        proof_url = None
+        if file_storage is not None and file_storage.filename:
+            ok, mensaje, proof_url = cls._save_proof_file(
+                file_storage, f"{order.reference}_op"
+            )
+            if not ok:
+                return False, mensaje
+
+        ok, mensaje, _ = OrderService.complete_order(
+            order.id, operator_id, operator_proof_url=proof_url
+        )
+        if not ok:
+            return False, mensaje
+
+        texto = (
+            f"🎉 ¡Listo! Ya enviamos tu pago de la orden {order.reference}."
+        )
+        if proof_url:
+            texto += f"\n\n📎 Comprobante enviado: {proof_url}"
+        texto += (
+            "\n\nGracias por confiar en Ceiba21. "
+            "Cuando quieras hacer otra operación, escríbeme por aquí. ¡Hasta pronto! 👋"
+        )
+        cls.post_bot_notice(conv, texto)
+
+        cls._clear_bot_state(conv)
+        return True, 'Orden completada'
+
+    @classmethod
+    def _clear_bot_state(cls, conv: ChatConversation) -> None:
+        """Reiniciar la conversación del bot para permitir una nueva orden."""
+        try:
+            from app.bot.conversation_handler import ConversationHandler
+            user = User.query.get(conv.user_id) if conv.user_id else None
+            if user is not None:
+                ConversationHandler().clear_conversation(user)
+        except Exception as exc:
+            cls.log_error("No se pudo reiniciar el estado del bot", exc)
+
