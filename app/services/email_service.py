@@ -19,13 +19,26 @@ from email.message import EmailMessage
 from threading import Thread
 from typing import Optional
 
-from flask import current_app, render_template
+from flask import current_app
 
 from app.services.base_service import BaseService
 
 
 class EmailService(BaseService):
     """Composición y envío de correos transaccionales."""
+
+    @staticmethod
+    def _render(app, plantilla: str, **contexto) -> str:
+        """
+        Renderizar una plantilla de correo con Jinja directamente.
+
+        NO se usa ``render_template`` de Flask a propósito: esa función ejecuta
+        los *context processors* de la app (``current_client``, consentimiento
+        de cookies...), que leen ``session`` y **exigen una petición HTTP
+        activa**. Un correo debe poder enviarse desde un hilo, un script o un
+        cron, donde no hay petición alguna.
+        """
+        return app.jinja_env.get_template(plantilla).render(**contexto)
 
     @classmethod
     def _enviar_sync(cls, app, mensaje: EmailMessage) -> bool:
@@ -87,9 +100,9 @@ class EmailService(BaseService):
         if reply_to:
             mensaje['Reply-To'] = reply_to
 
-        mensaje.set_content(render_template(f'email/{plantilla}.txt', **contexto))
+        mensaje.set_content(cls._render(app, f'email/{plantilla}.txt', **contexto))
         mensaje.add_alternative(
-            render_template(f'email/{plantilla}.html', **contexto), subtype='html'
+            cls._render(app, f'email/{plantilla}.html', **contexto), subtype='html'
         )
 
         Thread(target=cls._enviar_sync, args=(app, mensaje), daemon=True).start()
