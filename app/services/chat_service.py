@@ -496,6 +496,27 @@ class ChatService(BaseService):
             'amount_usd': float(order.amount_usd or 0),
             'proof_url': order.payment_proof_url,
             'operator_proof_url': order.operator_proof_url,
+            # Pago conciliado automáticamente con la ingesta (si lo hay)
+            'payment': cls._pago_conciliado(order),
+        }
+
+    @classmethod
+    def _pago_conciliado(cls, order) -> Optional[dict]:
+        """Datos del pago que la conciliación vinculó a esta orden."""
+        from app.models.payment import Payment
+        from app.utils.fecha import hora_co
+
+        pago = Payment.query.filter_by(order_id=order.id).first()
+        if pago is None:
+            return None
+
+        return {
+            'id': pago.id,
+            'pagador': pago.pagador_nombre,
+            'importe': float(pago.importe_bruto or 0),
+            'moneda': pago.moneda,
+            'metodo': pago.metodo,
+            'hora': hora_co(pago.fecha_pago, '%d/%m %H:%M') if pago.fecha_pago else '',
         }
 
     @classmethod
@@ -590,6 +611,14 @@ class ChatService(BaseService):
             "Cuando quieras hacer otra operación, escríbeme por aquí. ¡Hasta pronto! 👋"
         )
         cls.post_bot_notice(conv, texto)
+
+        # Cierra el ciclo: el pago vinculado deja de estar pendiente en
+        # /dashboard/pagos sin tener que tocar el otro panel.
+        try:
+            from app.services.reconciliation_service import ReconciliationService
+            ReconciliationService.marcar_pagado(order)
+        except Exception as exc:
+            cls.log_error("No se pudo marcar el pago como PAGADO", exc)
 
         cls._clear_bot_state(conv)
         return True, 'Orden completada'

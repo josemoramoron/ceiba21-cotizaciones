@@ -808,6 +808,20 @@ class ConversationHandler:
             'buttons': None
         }
     
+    @staticmethod
+    def _buscar_pago_previo(order) -> None:
+        """Buscar un pago ya recibido que corresponda a esta orden.
+
+        Cubre el caso de que el cliente pague ANTES de terminar el flujo (o de
+        que el correo de la plataforma llegue primero). Best-effort: un fallo
+        aquí no debe romper la creación de la orden.
+        """
+        try:
+            from app.services.reconciliation_service import ReconciliationService
+            ReconciliationService.buscar_pago_para_orden(order)
+        except Exception as e:
+            logger.error(f"Error buscando pago previo de {order.reference}: {e}")
+
     def handle_proof_received(self, user: User, proof_url: str) -> Dict[str, Any]:
         """
         Procesar comprobante recibido.
@@ -845,6 +859,10 @@ class ConversationHandler:
                 
                 if success:
                     order.save()
+
+                    # El pago pudo llegar ANTES de que el cliente subiera el
+                    # comprobante: intentamos casarlo ya mismo.
+                    self._buscar_pago_previo(order)
                     
                     # ✅ SERIALIZAR order.reference AHORA
                     order_reference = order.reference

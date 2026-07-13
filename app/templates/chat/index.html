@@ -37,6 +37,8 @@
     .st-pending { background-color: #FEF3C7; color: #92400E; }
     .st-in_process { background-color: #DBEAFE; color: #1E3A8A; }
     .st-draft { background-color: var(--color-bg); color: var(--color-text-secondary); }
+    .pago-badge { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 0.78rem; background-color: #D1FAE5; color: #065F46; }
+    .pago-badge__none { margin-top: 8px; font-size: 0.75rem; color: var(--color-text-secondary); }
     .order-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
     .t-proof { display: block; margin-top: 6px; font-weight: 600; text-decoration: underline; }
     .t-proof-img { display: block; margin-top: 6px; max-width: 200px; border-radius: 8px; border: 1px solid var(--color-border); }
@@ -264,6 +266,19 @@
         top.appendChild(ref);
         top.appendChild(st);
         orderCard.appendChild(top);
+
+        // Pago conciliado automáticamente con la ingesta de correos
+        const pago = document.createElement('div');
+        if (o.payment) {
+            pago.className = 'pago-badge';
+            pago.textContent = '💰 Pago recibido: $' + o.payment.importe.toFixed(2)
+                + ' ' + (o.payment.moneda || '') + ' · ' + (o.payment.metodo || '')
+                + ' · ' + (o.payment.pagador || '') + ' · ' + (o.payment.hora || '');
+        } else {
+            pago.className = 'pago-badge__none';
+            pago.textContent = '⏳ Aún no detectamos el pago en la ingesta.';
+        }
+        orderCard.appendChild(pago);
 
         if (o.proof_url) {
             const a = document.createElement('a');

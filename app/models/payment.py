@@ -184,6 +184,11 @@ class Payment(BaseModel):
     )
 
     # ── Datos específicos del proveedor ───────────────────────────────
+    # Orden con la que se concilió este pago (ver ReconciliationService)
+    order_id = db.Column(
+        db.Integer, db.ForeignKey('orders.id'), nullable=True, index=True
+    )
+
     datos_extra = db.Column(
         MutableDict.as_mutable(JSONB),
         nullable=False,

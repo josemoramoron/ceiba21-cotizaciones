@@ -171,7 +171,23 @@ class UnifiedIngestionService:
             f"Pago guardado: {pago.metodo} | {pago.pagador_nombre} | "
             f"{pago.importe_bruto} {pago.moneda} | ID: {pago.id} | {pago.estado}"
         )
+
+        self._conciliar(pago)
         return pago
+
+    @staticmethod
+    def _conciliar(pago: Payment) -> None:
+        """Intentar casar el pago con una orden pendiente. Best-effort.
+
+        Un fallo aquí no debe abortar la ingesta: el pago ya está guardado y
+        siempre queda la conciliación manual desde el dashboard.
+        """
+        try:
+            from app.services.reconciliation_service import ReconciliationService
+            resultado = ReconciliationService.conciliar(pago)
+            logger.info(f"Conciliación del pago {pago.id}: {resultado}")
+        except Exception as exc:
+            logger.error(f"Error conciliando el pago {pago.id}: {exc}", exc_info=True)
 
     def crear_pago_manual(
         self,
