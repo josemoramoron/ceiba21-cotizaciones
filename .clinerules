@@ -66,3 +66,19 @@ Capas en orden estricto: Routes → Services → Models
 
 ## Acceso al Depositorio de Github
 - bash_tool con curl a raw.githubusercontent.com
+
+## Regla sobre contexto de petición (Flask)
+- Todo lo que corra FUERA de una petición HTTP (hilos con Thread, cron,
+  scripts, tareas de APScheduler) NO puede tocar `session`, `request`,
+  `current_client()` ni `render_template()`.
+- `render_template()` ejecuta los context processors de la app (consentimiento
+  de cookies, current_client), que leen `session` y exigen una petición activa.
+  Para renderizar fuera de una petición usar `app.jinja_env.get_template(...)`.
+- Las URLs absolutas (`url_for(..., _external=True)`) se construyen DENTRO de la
+  petición y se pasan ya hechas al hilo/tarea. Nunca generarlas en el hilo.
+- Nunca definir `SERVER_NAME` en desarrollo: además de las URLs, afecta al
+  enrutamiento y Flask empieza a rechazar peticiones cuyo Host no coincida
+  (rompe localhost:5000). Solo en producción.
+- Antes de mover código a un hilo o a un script, verificar qué dependencias de
+  contexto arrastra. Este patrón ya causó tres fallos: el Service Worker,
+  la pausa global del bot y el envío de correos.
