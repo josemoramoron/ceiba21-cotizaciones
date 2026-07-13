@@ -15,22 +15,31 @@ from app.services.reconciliation_service import (
 )
 
 
+# Centinela: permite distinguir "no me pasaron fecha" (usa la de por defecto)
+# de "me pasaron None a propósito" (pago sin fecha). Con `fecha or defecto` el
+# None se sustituía silenciosamente y el caso nunca llegaba a probarse.
+_SIN_VALOR = object()
+
+FECHA_PAGO = datetime(2026, 7, 12, 14, 30)
+FECHA_ORDEN = datetime(2026, 7, 12, 13, 45)
+
+
 def hacer_pago(importe=15.00, pagador='Jose Mora', metodo='paypal',
-               fecha=None, memo=None):
+               fecha=_SIN_VALOR, memo=None):
     """Pago falso con los campos que usa el puntaje."""
     return SimpleNamespace(
         id=1,
         importe_bruto=Decimal(str(importe)),
         pagador_nombre=pagador,
         metodo=metodo,
-        fecha_pago=fecha or datetime(2026, 7, 12, 14, 30),
+        fecha_pago=FECHA_PAGO if fecha is _SIN_VALOR else fecha,
         memo=memo,
         notas=None,
         order_id=None,
     )
 
 
-def hacer_orden(amount=15.00, holder='Jose Mora', creada=None,
+def hacer_orden(amount=15.00, holder='Jose Mora', creada=_SIN_VALOR,
                 reference='ORD-20260712-001'):
     """Orden falsa con los campos que usa el puntaje."""
     return SimpleNamespace(
@@ -38,7 +47,7 @@ def hacer_orden(amount=15.00, holder='Jose Mora', creada=None,
         reference=reference,
         amount_usd=Decimal(str(amount)),
         client_holder=holder,
-        created_at=creada or datetime(2026, 7, 12, 13, 45),
+        created_at=FECHA_ORDEN if creada is _SIN_VALOR else creada,
     )
 
 
@@ -138,9 +147,15 @@ class TestVentanaTemporal:
             hacer_pago(fecha=datetime(2026, 7, 15, 14, 0)),
             hacer_orden(creada=datetime(2026, 7, 12, 13, 0))) is False
 
-    def test_sin_fecha_no_es_candidato(self):
+    def test_pago_sin_fecha_no_es_candidato(self):
+        """Sin fecha de pago no se puede evaluar la ventana: no es candidato."""
         assert ReconciliationService._dentro_de_ventana(
             hacer_pago(fecha=None), hacer_orden()) is False
+
+    def test_orden_sin_fecha_no_es_candidata(self):
+        """Lo mismo si la orden no tiene fecha de creación."""
+        assert ReconciliationService._dentro_de_ventana(
+            hacer_pago(), hacer_orden(creada=None)) is False
 
 
 class TestReglasDeSeguridad:
