@@ -40,25 +40,8 @@
     <meta name="theme-color" content="var(--brand-yellow)">
     <meta name="mobile-web-app-capable" content="yes">
 
-    <!-- Tailwind CSS con config de colores Ceiba21 -->
-    <script>
-        // Config ANTES de cargar Tailwind
-        window.tailwind = {
-            config: {
-                theme: {
-                    extend: {
-                        colors: {
-                            'ceiba-yellow':      'var(--brand-yellow)',
-                            'ceiba-yellow-dark': 'var(--brand-yellow-dark)',
-                            'ceiba-black':       'var(--brand-black)',
-                            'ceiba-dark':        'var(--brand-black-light)',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS — build compilado local (antes: CDN en vivo, se caía en algunas redes) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-ceiba21.css') }}">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

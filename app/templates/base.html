@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Ceiba21 - Dashboard{% endblock %}</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS — build compilado local (antes: CDN en vivo, se caía en algunas redes) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-ceiba21.css') }}">
 
     <!-- Ceiba21 Design System -->
     <!-- Tokens de diseño (deben cargarse antes que style.css) -->
