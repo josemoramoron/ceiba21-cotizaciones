@@ -751,6 +751,10 @@ python -c "from app import create_app; app = create_app(); print('OK')"
 El deploy es un proceso de un solo comando desde la máquina de desarrollo:
 
 ```powershell
+# 0. Si tocaste clases de Tailwind en algun template, recompila el CSS
+#    (el Pi sirve el archivo ya compilado, no corre Node)
+npx tailwindcss@3 -i app/static/css/tailwind-input.css -o app/static/css/tailwind-ceiba21.css --config tailwind.config.js --minify
+
 # 1. Commit de los cambios
 git add -A
 git commit -m "descripción clara del cambio"
@@ -766,6 +770,8 @@ ssh ceiba21-local-webmaster "/var/www/cotizaciones/deploy.sh"
 1. `git pull` desde GitHub
 2. `pip install -r requirements.txt` (solo instala lo nuevo)
 3. `systemctl restart ceiba21`
+
+> El CSS de Tailwind se compila localmente (paso 0) y se versiona en git como un archivo estatico mas (`app/static/css/tailwind-ceiba21.css`) — el Raspberry Pi nunca necesita Node ni ejecuta ningun build, solo sirve el archivo tal cual.
 
 **SSH aliases configurados:**
 - `ceiba21-local-webmaster` → `192.168.20.13` (red local)

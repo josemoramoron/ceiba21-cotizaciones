@@ -5,10 +5,6 @@
 {% block extra_css %}
 <style>
     :root {
-        --c-yellow:      #F7D917;
-        --c-yellow-dark: #E5C500;
-        --c-dark:        #1A1A1A;
-        --c-dark2:       #2D2D2D;
         --c-green:       #10B981;
         --c-red:         #EF4444;
         --c-orange:      #F59E0B;
@@ -16,7 +12,7 @@
 
     /* ── Page header ── */
     .page-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
-    .page-title  { font-size:1.35rem; font-weight:800; color:var(--c-dark); }
+    .page-title  { font-size:1.35rem; font-weight:800; color:var(--brand-black); }
     .page-sub    { font-size:0.85rem; color:#6C757D; margin-top:0.15rem; }
 
     /* ── Grid layout ── */
@@ -33,7 +29,7 @@
         text-transform:uppercase; letter-spacing:0.06em;
         margin-bottom:1rem; display:flex; align-items:center; gap:0.4rem;
     }
-    .card-title i { color:var(--c-yellow); }
+    .card-title i { color:var(--brand-yellow); }
 
     /* ── Field row ── */
     .field-row { display:flex; justify-content:space-between; align-items:flex-start; padding:0.5rem 0; border-bottom:1px solid #F3F4F6; gap:1rem; }
@@ -43,30 +39,30 @@
 
     /* ── Monto highlight ── */
     .monto-big {
-        font-size:2.2rem; font-weight:900; color:var(--c-dark);
+        font-size:2.2rem; font-weight:900; color:var(--brand-black);
         line-height:1; margin:0.5rem 0;
     }
     .monto-label { font-size:0.8rem; color:#6C757D; font-weight:500; }
 
     /* ── Calculadora ── */
     .calc-section {
-        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+        background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);
         border-radius:0.65rem; padding:1.25rem; margin-bottom:1.25rem;
-        border:2px solid var(--c-yellow);
+        border:2px solid var(--brand-yellow);
     }
-    .calc-title { color:var(--c-yellow); font-size:0.85rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.4rem; }
+    .calc-title { color:var(--brand-yellow); font-size:0.85rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.4rem; }
 
     .calc-select {
         width:100%; padding:0.65rem 1rem;
         background:#fff; border:2px solid var(--color-border); border-radius:0.5rem;
-        font-size:0.9rem; font-weight:600; color:var(--c-dark);
+        font-size:0.9rem; font-weight:600; color:var(--brand-black);
         cursor:pointer; outline:none; transition:border-color 0.15s;
         appearance:none; -webkit-appearance:none;
         background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%231A1A1A' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
         background-repeat:no-repeat; background-position:right 0.9rem center;
         padding-right:2.5rem;
     }
-    .calc-select:focus { border-color:var(--c-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
+    .calc-select:focus { border-color:var(--brand-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
 
     .calc-result {
         background:rgba(247,217,23,0.1); border:1px solid rgba(247,217,23,0.3);
@@ -74,13 +70,13 @@
         display:none;
     }
     .calc-result.show { display:block; }
-    .calc-result-num { font-size:1.8rem; font-weight:900; color:var(--c-yellow); line-height:1; }
+    .calc-result-num { font-size:1.8rem; font-weight:900; color:var(--brand-yellow); line-height:1; }
     .calc-result-sub { font-size:0.78rem; color:var(--color-secondary-light); margin-top:0.3rem; }
 
     /* ── Botones ── */
     .btn-primary {
-        background: linear-gradient(135deg, var(--c-yellow) 0%, var(--c-yellow-dark) 100%);
-        color: var(--c-dark); font-weight:700; font-size:0.875rem;
+        background: linear-gradient(135deg, var(--brand-yellow) 0%, var(--brand-yellow-dark) 100%);
+        color: var(--brand-black); font-weight:700; font-size:0.875rem;
         padding:0.6rem 1.2rem; border-radius:0.5rem; border:none;
         cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
         transition: transform 0.15s, box-shadow 0.15s; width:100%; justify-content:center;
@@ -94,24 +90,24 @@
         cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
         transition:all 0.15s; text-decoration:none;
     }
-    .btn-ghost:hover { border-color:var(--c-dark); color:var(--c-dark); }
+    .btn-ghost:hover { border-color:var(--brand-black); color:var(--brand-black); }
 
     .btn-estado {
         font-size:0.8rem; font-weight:600; padding:0.4rem 0.85rem;
         border-radius:0.4rem; border:1px solid #DEE2E6; background:#fff;
         cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:0.3rem;
     }
-    .btn-estado:hover { border-color:var(--c-dark); }
-    .btn-estado.active { background:var(--c-dark); color:#fff; border-color:var(--c-dark); }
+    .btn-estado:hover { border-color:var(--brand-black); }
+    .btn-estado.active { background:var(--brand-black); color:#fff; border-color:var(--brand-black); }
 
     /* ── Textarea notas ── */
     .notes-input {
         width:100%; padding:0.65rem 1rem;
         border:2px solid var(--color-border); border-radius:0.5rem;
-        font-size:0.875rem; color:var(--c-dark); resize:vertical; min-height:90px;
+        font-size:0.875rem; color:var(--brand-black); resize:vertical; min-height:90px;
         outline:none; transition:border-color 0.15s; font-family:inherit;
     }
-    .notes-input:focus { border-color:var(--c-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
+    .notes-input:focus { border-color:var(--brand-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
 
     /* ── Badges ── */
     .badge {
@@ -175,7 +171,7 @@
     <div>
 
         <!-- Monto principal -->
-        <div class="detail-card" style="border-left:4px solid var(--c-yellow);">
+        <div class="detail-card" style="border-left:4px solid var(--brand-yellow);">
             <div class="card-title"><i class="fas fa-dollar-sign"></i> Montos del Pago</div>
 
             <div style="text-align:center; padding:0.5rem 0 1rem;">
@@ -371,7 +367,7 @@
             <!-- Notas -->
             <div style="margin-bottom:1rem;">
                 <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-secondary); display:block; margin-bottom:0.4rem;">
-                    <i class="fas fa-sticky-note" style="color:var(--c-yellow);"></i>
+                    <i class="fas fa-sticky-note" style="color:var(--brand-yellow);"></i>
                     Notas del operador
                 </label>
                 <textarea id="editNotas" class="notes-input"

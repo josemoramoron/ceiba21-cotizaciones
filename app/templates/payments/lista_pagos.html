@@ -5,7 +5,8 @@
 {% block extra_css %}
 <style>
     /* Alias locales -> variables del design system (adaptan a claro/oscuro).
-       --chrome / --chrome-2 son paneles SIEMPRE oscuros (igual que el navbar). */
+       Los paneles SIEMPRE oscuros usan var(--brand-black) / var(--brand-black-light)
+       directo (igual que el navbar), sin alias propio. */
     :root {
         --c-primary:      var(--color-primary);
         --c-primary-dark: var(--color-primary-dark);
@@ -19,8 +20,6 @@
         --c-text-2:       var(--color-text-secondary);
         --c-text-3:       var(--color-text-subtle);
         --c-text-body:    var(--color-text-body);
-        --chrome:         #1A1A1A;
-        --chrome-2:       #2D2D2D;
     }
 
     .page-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
@@ -42,7 +41,7 @@
 
     .btn-primary {
         background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
-        color:#1A1A1A; font-weight:700; font-size:0.875rem;
+        color:var(--brand-black); font-weight:700; font-size:0.875rem;
         padding:0.55rem 1.1rem; border-radius:0.5rem; border:none;
         cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
         transition: transform 0.15s, box-shadow 0.15s; text-decoration:none;
@@ -61,7 +60,7 @@
     .table-wrap { overflow-x:auto; border-radius:0.65rem; border:1px solid var(--c-border); }
     table { width:100%; border-collapse:collapse; }
     thead th {
-        background: linear-gradient(135deg, var(--chrome) 0%, var(--chrome-2) 100%);
+        background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);
         color:#fff; font-size:0.72rem; font-weight:700;
         text-transform:uppercase; letter-spacing:0.06em;
         padding:0.75rem 1rem; text-align:left; white-space:nowrap;
@@ -101,14 +100,14 @@
     .metodo-sub   { display:block; font-weight:600; color:var(--c-text-2); font-size:0.66rem; margin-top:0.2rem; text-transform:uppercase; letter-spacing:0.04em; }
 
     .btn-edit {
-        background: linear-gradient(135deg, var(--chrome) 0%, var(--chrome-2) 100%);
+        background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);
         border:1px solid var(--c-primary); color:var(--c-primary);
         font-size:0.75rem; font-weight:600; padding:0.35rem 0.7rem;
         border-radius:0.4rem; cursor:pointer;
         display:inline-flex; align-items:center; gap:0.3rem;
         transition:all 0.15s; text-decoration:none;
     }
-    .btn-edit:hover { background:var(--c-primary); color:#1A1A1A; }
+    .btn-edit:hover { background:var(--c-primary); color:var(--brand-black); }
 
     .filter-bar { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem; align-items:center; }
     .filter-btn {
@@ -118,7 +117,7 @@
         text-decoration:none;
     }
     .filter-btn:hover  { border-color:var(--c-text); color:var(--c-text); }
-    .filter-btn.active { background:var(--chrome); color:#fff; border-color:var(--chrome); }
+    .filter-btn.active { background:var(--brand-black); color:#fff; border-color:var(--brand-black); }
 
     @keyframes spin { to { transform:rotate(360deg); } }
     .spin { animation:spin 0.8s linear infinite; }
@@ -145,7 +144,7 @@
         cursor:pointer; text-decoration:none; transition:all 0.15s;
     }
     .page-btn:hover { border-color:var(--c-text); color:var(--c-text); }
-    .page-btn.active { background:var(--chrome); color:#fff; border-color:var(--chrome); }
+    .page-btn.active { background:var(--brand-black); color:#fff; border-color:var(--brand-black); }
     .page-btn.disabled { opacity:0.4; pointer-events:none; }
 </style>
 {% endblock %}

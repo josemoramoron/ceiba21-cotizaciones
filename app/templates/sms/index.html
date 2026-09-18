@@ -4,12 +4,12 @@
 
 {% block content %}
 <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold" style="color:#1A1A1A;">
+    <h1 class="text-2xl font-bold" style="color:var(--brand-black);">
         <i class="fas fa-comment-sms mr-2" style="color:var(--color-primary);"></i>Mensajería SMS
     </h1>
     <a href="{{ url_for('sms.send') }}"
        class="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
-       style="background-color:var(--color-primary); color:#1A1A1A;">
+       style="background-color:var(--color-primary); color:var(--brand-black);">
         <i class="fas fa-paper-plane mr-1"></i> Nuevo SMS
     </a>
 </div>
@@ -26,19 +26,19 @@
 <!-- Stats -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-xl p-4 shadow-sm">
-        <div class="text-3xl font-bold" style="color:#1A1A1A;" id="stat-unread">{{ unread }}</div>
+        <div class="text-3xl font-bold" style="color:var(--brand-black);" id="stat-unread">{{ unread }}</div>
         <div class="text-sm text-gray-500 mt-1"><i class="fas fa-envelope mr-1"></i>Sin leer</div>
     </div>
     <div class="bg-white rounded-xl p-4 shadow-sm">
-        <div class="text-3xl font-bold" style="color:#1A1A1A;">{{ recent_outbound|length }}</div>
+        <div class="text-3xl font-bold" style="color:var(--brand-black);">{{ recent_outbound|length }}</div>
         <div class="text-sm text-gray-500 mt-1"><i class="fas fa-paper-plane mr-1"></i>Enviados</div>
     </div>
     <div class="bg-white rounded-xl p-4 shadow-sm">
-        <div class="text-3xl font-bold" style="color:#1A1A1A;">{{ slots|selectattr('active')|list|length }}</div>
+        <div class="text-3xl font-bold" style="color:var(--brand-black);">{{ slots|selectattr('active')|list|length }}</div>
         <div class="text-sm text-gray-500 mt-1"><i class="fas fa-sim-card mr-1"></i>SIMs activas</div>
     </div>
     <div class="bg-white rounded-xl p-4 shadow-sm">
-        <div class="text-3xl font-bold" style="color:#1A1A1A;">{{ active_slot or '—' }}</div>
+        <div class="text-3xl font-bold" style="color:var(--brand-black);">{{ active_slot or '—' }}</div>
         <div class="text-sm text-gray-500 mt-1"><i class="fas fa-bullseye mr-1"></i>Slot activo</div>
     </div>
 </div>

@@ -6,7 +6,7 @@
 {% set seccion = 'Gestionar SIMs' %}
 {% include 'sms/_breadcrumb.html' %}
 <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold" style="color:#1A1A1A;">
+    <h1 class="text-2xl font-bold" style="color:var(--brand-black);">
         <i class="fas fa-sim-card mr-2" style="color:var(--color-primary);"></i>Gestionar SIMs
     </h1>
     <span class="text-sm text-gray-400">{{ total }} slots en el board</span>
@@ -41,7 +41,7 @@
             {% elif s.active %}
             <button onclick="usarSim({{ s.slot_number }})"
                     class="flex-1 text-sm px-3 py-1 rounded-lg font-semibold"
-                    style="background-color:var(--color-primary); color:#1A1A1A;">
+                    style="background-color:var(--color-primary); color:var(--brand-black);">
                 <i class="fas fa-play mr-1"></i>Usar
             </button>
             {% endif %}
@@ -69,7 +69,7 @@
                       class="w-full px-2 py-1 border border-gray-300 rounded text-sm">{{ s.notes or '' }}</textarea>
             <button type="submit"
                     class="w-full px-3 py-1 rounded-lg font-semibold text-sm"
-                    style="background-color:var(--color-primary); color:#1A1A1A;">Guardar</button>
+                    style="background-color:var(--color-primary); color:var(--brand-black);">Guardar</button>
         </form>
     </div>
     {% endfor %}

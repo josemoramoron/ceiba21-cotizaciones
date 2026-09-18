@@ -1,0 +1,17 @@
+# Normaliza todos los archivos de texto a LF en el repo, sin importar el SO
+# donde se editen (Windows crea CRLF por defecto). Evita que git marque como
+# "modificado" un archivo que solo cambio de fin de linea.
+* text=auto eol=lf
+
+# Binarios: nunca tocar
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.zip binary
+*.pdf binary

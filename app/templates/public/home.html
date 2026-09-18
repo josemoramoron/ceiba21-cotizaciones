@@ -5,7 +5,7 @@
 {% block content %}
 
 <!-- Hero Section -->
-<section class="relative overflow-hidden" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
+<section class="relative overflow-hidden" style="background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);">
     <div class="container mx-auto px-4 pt-8 pb-6 md:py-20 relative z-10">
         <div class="grid md:grid-cols-2 gap-6 md:gap-12 items-center">
 
@@ -14,7 +14,7 @@
                 <h1 class="font-bold mb-3 md:mb-6"
                     style="color: white; font-size: clamp(1.6rem, 5vw, 3.2rem); line-height: 1.2;">
                     Cambia divisas<br>
-                    <span style="color: #F7D917;">rápido y seguro</span>
+                    <span style="color: var(--brand-yellow);">rápido y seguro</span>
                 </h1>
                 <p class="mb-4 md:mb-8 text-sm md:text-xl" style="color: #B4BCC5;">
                     Las mejores tasas para PayPal, Zelle, USDT y más.
@@ -23,12 +23,12 @@
                 <!-- Botones solo en desktop -->
                 <div class="hidden md:flex space-x-4">
                     <a href="{{ url_for('public.cotizaciones') }}"
-                       style="background-color: #F7D917; color: #1A1A1A;"
+                       style="background-color: var(--brand-yellow); color: var(--brand-black);"
                        class="px-8 py-4 rounded-lg hover:opacity-90 transition font-bold text-lg">
                         <i class="fas fa-chart-line mr-2"></i> Ver Cotizaciones
                     </a>
                     <a href="{{ url_for('public.calculadora') }}"
-                       style="background-color: transparent; border: 2px solid #F7D917; color: #F7D917;"
+                       style="background-color: transparent; border: 2px solid var(--brand-yellow); color: var(--brand-yellow);"
                        class="px-8 py-4 rounded-lg hover:opacity-80 transition font-bold text-lg">
                         <i class="fas fa-calculator mr-2"></i> Calcular
                     </a>
@@ -48,7 +48,7 @@
                                 Actualizado hoy
                             </p>
                         </div>
-                        <i class="fas fa-coins text-2xl md:text-3xl" style="color: #F7D917;"></i>
+                        <i class="fas fa-coins text-2xl md:text-3xl" style="color: var(--brand-yellow);"></i>
                     </div>
 
                     <!-- Encabezados columnas -->
@@ -73,7 +73,7 @@
                              style="background-color: rgba(255,255,255,0.05);">
                             <span class="flex items-center gap-2 text-sm" style="color: #B4BCC5; width: 44%;">
                                 <i class="{{ icons[q.code.lower()] if q.code.lower() in icons else 'fas fa-coins' }}"
-                                   style="color: #F7D917; width: 14px;"></i>
+                                   style="color: var(--brand-yellow); width: 14px;"></i>
                                 {{ q.name }}
                             </span>
                             <span class="font-bold text-sm text-right" style="color: white; width: 28%;">
@@ -101,12 +101,12 @@
                          style="border-top: 1px solid rgba(247,217,23,0.15);">
                         <a href="{{ url_for('public.cotizaciones') }}"
                            class="text-sm font-medium hover:opacity-80 transition"
-                           style="color: #F7D917;">
+                           style="color: var(--brand-yellow);">
                             Ver todas las tasas →
                         </a>
                         <button onclick="compartirCotizaciones()"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-80 transition"
-                                style="background-color: rgba(247,217,23,0.12); color: #F7D917; border: 1px solid rgba(247,217,23,0.3);">
+                                style="background-color: rgba(247,217,23,0.12); color: var(--brand-yellow); border: 1px solid rgba(247,217,23,0.3);">
                             <i class="fas fa-share-alt"></i>
                             <span>Compartir</span>
                         </button>
@@ -135,32 +135,32 @@
         <div class="grid md:grid-cols-4 gap-8">
             <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
                 <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                     style="background: linear-gradient(135deg, #1A1A1A, #2D2D2D); border: 2px solid #F7D917;">
-                    <i class="fas fa-bolt text-2xl" style="color: #F7D917;"></i>
+                     style="background: linear-gradient(135deg, var(--brand-black), var(--brand-black-light)); border: 2px solid var(--brand-yellow);">
+                    <i class="fas fa-bolt text-2xl" style="color: var(--brand-yellow);"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2">Transacciones Rápidas</h3>
                 <p class="text-gray-600 text-sm">Procesamos tu cambio en minutos, no en días</p>
             </div>
             <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
                 <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                     style="background: linear-gradient(135deg, #1A1A1A, #2D2D2D); border: 2px solid #F7D917;">
-                    <i class="fas fa-shield-alt text-2xl" style="color: #F7D917;"></i>
+                     style="background: linear-gradient(135deg, var(--brand-black), var(--brand-black-light)); border: 2px solid var(--brand-yellow);">
+                    <i class="fas fa-shield-alt text-2xl" style="color: var(--brand-yellow);"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2">100% Seguro</h3>
                 <p class="text-gray-600 text-sm">Tus datos y transacciones están protegidos</p>
             </div>
             <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
                 <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                     style="background: linear-gradient(135deg, #1A1A1A, #2D2D2D); border: 2px solid #F7D917;">
-                    <i class="fas fa-star text-2xl" style="color: #F7D917;"></i>
+                     style="background: linear-gradient(135deg, var(--brand-black), var(--brand-black-light)); border: 2px solid var(--brand-yellow);">
+                    <i class="fas fa-star text-2xl" style="color: var(--brand-yellow);"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2">Mejores Tasas</h3>
                 <p class="text-gray-600 text-sm">Tasas competitivas actualizadas en tiempo real</p>
             </div>
             <div class="text-center p-6 rounded-lg hover:shadow-xl transition">
                 <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                     style="background: linear-gradient(135deg, #1A1A1A, #2D2D2D); border: 2px solid #F7D917;">
-                    <i class="fas fa-headset text-2xl" style="color: #F7D917;"></i>
+                     style="background: linear-gradient(135deg, var(--brand-black), var(--brand-black-light)); border: 2px solid var(--brand-yellow);">
+                    <i class="fas fa-headset text-2xl" style="color: var(--brand-yellow);"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2">Soporte 24/7</h3>
                 <p class="text-gray-600 text-sm">Estamos aquí para ayudarte cuando lo necesites</p>
@@ -206,19 +206,19 @@
 </section>
 
 <!-- CTA -->
-<section class="py-20 text-white" style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);">
+<section class="py-20 text-white" style="background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);">
     <div class="container mx-auto px-4 text-center">
         <h2 class="text-4xl font-bold mb-6">¿Listo para empezar?</h2>
         <p class="text-xl mb-8" style="color: #B4BCC5;">Únete a miles de clientes satisfechos</p>
         <div class="flex justify-center space-x-4">
             <a href="{{ url_for('public.calculadora') }}"
                class="px-8 py-4 rounded-lg font-bold hover:opacity-90 transition shadow-lg"
-               style="background-color: #F7D917; color: #1A1A1A;">
+               style="background-color: var(--brand-yellow); color: var(--brand-black);">
                 <i class="fas fa-calculator mr-2"></i> Calcular Cambio
             </a>
             <a href="#"
                class="px-8 py-4 rounded-lg font-bold transition"
-               style="border: 2px solid #F7D917; color: #F7D917;">
+               style="border: 2px solid var(--brand-yellow); color: var(--brand-yellow);">
                 <i class="fas fa-envelope mr-2"></i> Contáctanos
             </a>
         </div>

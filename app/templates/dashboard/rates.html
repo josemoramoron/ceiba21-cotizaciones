@@ -6,22 +6,18 @@
 <style>
     /* ── Shared Ceiba21 tokens ── */
     :root {
-        --c-yellow:      #F7D917;
-        --c-yellow-dark: #E5C500;
-        --c-dark:        #1A1A1A;
-        --c-dark2:       #2D2D2D;
         --c-accent:      #00B4D8;
     }
 
     /* ── Page header ── */
     .page-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
-    .page-title  { font-size:1.35rem; font-weight:800; color:var(--c-dark); }
+    .page-title  { font-size:1.35rem; font-weight:800; color:var(--brand-black); }
     .page-sub    { font-size:0.85rem; color:#6C757D; margin-top:0.15rem; }
 
     /* ── Buttons ── */
     .btn-primary {
-        background: linear-gradient(135deg, var(--c-yellow) 0%, var(--c-yellow-dark) 100%);
-        color: var(--c-dark);
+        background: linear-gradient(135deg, var(--brand-yellow) 0%, var(--brand-yellow-dark) 100%);
+        color: var(--brand-black);
         font-weight:700; font-size:0.875rem;
         padding:0.55rem 1.1rem; border-radius:0.5rem; border:none;
         cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;
@@ -30,11 +26,11 @@
     .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(247,217,23,0.4); }
 
     .btn-back {
-        color: var(--c-yellow-dark); font-weight:600; font-size:0.875rem;
+        color: var(--brand-yellow-dark); font-weight:600; font-size:0.875rem;
         display:inline-flex; align-items:center; gap:0.4rem; text-decoration:none;
         transition: color 0.15s;
     }
-    .btn-back:hover { color: var(--c-dark); }
+    .btn-back:hover { color: var(--brand-black); }
 
     .btn-manual {
         background:#10B981; color:#fff; font-size:0.8rem; font-weight:600;
@@ -44,24 +40,24 @@
     .btn-manual:hover { background:#059669; }
 
     .btn-api {
-        background: linear-gradient(135deg, var(--c-dark) 0%, var(--c-dark2) 100%);
-        border:1.5px solid var(--c-yellow); color:var(--c-yellow);
+        background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);
+        border:1.5px solid var(--brand-yellow); color:var(--brand-yellow);
         font-size:0.8rem; font-weight:600;
         padding:0.4rem 0.8rem; border-radius:0.45rem; border-style:solid; cursor:pointer;
         display:inline-flex; align-items:center; gap:0.35rem; transition:all 0.15s;
     }
-    .btn-api:hover { background:var(--c-yellow); color:var(--c-dark); }
+    .btn-api:hover { background:var(--brand-yellow); color:var(--brand-black); }
 
     /* ── Select all bar ── */
     .select-bar {
-        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
-        border:1px solid var(--c-yellow);
+        background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);
+        border:1px solid var(--brand-yellow);
         border-radius:0.65rem; padding:0.75rem 1.1rem;
         display:flex; justify-content:space-between; align-items:center;
         margin-bottom:1rem;
     }
     .select-bar label { color:#fff; font-weight:600; font-size:0.875rem; cursor:pointer; display:flex; align-items:center; gap:0.5rem; }
-    .select-bar input[type=checkbox] { accent-color:var(--c-yellow); width:1.1rem; height:1.1rem; }
+    .select-bar input[type=checkbox] { accent-color:var(--brand-yellow); width:1.1rem; height:1.1rem; }
     .select-bar span  { color:#8B949E; font-size:0.8rem; }
 
     /* ── Rate row card ── */
@@ -72,15 +68,15 @@
         transition: border-color 0.15s, box-shadow 0.15s;
         background:#fff;
     }
-    .rate-card:hover { border-color:var(--c-yellow); box-shadow:0 2px 10px rgba(247,217,23,0.15); }
+    .rate-card:hover { border-color:var(--brand-yellow); box-shadow:0 2px 10px rgba(247,217,23,0.15); }
 
-    .rate-card input[type=checkbox] { accent-color:var(--c-yellow); width:1.1rem; height:1.1rem; flex-shrink:0; }
+    .rate-card input[type=checkbox] { accent-color:var(--brand-yellow); width:1.1rem; height:1.1rem; flex-shrink:0; }
 
     .rate-label {
-        font-size:0.82rem; font-weight:600; color:#1A1A1A; margin-bottom:0.5rem;
+        font-size:0.82rem; font-weight:600; color:var(--brand-black); margin-bottom:0.5rem;
         display:flex; align-items:center; gap:0.35rem;
     }
-    .rate-label i { color:var(--c-yellow); }
+    .rate-label i { color:var(--brand-yellow); }
 
     .rate-input {
         width:16rem; padding:0.45rem 0.85rem;
@@ -88,24 +84,24 @@
         transition:border-color 0.15s, box-shadow 0.15s;
         outline:none;
     }
-    .rate-input:focus { border-color:var(--c-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
+    .rate-input:focus { border-color:var(--brand-yellow); box-shadow:0 0 0 3px rgba(247,217,23,0.2); }
 
     .rate-meta { text-align:right; flex-shrink:0; }
     .rate-meta p { font-size:0.72rem; color:#6C757D; margin-bottom:0.2rem; }
 
-    .badge-api    { background:#1A1A1A; color:var(--c-yellow); font-size:0.7rem; padding:0.2rem 0.55rem; border-radius:9999px; font-weight:600; }
+    .badge-api    { background:var(--brand-black); color:var(--brand-yellow); font-size:0.7rem; padding:0.2rem 0.55rem; border-radius:9999px; font-weight:600; }
     .badge-manual-tag { background:#D1FAE5; color:#065F46; font-size:0.7rem; padding:0.2rem 0.55rem; border-radius:9999px; font-weight:600; }
 
     /* ── Info bar ── */
     .info-bar {
         margin-top:1.25rem; padding:0.75rem 1rem;
-        background:#FFFDE7; border-left:4px solid var(--c-yellow);
+        background:var(--brand-yellow-light); border-left:4px solid var(--brand-yellow);
         border-radius:0 0.5rem 0.5rem 0; font-size:0.82rem; color:#5a4a00;
     }
 
     /* ── Progress modal ── */
-    .modal-header-icon { color:var(--c-yellow); }
-    #progressBar { background: linear-gradient(90deg, var(--c-yellow) 0%, var(--c-yellow-dark) 100%); }
+    .modal-header-icon { color:var(--brand-yellow); }
+    #progressBar { background: linear-gradient(90deg, var(--brand-yellow) 0%, var(--brand-yellow-dark) 100%); }
 
     /* ── Toast ── */
     .toast-success { border-left-color:#10B981 !important; }
