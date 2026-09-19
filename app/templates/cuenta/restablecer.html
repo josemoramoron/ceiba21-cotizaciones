@@ -17,6 +17,7 @@
     {% endwith %}
 
     <form method="POST" action="{{ url_for('cuenta.restablecer', token=token) }}" class="space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div>
         <label class="block text-sm font-medium mb-1">Nueva contraseña</label>
         <input type="password" name="password" required minlength="8" autocomplete="new-password"

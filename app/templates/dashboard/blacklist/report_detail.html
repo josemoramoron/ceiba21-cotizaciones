@@ -227,6 +227,7 @@
         <div class="detail-card-header yellow"><i class="fas fa-sync-alt"></i> Actualizar Estado</div>
         <div class="detail-card-body">
             <form method="POST" action="{{ url_for('blacklist.update_status', blacklist_id=entry.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-grid-2" style="margin-bottom:1rem;">
                     <div>
                         <label class="form-label">Nuevo Estado</label>

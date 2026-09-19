@@ -9,6 +9,7 @@ from app.models import db
 from flask_caching import Cache
 from flask_session import Session
 from flask_login import LoginManager
+from flask_wtf import CSRFProtect
 from redis import Redis
 
 # Instancias globales
@@ -16,6 +17,7 @@ cache = Cache()
 redis_client = None
 sess = Session()
 login_manager = LoginManager()
+csrf = CSRFProtect()
 
 def create_app(config_class=Config):
     """Factory para crear la aplicación"""
@@ -88,6 +90,7 @@ def create_app(config_class=Config):
     sess.init_app(app)
     db.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
     
     # Filtros Jinja personalizados
     from app.utils import formato_eu, hora_co

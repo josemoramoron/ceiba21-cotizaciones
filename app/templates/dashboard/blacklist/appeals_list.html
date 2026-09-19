@@ -185,6 +185,7 @@
                             <p style="font-size:0.8rem; font-weight:600; color:var(--color-text-secondary); margin-bottom:0.35rem;">Texto de la apelación:</p>
                             <div class="appeal-text">{{ appeal.appeal_text }}</div>
                             <form method="POST" action="{{ url_for('blacklist.review_appeal', appeal_id=appeal.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div style="margin-bottom:1rem;">
                                     <label class="form-label">Decisión</label>
                                     <select name="decision" class="form-select" required>

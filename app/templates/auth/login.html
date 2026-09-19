@@ -166,6 +166,7 @@
             {% endwith %}
 
             <form method="POST" action="{{ url_for('auth.login') }}" autocomplete="on">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <!-- Usuario -->
                 <div style="margin-bottom: 1.25rem;">
                     <label for="username">

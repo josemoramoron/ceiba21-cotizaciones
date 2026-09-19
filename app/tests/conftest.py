@@ -2,6 +2,7 @@
 Configuración base para todos los tests de Ceiba21.
 """
 import pytest
+import redis as _redis
 from app import create_app, db as _db
 
 
@@ -15,6 +16,12 @@ def app():
         'WTF_CSRF_ENABLED': False,
         'REDIS_URL': 'redis://localhost:6379/1'  # BD 1 separada para tests
     })
+    # Limpia la BD 1 de Redis al inicio de cada corrida de pytest. Sin esto,
+    # contadores que persisten en Redis entre corridas separadas (ej. el
+    # rate limit de /auth/login) se van acumulando cada vez que se corre la
+    # suite completa varias veces seguidas, y terminan haciendo fallar tests
+    # que no tienen nada que ver con lo que realmente se está probando.
+    _redis.Redis(host='localhost', port=6379, db=1).flushdb()
     yield app
 
 

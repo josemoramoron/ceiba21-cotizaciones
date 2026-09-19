@@ -15,6 +15,7 @@ from app.decorators import require_roles
 from app.models.operator import OperatorRole
 from app.models.sim_slot import SimSlot
 from app.services.sms_service import SmsService
+from app import csrf
 
 sms_bp = Blueprint('sms', __name__, url_prefix='/dashboard/sms')
 
@@ -197,6 +198,7 @@ def _webhook_token_valido() -> bool:
 
 
 @sms_bp.route('/webhook/incoming', methods=['POST'])
+@csrf.exempt
 def webhook_incoming():
     """Recibe SMS entrantes desde el gateway Android."""
     if not _webhook_token_valido():
@@ -209,6 +211,7 @@ def webhook_incoming():
 
 
 @sms_bp.route('/webhook/status', methods=['POST'])
+@csrf.exempt
 def webhook_status():
     """Recibe actualizaciones de estado de entrega desde el gateway."""
     if not _webhook_token_valido():

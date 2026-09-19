@@ -139,6 +139,7 @@
 
     <!-- Rate cards -->
     <form method="POST" id="ratesForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {% for rate in rates %}
         <div class="rate-card">
             <input type="checkbox"

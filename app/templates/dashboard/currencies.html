@@ -106,6 +106,7 @@
                     <td>
                         <div style="display:flex; justify-content:center; gap:0.4rem; flex-wrap:wrap;">
                             <form method="POST" action="{{ url_for('dashboard.toggle_currency', currency_id=currency.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="{% if currency.active %}btn-toggle-on{% else %}btn-toggle-off{% endif %}">
                                     <i class="fas fa-{% if currency.active %}eye-slash{% else %}eye{% endif %}"></i>
                                     {% if currency.active %}Desactivar{% else %}Activar{% endif %}
@@ -140,6 +141,7 @@
     <div class="modal-card">
         <div class="modal-title"><i class="fas fa-plus-circle"></i> Agregar Nueva Moneda</div>
         <form method="POST" action="{{ url_for('dashboard.add_currency') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div style="display:flex; flex-direction:column; gap:1rem;">
                 <div>
                     <label class="form-label">Código * (3 letras)</label>
@@ -173,6 +175,7 @@
     <div class="modal-card">
         <div class="modal-title"><i class="fas fa-edit"></i> Editar Moneda</div>
         <form method="POST" id="editForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div style="display:flex; flex-direction:column; gap:1rem;">
                 <div>
                     <label class="form-label">Código</label>

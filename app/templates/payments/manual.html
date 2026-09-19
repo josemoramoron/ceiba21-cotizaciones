@@ -62,7 +62,7 @@
     </div>
 
     <form method="POST" action="{{ url_for('pagos.crear_manual') }}" class="manual-form" id="formManual">
-
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-row">
             <label for="selMetodo">Método de pago <span class="req">*</span></label>
             <select name="metodo" id="selMetodo" required>

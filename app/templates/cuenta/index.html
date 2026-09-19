@@ -22,6 +22,7 @@
         Verifica tu correo para activar todos los servicios.
       </span>
       <form method="POST" action="{{ url_for('cuenta.reenviar_verificacion') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="text-sm font-semibold px-3 py-1.5 rounded-lg"
                 style="background-color: var(--brand-yellow); color: var(--brand-black);">
           Reenviar correo

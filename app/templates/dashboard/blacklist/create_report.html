@@ -127,7 +127,7 @@
     </div>
 
     <form method="POST" enctype="multipart/form-data">
-
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Identificadores -->
         <div class="section-card">
             <div class="section-title"><i class="fas fa-user"></i> Identificadores del Usuario</div>
