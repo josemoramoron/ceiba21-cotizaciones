@@ -82,6 +82,7 @@ Capas en orden estricto: Routes → Services → Models
 - Antes de mover código a un hilo o a un script, verificar qué dependencias de
   contexto arrastra. Este patrón ya causó tres fallos: el Service Worker,
   la pausa global del bot y el envío de correos.
+
 ## Reglas de seguridad
 1. Secretos críticos en producción (SECRET_KEY, tokens de firma, etc.):
    fail-fast con RuntimeError al arrancar si faltan o siguen en su valor de
