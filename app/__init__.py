@@ -150,6 +150,15 @@ def _register_context_processors(app):
             'cookie_cfg': CookieConsentService.get_client_config(),
         }
 
+    # Año actual para el copyright del footer de public_base.html.
+    # No todas las rutas pasan `now` a la plantilla (solo cotizaciones/dashboard
+    # lo hacen para sus propios usos), así que el footer necesita su propia
+    # variable siempre disponible en vez de depender de eso.
+    @app.context_processor
+    def inject_current_year():
+        from datetime import datetime
+        return {'current_year': datetime.now().year}
+
 
 def _maybe_start_ingestion_scheduler(app):
     """

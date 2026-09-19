@@ -200,6 +200,14 @@
         }
         [data-theme="dark"] .mobile-action-bar span { color: #E6EDF3; }
 
+        /* ─── Botón flotante de contacto: en móvil hay que subirlo por
+               encima de la barra de acción fija (.mobile-action-bar, ~65px
+               + el margen de seguridad del notch), si no queda tapado.
+               Mismo ajuste que ya tiene .chat-panel más abajo. ─────── */
+        @media (max-width: 767px) {
+            #contactMenu { bottom: calc(88px + env(safe-area-inset-bottom)); }
+        }
+
         /* ─── Banner de cookies ──────────────────────── */
         .cookie-banner {
             position: fixed;
@@ -339,17 +347,19 @@
                     <i class="fas fa-download text-xs"></i>
                     <span>Instalar</span>
                 </button>
-                <button id="menuToggle" class="text-2xl nav-text">
+                <button id="menuToggle" class="text-2xl nav-text p-2 -mr-2 rounded-lg hover:bg-gray-100 transition" aria-label="Abrir menú">
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
         </div>
 
         <!-- Menú móvil desplegable -->
-        <div id="mobile-menu" class="hidden md:hidden pb-4 space-y-3">
-            <div class="flex justify-center py-2">
-                <button id="themeToggleMobile" class="p-3 rounded-lg hover:bg-gray-100 transition" aria-label="Cambiar tema">
+        <div id="mobile-menu" class="hidden md:hidden pb-4 px-4 -mx-4 space-y-3 rounded-b-2xl shadow-xl"
+             style="background-color: var(--nav-bg);">
+            <div class="flex justify-center py-2 border-b" style="border-color: var(--nav-border);">
+                <button id="themeToggleMobile" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition" aria-label="Cambiar tema">
                     <i class="fas fa-moon text-xl nav-text" id="themeIconMobile"></i>
+                    <span class="text-sm font-medium nav-text" id="themeLabelMobile">Modo oscuro</span>
                 </button>
             </div>
             <a href="{{ url_for('public.home') }}"        class="block py-2 nav-text">Inicio</a>
@@ -374,6 +384,9 @@
         </div>
     </div>
 </nav>
+
+<!-- Fondo semitransparente detrás del menú móvil desplegable -->
+<div id="mobileMenuBackdrop" class="hidden md:hidden fixed inset-0 z-30" style="background-color: rgba(0,0,0,0.4);"></div>
 
 <!-- Contenido principal -->
 <main>
@@ -428,7 +441,7 @@
             </div>
         </div>
         <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2025 Ceiba21. Todos los derechos reservados.</p>
+            <p>&copy; {{ current_year }} Ceiba21. Todos los derechos reservados.</p>
         </div>
     </div>
 </footer>
@@ -703,6 +716,11 @@
             }
         });
 
+        const themeLabelMobile = document.getElementById('themeLabelMobile');
+        if (themeLabelMobile) {
+            themeLabelMobile.textContent = theme === 'dark' ? 'Modo claro' : 'Modo oscuro';
+        }
+
         // Las variables CSS manejan el navbar automáticamente
         // No se necesita JS para cambiar colores del nav
     }
@@ -721,8 +739,18 @@
     document.getElementById('themeToggleMobile')?.addEventListener('click', toggleTheme);
 
     // ── Menú móvil ───────────────────────────────────────
+    function setMobileMenuOpen(open) {
+        document.getElementById('mobile-menu')?.classList.toggle('hidden', !open);
+        document.getElementById('mobileMenuBackdrop')?.classList.toggle('hidden', !open);
+    }
+
     document.getElementById('menuToggle')?.addEventListener('click', function () {
-        document.getElementById('mobile-menu').classList.toggle('hidden');
+        const isHidden = document.getElementById('mobile-menu')?.classList.contains('hidden');
+        setMobileMenuOpen(!!isHidden);
+    });
+
+    document.getElementById('mobileMenuBackdrop')?.addEventListener('click', function () {
+        setMobileMenuOpen(false);
     });
 
     // ── Menú radial de contacto ──────────────────────────

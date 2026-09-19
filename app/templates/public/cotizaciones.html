@@ -2,6 +2,26 @@
 
 {% block title %}Cotizaciones en Tiempo Real - Ceiba21{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* En pantallas angostas, la tabla de tasas desbordaba ~30px del ancho
+       visible (columna COP cortada) sin ninguna señal de que era
+       desplazable. Con menos padding en las celdas alcanza para que quepan
+       las 3 columnas sin necesidad de scroll horizontal. */
+    @media (max-width: 480px) {
+        .rates-table-wrap table th,
+        .rates-table-wrap table td {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        .rates-table-wrap table .font-bold.text-base,
+        .rates-table-wrap table .font-semibold.text-base {
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <section class="py-8 md:py-12" style="background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);">
@@ -41,7 +61,7 @@
 	</div>
 
 	<!-- Tabla de Cotizaciones (SIN header redundante) -->
-	<div class="overflow-x-auto rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border);">
+	<div class="overflow-x-auto rounded-lg rates-table-wrap" style="background-color: var(--color-surface); border: 1px solid var(--color-border);">
 	    <table class="min-w-full">
 	        <thead style="background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);">
 	            <tr>
