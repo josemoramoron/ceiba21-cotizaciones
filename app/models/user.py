@@ -6,6 +6,10 @@ from app.models import db
 from app.models.base import BaseModel
 from typing import Optional, Dict, Any
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class User(BaseModel):
     """
@@ -211,7 +215,8 @@ class User(BaseModel):
             try:
                 from app.models.order import Order
                 data['orders_count'] = Order.query.filter_by(user_id=self.id).count()
-            except:
+            except Exception as e:
+                logger.warning(f"No se pudo calcular orders_count para user {self.id}: {e}")
                 data['orders_count'] = 0
         
         return data

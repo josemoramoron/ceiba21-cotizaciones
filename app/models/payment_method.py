@@ -6,6 +6,10 @@ from typing import List, Optional
 
 from app.models import db
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PaymentMethod(db.Model):
     __tablename__ = 'payment_methods'
@@ -112,6 +116,7 @@ class PaymentMethod(db.Model):
         elif self.value_type == 'formula' and self.usd_formula:
             try:
                 return float(eval(self.usd_formula))
-            except:
+            except Exception as e:
+                logger.warning(f"Formula USD invalida en payment_method {self.id} ({self.usd_formula!r}): {e}")
                 return 1.0
         return 1.0

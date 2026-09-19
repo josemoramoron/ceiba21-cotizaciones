@@ -82,7 +82,7 @@ def create_report():
         if data.get('block_type') == 'TEMPORARY' and data.get('expires_at'):
             try:
                 expires_at = datetime.strptime(data.get('expires_at'), '%Y-%m-%d')
-            except:
+            except ValueError:
                 flash('Fecha de expiración inválida', 'error')
                 return redirect(url_for('blacklist.create_report'))
         

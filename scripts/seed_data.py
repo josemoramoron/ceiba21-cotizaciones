@@ -8,6 +8,10 @@ sys.path.insert(0, '/var/www/cotizaciones')
 from app import create_app
 from app.models import db, Currency, PaymentMethod, Quote, ExchangeRate
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def seed_currencies():
     """Crear las 4 monedas principales"""
     currencies = [
@@ -150,7 +154,8 @@ def seed_quotes():
                     # Evaluar fórmula
                     try:
                         calc_usd = eval(formula)
-                    except:
+                    except Exception as e:
+                        logger.warning(f"Formula USD invalida ({formula!r}) para {code}: {e}")
                         calc_usd = 1.0
                 
                 # Obtener tasa de cambio

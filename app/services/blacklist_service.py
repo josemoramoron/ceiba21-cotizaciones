@@ -906,8 +906,8 @@ class BlacklistService(BaseService):
                         reason=reason,
                         operator_id=None
                     )
-                except:
-                    pass
+                except Exception as e:
+                    cls.log_error('cancel_pending_order_failed', {'order_id': order.id, 'error': str(e)})
                     
         except Exception as e:
             cls.log_error('cancel_pending_orders_failed', {'error': str(e)})

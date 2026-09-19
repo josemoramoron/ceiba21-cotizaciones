@@ -10,6 +10,10 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, Dict, Any, List
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class OperatorRole(Enum):
     """
@@ -338,7 +342,8 @@ class Operator(BaseModel, UserMixin):
                 data['assigned_orders_count'] = Order.query.filter_by(
                     operator_id=self.id
                 ).count()
-            except:
+            except Exception as e:
+                logger.warning(f"No se pudo calcular assigned_orders_count para operator {self.id}: {e}")
                 data['assigned_orders_count'] = 0
         
         return data

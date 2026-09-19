@@ -144,5 +144,5 @@ class ImageService(BaseService):
         """Obtener tamaño de archivo en MB"""
         try:
             return os.path.getsize(filepath) / (1024 * 1024)
-        except:
+        except OSError:
             return 0.0

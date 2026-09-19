@@ -3,6 +3,10 @@ Servicio de Métodos de Pago (POO)
 """
 from app.models import db, PaymentMethod, Quote, Currency
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class PaymentMethodService:
     """Servicio para gestionar métodos de pago"""
     
@@ -104,7 +108,8 @@ class PaymentMethodService:
         elif value_type == 'formula' and usd_formula:
             try:
                 calc_usd = eval(usd_formula)
-            except:
+            except Exception as e:
+                logger.warning(f"Formula USD invalida ({usd_formula!r}) al crear cotizaciones para {pm.code}: {e}")
                 calc_usd = 1.0
         else:
             calc_usd = 1.0

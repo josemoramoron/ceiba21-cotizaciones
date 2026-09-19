@@ -129,7 +129,7 @@ def check_bot_status():
                     bot_running = True
                     print(f"   ✅ Bot corriendo (PID: {proc.info['pid']})\n")
                     break
-            except:
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
         
         if not bot_running:

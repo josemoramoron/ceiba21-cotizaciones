@@ -51,7 +51,7 @@ def is_bot_enabled() -> bool:
     try:
         status = redis_client.get('bot_enabled')
         return status == '1'
-    except:
+    except redis.exceptions.RedisError:
         return True
 
 

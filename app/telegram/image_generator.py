@@ -54,14 +54,14 @@ class TelegramImageGenerator:
                 font_title = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 80)
                 draw.text((self.width//2, 60), 'CEIBA21', fill=self.yellow, 
                          font=font_title, anchor='mm')
-            except:
+            except OSError:
                 # Fallback si no hay fuente
                 draw.text((self.width//2, 60), 'CEIBA21', fill=self.yellow, anchor='mm')
         
         # Fecha y hora
         try:
             font_date = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 28)
-        except:
+        except OSError:
             font_date = ImageFont.load_default()
             
         now = datetime.now().strftime('%d/%m/%Y %H:%M')
@@ -71,7 +71,7 @@ class TelegramImageGenerator:
         # Título de cotizaciones
         try:
             font_subtitle = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 48)
-        except:
+        except OSError:
             font_subtitle = ImageFont.load_default()
             
         draw.text((self.width//2, start_y + 80), 'MEJORES TASAS DEL MERCADO', 
@@ -85,7 +85,7 @@ class TelegramImageGenerator:
         try:
             font_quote = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 42)
             font_rate = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 46)
-        except:
+        except OSError:
             font_quote = font_rate = ImageFont.load_default()
         
         quote_y = line_y + 60
@@ -110,7 +110,7 @@ class TelegramImageGenerator:
         footer_y = self.height - 100
         try:
             font_footer = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 36)
-        except:
+        except OSError:
             font_footer = ImageFont.load_default()
             
         draw.text((self.width//2, footer_y), 'La mejor tasa del mercado', 
