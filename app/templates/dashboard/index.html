@@ -92,9 +92,11 @@
     /* ── Table ── */
     .quotes-table-wrap {
         border-radius: 0.75rem;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
         border: 1px solid #DEE2E6;
         box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        -webkit-overflow-scrolling: touch;
     }
     .quotes-table thead tr {
         background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);

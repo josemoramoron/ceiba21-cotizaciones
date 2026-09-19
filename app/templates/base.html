@@ -67,6 +67,9 @@
             border-top: 1px solid #DEE2E6;
         }
 
+        /* ── Main: evita que contenido ancho (tablas) fuerce overflow horizontal de toda la pagina en flexbox ── */
+        .dash-main { min-width: 0; }
+
         /* ── Main padding bottom en móvil para la barra ── */
         @media (max-width: 767px) {
             .dash-main { padding-bottom: 5rem; }
@@ -79,7 +82,7 @@
 
 <!-- ── Navbar ── -->
 <nav class="text-white shadow-lg sticky top-0 z-50"
-     style="background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);">
+     style="width: 100%; background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%);">
     <div class="container mx-auto px-4">
         <div class="flex justify-between items-center py-3 md:py-4">
 
@@ -103,16 +106,16 @@
                     <i class="fas fa-user-circle mr-1"></i>
                     {{ session.get('username', 'Admin') }}
                 </span>
-                <a href="{{ url_for('auth.logout') }}"
-                   class="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition text-sm">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span class="hidden md:inline"> Salir</span>
-                </a>
                 <a href="/"
                    class="px-3 py-2 rounded-lg transition text-sm font-semibold"
                    style="background-color: var(--brand-yellow); color: var(--brand-black);">
                     <i class="fas fa-home"></i>
                     <span class="hidden md:inline"> Inicio</span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}"
+                   class="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition text-sm">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="hidden md:inline"> Salir</span>
                 </a>
             </div>
         </div>
@@ -230,14 +233,14 @@
                     <i class="fas fa-user-circle text-gray-400"></i>
                     <span>{{ session.get('username', 'Admin') }}</span>
                 </div>
-                <a href="{{ url_for('auth.logout') }}"
-                   class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition">
-                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
-                </a>
                 <a href="/"
                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
                    style="background-color: var(--brand-yellow); color: var(--brand-black);">
                     <i class="fas fa-home"></i> Ir al sitio
+                </a>
+                <a href="{{ url_for('auth.logout') }}"
+                   class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
                 </a>
             </div>
         </div>
