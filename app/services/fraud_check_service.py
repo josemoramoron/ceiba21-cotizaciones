@@ -111,6 +111,98 @@ class FraudCheckService(BaseService):
     # ==========================================
     
     @classmethod
+    def _check_phone_numverify(cls, phone: str) -> Optional[Dict[str, Any]]:
+        """
+        Intenta validar el telefono con Numverify.
+
+        Devuelve el dict de resultado si Numverify respondio 200, o None si
+        la respuesta no fue exitosa (en ese caso check_phone NO cae a
+        Twilio -- ver comentario en check_phone sobre el if/elif).
+        """
+        risk_points = 0
+        flags = []
+
+        response = requests.get(
+            'http://apilayer.net/api/validate',
+            params={
+                'access_key': cls.NUMVERIFY_API_KEY,
+                'number': phone,
+                'format': 1
+            },
+            timeout=cls.REQUEST_TIMEOUT
+        )
+
+        if response.status_code != 200:
+            return None
+
+        data = response.json()
+
+        # Verificar validez
+        if not data.get('valid'):
+            risk_points += 20
+            flags.append('invalid_number')
+
+        # Verificar tipo de línea
+        line_type = data.get('line_type', '').lower()
+        if line_type == 'mobile':
+            risk_points += 0  # Normal
+        elif line_type in ['voip', 'virtual', 'paging']:
+            risk_points += 30
+            flags.append('voip_number')
+        elif line_type == 'toll_free':
+            risk_points += 50
+            flags.append('toll_free_number')
+
+        return {
+            'valid': data.get('valid'),
+            'country': data.get('country_name'),
+            'country_code': data.get('country_code'),
+            'line_type': data.get('line_type'),
+            'carrier': data.get('carrier'),
+            'risk_points': risk_points,
+            'flags': flags,
+            'provider': 'numverify'
+        }
+
+    @classmethod
+    def _check_phone_twilio(cls, phone: str) -> Optional[Dict[str, Any]]:
+        """
+        Intenta validar el telefono con Twilio Lookup (requiere cuenta de pago).
+
+        Devuelve el dict de resultado, o None si la llamada fallo (el error
+        ya queda registrado con cls.log_error antes de devolver None).
+        """
+        try:
+            from twilio.rest import Client
+            client = Client(cls.TWILIO_ACCOUNT_SID, cls.TWILIO_AUTH_TOKEN)
+
+            phone_number = client.lookups.v1.phone_numbers(phone).fetch(
+                type=['carrier']
+            )
+
+            risk_points = 0
+            flags = []
+
+            # Analizar tipo de portador
+            carrier_type = phone_number.carrier.get('type', '').lower()
+            if carrier_type in ['voip', 'landline']:
+                risk_points += 20
+                flags.append(f'{carrier_type}_number')
+
+            return {
+                'valid': True,
+                'country': phone_number.country_code,
+                'line_type': carrier_type,
+                'carrier': phone_number.carrier.get('name'),
+                'risk_points': risk_points,
+                'flags': flags,
+                'provider': 'twilio'
+            }
+        except Exception as e:
+            cls.log_error('twilio_lookup_failed', {'error': str(e)})
+            return None
+
+    @classmethod
     def check_phone(cls, phone: str) -> Dict[str, Any]:
         """
         Verificar número de teléfono usando Numverify o Twilio.
@@ -135,83 +227,22 @@ class FraudCheckService(BaseService):
                 'provider': str
             }
         """
-        risk_points = 0
-        flags = []
-        
         try:
-            # Intentar con Numverify primero (API gratuita)
+            # Se usa Numverify O Twilio segun cual este configurado -- no es
+            # una cadena de fallback: si Numverify esta configurado pero su
+            # respuesta no es exitosa, NO se intenta Twilio, se va directo
+            # al resultado neutral de abajo (asi se comportaba el original).
             if cls.NUMVERIFY_API_KEY:
-                response = requests.get(
-                    'http://apilayer.net/api/validate',
-                    params={
-                        'access_key': cls.NUMVERIFY_API_KEY,
-                        'number': phone,
-                        'format': 1
-                    },
-                    timeout=cls.REQUEST_TIMEOUT
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    # Verificar validez
-                    if not data.get('valid'):
-                        risk_points += 20
-                        flags.append('invalid_number')
-                    
-                    # Verificar tipo de línea
-                    line_type = data.get('line_type', '').lower()
-                    if line_type == 'mobile':
-                        risk_points += 0  # Normal
-                    elif line_type in ['voip', 'virtual', 'paging']:
-                        risk_points += 30
-                        flags.append('voip_number')
-                    elif line_type == 'toll_free':
-                        risk_points += 50
-                        flags.append('toll_free_number')
-                    
-                    return {
-                        'valid': data.get('valid'),
-                        'country': data.get('country_name'),
-                        'country_code': data.get('country_code'),
-                        'line_type': data.get('line_type'),
-                        'carrier': data.get('carrier'),
-                        'risk_points': risk_points,
-                        'flags': flags,
-                        'provider': 'numverify'
-                    }
-            
-            # Fallback: Twilio Lookup (requiere cuenta de pago)
+                result = cls._check_phone_numverify(phone)
+                if result is not None:
+                    return result
             elif cls.TWILIO_ACCOUNT_SID and cls.TWILIO_AUTH_TOKEN:
-                try:
-                    from twilio.rest import Client
-                    client = Client(cls.TWILIO_ACCOUNT_SID, cls.TWILIO_AUTH_TOKEN)
-                    
-                    phone_number = client.lookups.v1.phone_numbers(phone).fetch(
-                        type=['carrier']
-                    )
-                    
-                    # Analizar tipo de portador
-                    carrier_type = phone_number.carrier.get('type', '').lower()
-                    if carrier_type in ['voip', 'landline']:
-                        risk_points += 20
-                        flags.append(f'{carrier_type}_number')
-                    
-                    return {
-                        'valid': True,
-                        'country': phone_number.country_code,
-                        'line_type': carrier_type,
-                        'carrier': phone_number.carrier.get('name'),
-                        'risk_points': risk_points,
-                        'flags': flags,
-                        'provider': 'twilio'
-                    }
-                except Exception as e:
-                    cls.log_error('twilio_lookup_failed', {'error': str(e)})
-        
+                result = cls._check_phone_twilio(phone)
+                if result is not None:
+                    return result
         except Exception as e:
             cls.log_error('phone_check_failed', {'error': str(e), 'phone': phone})
-        
+
         # Si falla o no hay API configurada, retornar neutral
         return {
             'valid': None,

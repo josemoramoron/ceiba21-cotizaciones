@@ -524,6 +524,43 @@ class ConversationHandler:
         data = self.get_data(user)
         return Responses.confirm_calculation_message(data)
     
+    _TIP_5_LINEAS_BANCARIAS = (
+        '\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:'
+        '\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono'
+    )
+
+    def _validate_bank_data_bundle(self, bank_name: str, account: str, holder: str,
+                                    dni: str, phone: str, country: str):
+        """
+        Valida los 5 campos bancarios enviados juntos (banco, cuenta, titular,
+        DNI, teléfono), en ese orden -- es el mismo orden en que se pide uno
+        por uno en el flujo normal.
+
+        Devuelve (True, {'bank':..., 'account':..., 'holder':..., 'dni':...,
+        'phone':...}) con los valores ya normalizados por cada validador, o
+        (False, {'text': ..., 'buttons': None}) con el mensaje del primer
+        campo que falle.
+        """
+        checks = [
+            ('bank', 'Banco', lambda: self.parser.validate_bank_name(bank_name)),
+            ('account', 'Cuenta', lambda: self.parser.validate_account(account, country)),
+            ('holder', 'Titular', lambda: self.parser.validate_holder_name(holder)),
+            ('dni', 'DNI', lambda: self.parser.validate_dni(dni, country)),
+            ('phone', 'Teléfono', lambda: self.parser.validate_phone(phone, country)),
+        ]
+
+        validated = {}
+        for key, label, validator in checks:
+            is_valid, value, error = validator()
+            if not is_valid:
+                return False, {
+                    'text': f'❌ {label} inválido: {error}{self._TIP_5_LINEAS_BANCARIAS}',
+                    'buttons': None
+                }
+            validated[key] = value
+
+        return True, validated
+
     def _handle_enter_bank(self, user: User, message: str) -> Dict[str, Any]:
         """
         Handler para ENTER_BANK con detección inteligente de múltiples líneas.
@@ -544,58 +581,16 @@ class ConversationHandler:
         
         # Caso 1: Usuario envió todo junto (5 líneas: banco, cuenta, titular, DNI, teléfono)
         if len(lines) == 5:
-            bank_name = lines[0]
-            account = lines[1]
-            holder = lines[2]
-            dni = lines[3]
-            phone = lines[4]
-            
-            # Validar banco
-            is_valid_bank, bank_name, error_bank = self.parser.validate_bank_name(bank_name)
-            if not is_valid_bank:
-                return {
-                    'text': f'❌ Banco inválido: {error_bank}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Validar cuenta
-            is_valid_account, account, error_account = self.parser.validate_account(account, country)
-            if not is_valid_account:
-                return {
-                    'text': f'❌ Cuenta inválida: {error_account}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Validar titular
-            is_valid_holder, holder, error_holder = self.parser.validate_holder_name(holder)
-            if not is_valid_holder:
-                return {
-                    'text': f'❌ Titular inválido: {error_holder}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Validar DNI
-            is_valid_dni, dni, error_dni = self.parser.validate_dni(dni, country)
-            if not is_valid_dni:
-                return {
-                    'text': f'❌ DNI inválido: {error_dni}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
-            # Validar teléfono
-            is_valid_phone, phone, error_phone = self.parser.validate_phone(phone, country)
-            if not is_valid_phone:
-                return {
-                    'text': f'❌ Teléfono inválido: {error_phone}\n\n⚠️ Tip: Envía los datos uno por uno o todos juntos en 5 líneas:\n1. Banco\n2. Cuenta\n3. Titular\n4. DNI\n5. Teléfono',
-                    'buttons': None
-                }
-            
+            bank_name, account, holder, dni, phone = lines
+
+            is_valid, result = self._validate_bank_data_bundle(
+                bank_name, account, holder, dni, phone, country
+            )
+            if not is_valid:
+                return result
+
             # Todo válido! Guardar todos los datos
-            data['bank'] = bank_name
-            data['account'] = account
-            data['holder'] = holder
-            data['dni'] = dni
-            data['phone'] = phone
+            data.update(result)
             self.set_data(user, data)
             
             # Crear orden directamente (saltar estados intermedios)

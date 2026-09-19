@@ -532,121 +532,140 @@ def test_api_providers():
     	'total': len(providers)
     })
     
+_TELEGRAM_METHOD_ICONS = {
+    'PayPal': '💳', 'Zelle': '💵', 'USDT': '₿',
+    'Wise': '🏦', 'Zinli': '💸', 'Binance': '🔶',
+    'Venmo': '💰', 'Airtm': '🔷', 'Payoneer': '🎯',
+    'Skrill': '⚡', 'Epay china': '🏮', 'Euro €': '💶',
+    'REF': '📊'
+}
+
+
+def _quotes_para_imagen(payment_methods, currency, currency_code):
+    """Cotizaciones en el formato que espera TelegramImageGenerator (rate numérico)."""
+    quotes_data = []
+    for pm in payment_methods:
+        quote = QuoteService.get_by_method_and_currency(pm.id, currency.id)
+        if quote:
+            quotes_data.append({
+                'name': pm.name,
+                'icon': _TELEGRAM_METHOD_ICONS.get(pm.name, '💱'),
+                'rate': round(quote.final_value, 2),
+                'currency': currency_code
+            })
+    return quotes_data
+
+
+def _quotes_para_vista_previa(payment_methods, currency, rate_format):
+    """Cotizaciones formateadas como string (rate_format tipo '{:.2f}') para el preview del formulario."""
+    quotes = []
+    for pm in payment_methods:
+        quote = QuoteService.get_by_method_and_currency(pm.id, currency.id)
+        if quote:
+            quotes.append({
+                'name': pm.name,
+                'icon': _TELEGRAM_METHOD_ICONS.get(pm.name, '💱'),
+                'rate': rate_format.format(quote.final_value)
+            })
+    return quotes
+
+
+def _procesar_publicacion_telegram():
+    """
+    Maneja el POST de /dashboard/telegram: arma la imagen y publica en el canal.
+
+    Devuelve un redirect cuando la operación debe cortar ahí (config
+    incompleta, moneda no encontrada, sin cotizaciones, o publicación
+    exitosa). Devuelve None cuando debe caer al render del formulario de
+    abajo con el flash ya puesto -- es lo que hacía el código original
+    cuando fallaba la publicación o se colaba una excepción, y se preserva
+    igual aquí.
+    """
+    token = os.getenv('TELEGRAM_BOT_TOKEN')
+    channel_id = os.getenv('TELEGRAM_CHANNEL_ID')
+
+    if not token or not channel_id:
+        flash('Error: Configuración de Telegram incompleta en .env', 'error')
+        return redirect(url_for('dashboard.telegram_publisher'))
+
+    publication_type = request.form.get('publication_type', 'full_ves')
+    currency_code = 'VES' if publication_type == 'full_ves' else 'COP'
+
+    payment_methods = PaymentMethodService.get_public_ordered(limit=6)
+    currency = CurrencyService.get_by_code(currency_code)
+
+    if not currency:
+        flash(f'❌ Moneda {currency_code} no encontrada', 'error')
+        return redirect(url_for('dashboard.telegram_publisher'))
+
+    quotes_data = _quotes_para_imagen(payment_methods, currency, currency_code)
+
+    if not quotes_data:
+        flash('❌ No hay cotizaciones disponibles', 'error')
+        return redirect(url_for('dashboard.telegram_publisher'))
+
+    custom_image_path = None
+    if 'custom_image' in request.files:
+        file = request.files['custom_image']
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            filepath = os.path.join('app/static/img/telegram_posts', filename)
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            file.save(filepath)
+            custom_image_path = filepath
+
+    generator = TelegramImageGenerator()
+    image_path = generator.generate_quotes_image(quotes_data, custom_image_path)
+
+    custom_message = request.form.get('custom_message', '').strip()
+
+    publisher = TelegramPublisher(token, channel_id)
+    result = publisher.publish_quotes_sync(image_path, custom_message or None)
+
+    if result['success']:
+        flash(f'✅ Publicado exitosamente en Telegram!', 'success')
+        return redirect(url_for('dashboard.telegram_publisher'))
+
+    flash(f'❌ Error al publicar: {result["error"]}', 'error')
+    return None
+
+
+def _preview_cotizaciones_telegram():
+    """Arma las listas VES/COP para la vista previa del formulario (GET)."""
+    quotes_ves = []
+    quotes_cop = []
+
+    try:
+        payment_methods = PaymentMethodService.get_public_ordered(limit=6)
+        currency_ves = CurrencyService.get_by_code('VES')
+        currency_cop = CurrencyService.get_by_code('COP')
+
+        if currency_ves:
+            quotes_ves = _quotes_para_vista_previa(payment_methods, currency_ves, '{:.2f}')
+
+        if currency_cop:
+            quotes_cop = _quotes_para_vista_previa(payment_methods, currency_cop, '{:,.2f}')
+
+    except Exception as e:
+        flash(f'⚠️ Error al cargar vista previa: {str(e)}', 'warning')
+
+    return quotes_ves, quotes_cop
+
+
 @dashboard_bp.route('/telegram', methods=['GET', 'POST'])
 @login_required
 def telegram_publisher():
     """Publicar cotizaciones en Telegram"""
     if request.method == 'POST':
         try:
-            token = os.getenv('TELEGRAM_BOT_TOKEN')
-            channel_id = os.getenv('TELEGRAM_CHANNEL_ID')
-
-            if not token or not channel_id:
-                flash('Error: Configuración de Telegram incompleta en .env', 'error')
-                return redirect(url_for('dashboard.telegram_publisher'))
-
-            publication_type = request.form.get('publication_type', 'full_ves')
-
-            icons = {
-                'PayPal': '💳', 'Zelle': '💵', 'USDT': '₿',
-                'Wise': '🏦', 'Zinli': '💸', 'Binance': '🔶',
-                'Venmo': '💰', 'Airtm': '🔷', 'Payoneer': '🎯',
-                'Skrill': '⚡', 'Epay china': '🏮', 'Euro €': '💶',
-                'REF': '📊'
-            }
-
-            currency_code = 'VES' if publication_type == 'full_ves' else 'COP'
-            currency_symbol = 'Bs' if publication_type == 'full_ves' else '$COP'
-
-            # Obtener datos vía Services
-            payment_methods = PaymentMethodService.get_public_ordered(limit=6)
-            currency = CurrencyService.get_by_code(currency_code)
-
-            if not currency:
-                flash(f'❌ Moneda {currency_code} no encontrada', 'error')
-                return redirect(url_for('dashboard.telegram_publisher'))
-
-            quotes_data = []
-            for pm in payment_methods:
-                quote = QuoteService.get_by_method_and_currency(pm.id, currency.id)
-                if quote:
-                    quotes_data.append({
-                        'name': pm.name,
-                        'icon': icons.get(pm.name, '💱'),
-                        'rate': round(quote.final_value, 2),
-                        'currency': currency_code
-                    })
-
-            if not quotes_data:
-                flash('❌ No hay cotizaciones disponibles', 'error')
-                return redirect(url_for('dashboard.telegram_publisher'))
-
-            custom_image_path = None
-            if 'custom_image' in request.files:
-                file = request.files['custom_image']
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join('app/static/img/telegram_posts', filename)
-                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-                    file.save(filepath)
-                    custom_image_path = filepath
-
-            generator = TelegramImageGenerator()
-            image_path = generator.generate_quotes_image(quotes_data, custom_image_path)
-
-            custom_message = request.form.get('custom_message', '').strip()
-
-            publisher = TelegramPublisher(token, channel_id)
-            result = publisher.publish_quotes_sync(image_path, custom_message or None)
-
-            if result['success']:
-                flash(f'✅ Publicado exitosamente en Telegram!', 'success')
-                return redirect(url_for('dashboard.telegram_publisher'))
-            else:
-                flash(f'❌ Error al publicar: {result["error"]}', 'error')
-
+            respuesta = _procesar_publicacion_telegram()
+            if respuesta is not None:
+                return respuesta
         except Exception as e:
             flash(f'❌ Error: {str(e)}', 'error')
 
-    # GET: Mostrar formulario con datos de vista previa
-    quotes_ves = []
-    quotes_cop = []
-
-    try:
-        icons = {
-            'PayPal': '💳', 'Zelle': '💵', 'USDT': '₿',
-            'Wise': '🏦', 'Zinli': '💸', 'Binance': '🔶',
-            'Venmo': '💰', 'Airtm': '🔷', 'Payoneer': '🎯',
-            'Skrill': '⚡', 'Epay china': '🏮', 'Euro €': '💶',
-            'REF': '📊'
-        }
-
-        payment_methods = PaymentMethodService.get_public_ordered(limit=6)
-        currency_ves = CurrencyService.get_by_code('VES')
-        currency_cop = CurrencyService.get_by_code('COP')
-
-        if currency_ves:
-            for pm in payment_methods:
-                quote = QuoteService.get_by_method_and_currency(pm.id, currency_ves.id)
-                if quote:
-                    quotes_ves.append({
-                        'name': pm.name,
-                        'icon': icons.get(pm.name, '💱'),
-                        'rate': f"{quote.final_value:.2f}"
-                    })
-
-        if currency_cop:
-            for pm in payment_methods:
-                quote = QuoteService.get_by_method_and_currency(pm.id, currency_cop.id)
-                if quote:
-                    quotes_cop.append({
-                        'name': pm.name,
-                        'icon': icons.get(pm.name, '💱'),
-                        'rate': f"{quote.final_value:,.2f}"
-                    })
-
-    except Exception as e:
-        flash(f'⚠️ Error al cargar vista previa: {str(e)}', 'warning')
+    # GET (o POST que cayó sin redirect): mostrar formulario con vista previa
+    quotes_ves, quotes_cop = _preview_cotizaciones_telegram()
 
     return render_template('dashboard/telegram.html',
                          quotes_ves=quotes_ves,
