@@ -6,6 +6,7 @@ from app.services.base_service import BaseService
 from app.models import db, Order, OrderStatus, User, Operator, Currency, PaymentMethod, Transaction
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, date
+from app.utils.fecha import utcnow_naive
 
 
 class OrderService(BaseService):
@@ -387,7 +388,7 @@ class OrderService(BaseService):
             
             # Agregar nota existente
             current_notes = order.operator_notes or ""
-            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = utcnow_naive().strftime("%Y-%m-%d %H:%M:%S")
             operator = Operator.find_by_id(operator_id)
             operator_name = operator.username if operator else f"Operador #{operator_id}"
             

@@ -1,5 +1,5 @@
 from app.models import db
-from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import List, Optional
 
 class Currency(db.Model):
@@ -19,7 +19,7 @@ class Currency(db.Model):
     name = db.Column(db.String(100), nullable=False)
     symbol = db.Column(db.String(10))
     active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow_naive)
     display_order = db.Column(db.Integer, default=0)
     
     # Relaciones
@@ -99,7 +99,7 @@ class Currency(db.Model):
             currency_id=self.id,
             rate=rate,
             source_type='manual',
-            updated_at=datetime.utcnow()
+            updated_at=utcnow_naive()
         )
         
         db.session.add(new_rate)
@@ -151,7 +151,7 @@ class Currency(db.Model):
                         usd_value=reference_quote.usd_value,
                         usd_formula=reference_quote.usd_formula,
                         calculated_usd=reference_quote.calculated_usd,
-                        updated_at=datetime.utcnow()
+                        updated_at=utcnow_naive()
                     )
                 else:
                     # Fallback: usar valor por defecto solo si no hay referencia
@@ -161,7 +161,7 @@ class Currency(db.Model):
                         value_type='manual',
                         usd_value=1.0,
                         usd_formula=None,
-                        updated_at=datetime.utcnow()
+                        updated_at=utcnow_naive()
                     )
                 
                 # Calcular valor final con la tasa de cambio de la nueva moneda

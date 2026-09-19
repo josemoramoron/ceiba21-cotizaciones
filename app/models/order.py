@@ -5,6 +5,7 @@ Entidad central del negocio con máquina de estados.
 from app.models import db
 from app.models.base import BaseModel
 from datetime import datetime, date
+from app.utils.fecha import utcnow_naive
 from enum import Enum
 from typing import Optional, Dict, Any, List, Tuple
 
@@ -263,15 +264,15 @@ class Order(BaseModel):
         
         # Actualizar timestamps y datos según el estado
         if new_status == OrderStatus.PENDING:
-            self.submitted_at = datetime.utcnow()
+            self.submitted_at = utcnow_naive()
         
         elif new_status == OrderStatus.IN_PROCESS:
-            self.assigned_at = datetime.utcnow()
+            self.assigned_at = utcnow_naive()
             if operator:
                 self.operator_id = operator.id
         
         elif new_status == OrderStatus.COMPLETED:
-            self.completed_at = datetime.utcnow()
+            self.completed_at = utcnow_naive()
             # Crear transacciones automáticamente
             self._create_transactions()
             # Actualizar estadísticas de usuario
@@ -281,11 +282,11 @@ class Order(BaseModel):
             if self.operator:
                 processing_time = None
                 if self.assigned_at:
-                    processing_time = int((datetime.utcnow() - self.assigned_at).total_seconds())
+                    processing_time = int((utcnow_naive() - self.assigned_at).total_seconds())
                 self.operator.update_stats(processing_time)
         
         elif new_status == OrderStatus.CANCELLED:
-            self.cancelled_at = datetime.utcnow()
+            self.cancelled_at = utcnow_naive()
             self.cancellation_reason = reason or "Sin razón especificada"
         
         if self.save():

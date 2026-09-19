@@ -5,6 +5,7 @@ Historial completo de conversaciones entre usuarios, bots y operadores.
 from app.models import db
 from app.models.base import BaseModel
 from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import Optional, Dict, Any, List
 
 
@@ -73,7 +74,7 @@ class Message(BaseModel):
         """
         if not self.is_read:
             self.is_read = True
-            self.read_at = datetime.utcnow()
+            self.read_at = utcnow_naive()
             return self.save()
         return True
     

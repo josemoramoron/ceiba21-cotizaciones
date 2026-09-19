@@ -7,6 +7,7 @@ from app.models.base import BaseModel
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from datetime import datetime, timedelta
+from app.utils.fecha import utcnow_naive
 from typing import Optional, Dict, Any
 import secrets
 
@@ -138,7 +139,7 @@ class WebUser(BaseModel, UserMixin):
             >>> web_user.save()
         """
         self.verification_token = secrets.token_urlsafe(32)
-        self.verification_sent_at = datetime.utcnow()
+        self.verification_sent_at = utcnow_naive()
         return self.verification_token
     
     def verify_email(self, token: str) -> bool:
@@ -178,7 +179,7 @@ class WebUser(BaseModel, UserMixin):
             >>> web_user.save()
         """
         self.reset_token = secrets.token_urlsafe(32)
-        self.reset_token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+        self.reset_token_expires_at = utcnow_naive() + timedelta(seconds=expires_in)
         return self.reset_token
     
     def verify_reset_token(self, token: str) -> bool:
@@ -194,7 +195,7 @@ class WebUser(BaseModel, UserMixin):
         if self.reset_token != token:
             return False
         
-        if self.reset_token_expires_at and self.reset_token_expires_at < datetime.utcnow():
+        if self.reset_token_expires_at and self.reset_token_expires_at < utcnow_naive():
             return False
         
         return True
@@ -240,7 +241,7 @@ class WebUser(BaseModel, UserMixin):
         Returns:
             bool: True si se actualizó exitosamente
         """
-        self.last_login_at = datetime.utcnow()
+        self.last_login_at = utcnow_naive()
         return self.save()
     
     def link_to_user(self, user: 'User') -> bool:
@@ -430,7 +431,7 @@ class WebUser(BaseModel, UserMixin):
         Returns:
             Lista de usuarios registrados recientemente
         """
-        since = datetime.utcnow() - timedelta(days=days)
+        since = utcnow_naive() - timedelta(days=days)
         
         return cls.query.filter(
             cls.created_at >= since

@@ -16,6 +16,7 @@ from app.models.user import User
 from app.models.order import Order, OrderStatus
 from app.models import db
 from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import Optional, Dict, Any, List, Tuple
 from sqlalchemy import or_
 import json
@@ -272,7 +273,7 @@ class BlacklistService(BaseService):
         if not reason:
             return False, "Debes proporcionar una razón para desbloquear"
 
-        entry.unblocked_at = datetime.utcnow()
+        entry.unblocked_at = utcnow_naive()
         entry.unblocked_by_operator_id = operator_id
         entry.unblock_reason = reason
 
@@ -763,7 +764,7 @@ class BlacklistService(BaseService):
                 return False, "Decisión inválida. Debe ser 'approved' o 'rejected'"
 
             appeal.status = AppealStatus.APPROVED if decision == 'approved' else AppealStatus.REJECTED
-            appeal.reviewed_at = datetime.utcnow()
+            appeal.reviewed_at = utcnow_naive()
             appeal.reviewed_by_operator_id = operator_id
             appeal.decision = decision
             appeal.decision_reason = decision_reason

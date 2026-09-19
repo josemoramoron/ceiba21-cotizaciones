@@ -8,6 +8,7 @@ enlazado por ``user_id``. El estado ``bot_paused`` controla si el bot responde
 (Fase 2); en la operación manual (Fase 1) arranca en pausa.
 """
 from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import List, Optional
 
 from app.models import db
@@ -50,7 +51,7 @@ class ChatConversation(BaseModel):
 
     def touch(self, for_operator: bool = False) -> None:
         """Actualizar marca temporal y (opcional) contador de no leídos."""
-        self.last_message_at = datetime.utcnow()
+        self.last_message_at = utcnow_naive()
         if for_operator:
             self.unread_for_operator = (self.unread_for_operator or 0) + 1
 

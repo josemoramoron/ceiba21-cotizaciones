@@ -10,7 +10,7 @@ RESPONSABILIDADES:
 from app.models import db
 from app.models.base import BaseModel
 from enum import Enum
-from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import Optional, Dict, Any, List
 from sqlalchemy import or_
 
@@ -104,7 +104,7 @@ class BlacklistEntry(BaseModel):
     blocked_by_operator_id = db.Column(db.Integer, db.ForeignKey('operators.id'))
     
     # Fechas
-    blocked_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    blocked_at = db.Column(db.DateTime, default=utcnow_naive, nullable=False)
     expires_at = db.Column(db.DateTime)  # Solo para TEMPORARY
     
     # Desbloqueo
@@ -148,7 +148,7 @@ class BlacklistEntry(BaseModel):
         
         # Si es temporal, verificar expiración
         if self.block_type == BlacklistType.TEMPORARY:
-            if self.expires_at and self.expires_at < datetime.utcnow():
+            if self.expires_at and self.expires_at < utcnow_naive():
                 return False
         
         return True
@@ -240,7 +240,7 @@ class BlacklistAppeal(BaseModel):
     status = db.Column(db.Enum(AppealStatus), default=AppealStatus.PENDING, nullable=False)
     
     # Fechas
-    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    submitted_at = db.Column(db.DateTime, default=utcnow_naive, nullable=False)
     reviewed_at = db.Column(db.DateTime)
     
     # Revisión por operador

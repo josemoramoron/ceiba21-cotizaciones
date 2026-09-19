@@ -15,6 +15,7 @@ from app.services.blacklist_service import BlacklistService
 from app.services.image_service import ImageService
 from app.models.blacklist import BlacklistEntry, BlacklistCategory, BlacklistType, BlacklistStatus
 from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from sqlalchemy import or_
 
 blacklist_bp = Blueprint('blacklist', __name__, url_prefix='/dashboard/blacklist')
@@ -380,7 +381,7 @@ def edit_report(blacklist_id):
         entry.reporter_name = data.get('reporter_name', entry.reporter_name)
         
         # Registrar auditoría de edición
-        entry.last_edited_at = datetime.utcnow()
+        entry.last_edited_at = utcnow_naive()
         entry.last_edited_by_operator_id = current_user.id
         
         if entry.save():

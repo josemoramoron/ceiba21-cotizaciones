@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import create_app
+from app.utils.fecha import utcnow_naive
 from app.models.order import Order, OrderStatus
 
 DEFAULT_HOURS = 48
@@ -36,7 +37,7 @@ def main() -> int:
 
     app = create_app()
     with app.app_context():
-        limite = datetime.utcnow() - timedelta(hours=args.hours)
+        limite = utcnow_naive() - timedelta(hours=args.hours)
 
         abandonadas = (
             Order.query

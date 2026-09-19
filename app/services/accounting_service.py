@@ -18,6 +18,7 @@ from app.models.order import Order, OrderStatus
 from app.models import db
 from datetime import datetime, timedelta, date
 from sqlalchemy import func
+from app.utils.fecha import limites_dia_bogota, BOGOTA_UTC_OFFSET
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -111,9 +112,9 @@ class AccountingService(BaseService):
         """
         # Establecer fechas por defecto (hoy)
         if not start_date:
-            start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date, _ = limites_dia_bogota()
         if not end_date:
-            end_date = datetime.now()
+            _, end_date = limites_dia_bogota()
         
         # Consultar transacciones del período
         transactions = Transaction.query.filter(
@@ -179,9 +180,9 @@ class AccountingService(BaseService):
             }
         """
         if not start_date:
-            start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date, _ = limites_dia_bogota()
         if not end_date:
-            end_date = datetime.now()
+            _, end_date = limites_dia_bogota()
         
         transactions = Transaction.query.filter(
             Transaction.currency_code == currency_code,
@@ -230,9 +231,9 @@ class AccountingService(BaseService):
             Ganancias: $131.85
         """
         if not start_date:
-            start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date, _ = limites_dia_bogota()
         if not end_date:
-            end_date = datetime.now()
+            _, end_date = limites_dia_bogota()
         
         # Usar SQLAlchemy func.sum con coalesce para manejar NULL
         result = db.session.query(
@@ -304,9 +305,9 @@ class AccountingService(BaseService):
         USO: Para gráfico de pie en dashboard
         """
         if not start_date:
-            start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date, _ = limites_dia_bogota()
         if not end_date:
-            end_date = datetime.now()
+            _, end_date = limites_dia_bogota()
         
         # Query con join
         results = db.session.query(
@@ -383,9 +384,9 @@ class AccountingService(BaseService):
             ]
         """
         if not start_date:
-            start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date, _ = limites_dia_bogota()
         if not end_date:
-            end_date = datetime.now()
+            _, end_date = limites_dia_bogota()
         
         results = db.session.query(
             Currency.code,
@@ -417,8 +418,8 @@ class AccountingService(BaseService):
             >>> summary = AccountingService.get_today_summary()
             >>> print(f"Hoy ganamos: ${summary['total_fees_usd']}")
         """
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        return cls.get_balance_summary(today_start, datetime.now())
+        today_start, today_end = limites_dia_bogota()
+        return cls.get_balance_summary(today_start, today_end)
     
     @classmethod
     def compare_with_yesterday(cls) -> Dict[str, Any]:
@@ -435,8 +436,7 @@ class AccountingService(BaseService):
             }
         """
         # Hoy
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = datetime.now()
+        today_start, today_end = limites_dia_bogota()
         today_fees = cls.get_total_fees(today_start, today_end)
         
         # Ayer
@@ -480,16 +480,17 @@ class AccountingService(BaseService):
             
         USO: Para gráfico de línea de tendencia
         """
-        start_date = datetime.now() - timedelta(days=days)
+        inicio_hoy, _ = limites_dia_bogota()
+        start_date = inicio_hoy - timedelta(days=days)
         
         results = db.session.query(
-            func.date(Transaction.created_at).label('date'),
+            func.date(Transaction.created_at - BOGOTA_UTC_OFFSET).label('date'),
             func.sum(Transaction.amount).label('total_fees')
         ).filter(
             Transaction.type == TransactionType.FEE,
             Transaction.currency_code == 'USD',
             Transaction.created_at >= start_date
-        ).group_by(func.date(Transaction.created_at)).order_by('date').all()
+        ).group_by(func.date(Transaction.created_at - BOGOTA_UTC_OFFSET)).order_by('date').all()
         
         return [
             {

@@ -5,6 +5,7 @@ Sistema de contabilidad automática para órdenes.
 from app.models import db
 from app.models.base import BaseModel
 from datetime import datetime, date
+from app.utils.fecha import utcnow_naive
 from enum import Enum
 from typing import Optional, Dict, Any, List
 
@@ -84,7 +85,7 @@ class Transaction(BaseModel):
             bool: True si se verificó exitosamente
         """
         self.is_verified = True
-        self.verified_at = datetime.utcnow()
+        self.verified_at = utcnow_naive()
         if operator:
             self.verified_by_id = operator.id
         return self.save()

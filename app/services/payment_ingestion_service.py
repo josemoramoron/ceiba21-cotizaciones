@@ -6,6 +6,7 @@ También gestiona el scheduler para ejecución automática cada 5 minutos.
 import imaplib
 import logging
 from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import Optional
 from flask import current_app
 
@@ -294,7 +295,7 @@ class PaymentIngestionService:
                     }
                     for r in resumen
                 ],
-                'ultima_actualizacion': datetime.utcnow().isoformat()
+                'ultima_actualizacion': utcnow_naive().isoformat()
             }
         except SQLAlchemyError as e:
             logger.error(f"Error de base de datos en obtener_resumen: {e}")

@@ -5,6 +5,7 @@ Proporciona funcionalidad común: timestamps, métodos CRUD básicos.
 import logging
 from app.models import db
 from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import Dict, List, Optional, Any
 
 
@@ -28,11 +29,11 @@ class BaseModel(db.Model):
     
     # Campos comunes
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow_naive, nullable=False)
     updated_at = db.Column(
         db.DateTime, 
-        default=datetime.utcnow, 
-        onupdate=datetime.utcnow,
+        default=utcnow_naive, 
+        onupdate=utcnow_naive,
         nullable=False
     )
     

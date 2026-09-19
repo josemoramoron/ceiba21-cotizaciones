@@ -1,7 +1,7 @@
 """
 Modelo de Métodos de Pago / Billeteras (REF, PayPal, Zelle, etc.)
 """
-from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import List, Optional
 
 from app.models import db
@@ -23,7 +23,7 @@ class PaymentMethod(db.Model):
     name = db.Column(db.String(50), nullable=False)
     active = db.Column(db.Boolean, default=True)
     display_order = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow_naive)
 
     # Configuración USD centralizada (aplica a todas las monedas)
     # Datos del receptor que se muestran al cliente al pagar (correo PayPal,

@@ -10,6 +10,7 @@ import os
 import re
 import secrets
 from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from typing import List, Optional, Tuple
 
 from app.services.base_service import BaseService
@@ -228,7 +229,7 @@ class ChatService(BaseService):
         """Hora compacta en zona Colombia: 'HH:MM' si es hoy, si no 'dd/mm'."""
         if dt is None:
             return ''
-        hoy = hora_co(datetime.utcnow(), '%d/%m')
+        hoy = hora_co(utcnow_naive(), '%d/%m')
         return (
             hora_co(dt, '%H:%M') if hora_co(dt, '%d/%m') == hoy
             else hora_co(dt, '%d/%m')

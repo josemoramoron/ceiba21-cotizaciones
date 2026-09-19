@@ -1,7 +1,7 @@
 """
 Modelo de Cotizaciones basado en USD
 """
-from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from app.models import db
 
 class Quote(db.Model):
@@ -27,7 +27,7 @@ class Quote(db.Model):
     final_value = db.Column(db.Numeric(12, 2), nullable=True)
     
     # Timestamp
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow_naive, onupdate=utcnow_naive)
     
     # Relaciones
     payment_method = db.relationship('PaymentMethod', backref='quotes')

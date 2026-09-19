@@ -2,7 +2,7 @@
 Modelo de Historial de Cotizaciones
 Guarda cada cambio para tener trazabilidad
 """
-from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from app.models import db
 
 class QuoteHistory(db.Model):
@@ -12,7 +12,7 @@ class QuoteHistory(db.Model):
     quote_id = db.Column(db.Integer, db.ForeignKey('quotes.id'))
     old_value = db.Column(db.Numeric(10, 2))
     new_value = db.Column(db.Numeric(10, 2), nullable=False)
-    changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    changed_at = db.Column(db.DateTime, default=utcnow_naive)
     published_to_telegram = db.Column(db.Boolean, default=False)
     
     # Relación

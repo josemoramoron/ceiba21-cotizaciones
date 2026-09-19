@@ -16,6 +16,7 @@ este servicio y a la tabla payments- es un paso posterior y deliberado.
 import imaplib
 import logging
 from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from decimal import Decimal, InvalidOperation
 from typing import Optional, Union, Tuple
 from uuid import uuid4
@@ -235,7 +236,7 @@ class UnifiedIngestionService:
             importe_bruto=importe,
             moneda=moneda,
             transaction_id=transaction_id,
-            fecha_pago=datos.get('fecha_pago') or datetime.utcnow(),
+            fecha_pago=datos.get('fecha_pago') or utcnow_naive(),
             notas=(datos.get('notas') or '').strip() or None,
             estado=PaymentStatus.PENDIENTE if cotizable else PaymentStatus.MANUAL,
             procesado_por=operador_id,
@@ -396,7 +397,7 @@ class UnifiedIngestionService:
                     }
                     for f in filas
                 ],
-                'ultima_actualizacion': datetime.utcnow().isoformat()
+                'ultima_actualizacion': utcnow_naive().isoformat()
             }
         except SQLAlchemyError as e:
             logger.error(f"Error en obtener_resumen: {e}")
@@ -434,7 +435,7 @@ class UnifiedIngestionService:
                     for r in por_metodo
                 ],
                 'total_global': Payment.query.count(),
-                'ultima_actualizacion': datetime.utcnow().isoformat()
+                'ultima_actualizacion': utcnow_naive().isoformat()
             }
         except SQLAlchemyError as e:
             logger.error(f"Error de base de datos en obtener_resumen: {e}")

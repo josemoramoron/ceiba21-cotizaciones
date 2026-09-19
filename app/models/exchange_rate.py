@@ -1,7 +1,7 @@
 """
 Modelo de Tasas de Cambio (USD → Otras monedas)
 """
-from datetime import datetime
+from app.utils.fecha import utcnow_naive
 from app.models import db
 
 class ExchangeRate(db.Model):
@@ -21,7 +21,7 @@ class ExchangeRate(db.Model):
     source_type = db.Column(db.String(20), default='manual')
     
     # Timestamp
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow_naive, onupdate=utcnow_naive)
     
     # Relación
     currency = db.relationship('Currency', backref='exchange_rate')
