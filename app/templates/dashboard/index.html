@@ -42,8 +42,8 @@
     .card-ordenes .card-icon { color: var(--brand-yellow); }
     .card-ordenes .card-label, .card-ordenes .card-sub { color: #fff; }
 
-    .card-operadores { background: linear-gradient(135deg, var(--brand-yellow) 0%, var(--brand-yellow-dark) 100%); }
-    .card-operadores .card-icon, .card-operadores .card-label, .card-operadores .card-sub { color: var(--brand-black) !important; }
+    .card-pagos { background: linear-gradient(135deg, var(--brand-yellow) 0%, var(--brand-yellow-dark) 100%); }
+    .card-pagos .card-icon, .card-pagos .card-label, .card-pagos .card-sub { color: var(--brand-black) !important; }
 
     .card-telegram  { background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%); border: 2px solid #00B4D8; }
     .card-telegram .card-icon { color: #00B4D8; }
@@ -194,25 +194,25 @@
 
     <!-- ── Quick Actions ── -->
     <div class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <a href="{{ url_for('operator.orders') }}" class="quick-card card-ordenes">
-            <div class="card-icon">📋</div>
-            <div class="card-label">Ver Órdenes</div>
-            <div class="card-sub">Gestionar órdenes del bot</div>
+        <a href="{{ url_for('dashboard.manage_rates') }}" class="quick-card card-tasas">
+            <div class="card-icon">💱</div>
+            <div class="card-label">Tasas</div>
+            <div class="card-sub">Actualizar tasas</div>
         </a>
-        <a href="{{ url_for('dashboard.operators') }}" class="quick-card card-operadores">
-            <div class="card-icon">👨‍💼</div>
-            <div class="card-label">Operadores</div>
-            <div class="card-sub">Gestionar operadores</div>
+        <a href="{{ url_for('pagos.index') }}" class="quick-card card-pagos">
+            <div class="card-icon">💳</div>
+            <div class="card-label">Pagos</div>
+            <div class="card-sub">Gestionar pagos</div>
         </a>
         <a href="{{ url_for('dashboard.telegram_publisher') }}" class="quick-card card-telegram">
             <div class="card-icon">📱</div>
             <div class="card-label">Telegram</div>
             <div class="card-sub">Publicar cotizaciones</div>
         </a>
-        <a href="{{ url_for('dashboard.manage_rates') }}" class="quick-card card-tasas">
-            <div class="card-icon">💱</div>
-            <div class="card-label">Tasas</div>
-            <div class="card-sub">Actualizar tasas</div>
+        <a href="{{ url_for('operator.orders') }}" class="quick-card card-ordenes">
+            <div class="card-icon">📋</div>
+            <div class="card-label">Ver Órdenes</div>
+            <div class="card-sub">Gestionar órdenes del bot</div>
         </a>
     </div>
 
