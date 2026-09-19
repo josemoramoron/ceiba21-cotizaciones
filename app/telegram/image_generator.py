@@ -6,6 +6,17 @@ from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 import os
 
+# Fuentes empaquetadas en el propio repo (DejaVu Sans, licencia Bitstream Vera
+# permisiva, ver DEJAVU-LICENSE.txt en esta misma carpeta) en vez de depender
+# de una ruta de fuentes del sistema operativo: esa ruta solo existia en el
+# Raspberry Pi de produccion, nunca en Windows (el entorno de desarrollo), asi
+# que en dev siempre caia al fallback de PIL (una fuente bitmap minuscula) y
+# la imagen se veia distinta a la de produccion. Con la fuente empaquetada,
+# dev y prod usan el mismo archivo y se ven igual.
+_FONTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static', 'fonts')
+_FONT_REGULAR = os.path.join(_FONTS_DIR, 'DejaVuSans.ttf')
+_FONT_BOLD = os.path.join(_FONTS_DIR, 'DejaVuSans-Bold.ttf')
+
 class TelegramImageGenerator:
     """Genera imágenes para publicar en Telegram"""
     
@@ -51,7 +62,7 @@ class TelegramImageGenerator:
                 # Intentar cargar logo
                 logo_path = 'app/static/img/favicon.svg'
                 # Como SVG es complejo, dibujamos el texto
-                font_title = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 80)
+                font_title = ImageFont.truetype(_FONT_BOLD, 80)
                 draw.text((self.width//2, 60), 'CEIBA21', fill=self.yellow, 
                          font=font_title, anchor='mm')
             except OSError:
@@ -60,7 +71,7 @@ class TelegramImageGenerator:
         
         # Fecha y hora
         try:
-            font_date = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 28)
+            font_date = ImageFont.truetype(_FONT_REGULAR, 28)
         except OSError:
             font_date = ImageFont.load_default()
             
@@ -70,7 +81,7 @@ class TelegramImageGenerator:
         
         # Título de cotizaciones
         try:
-            font_subtitle = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 48)
+            font_subtitle = ImageFont.truetype(_FONT_BOLD, 48)
         except OSError:
             font_subtitle = ImageFont.load_default()
             
@@ -83,8 +94,8 @@ class TelegramImageGenerator:
         
         # Cotizaciones (máximo 6)
         try:
-            font_quote = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 42)
-            font_rate = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 46)
+            font_quote = ImageFont.truetype(_FONT_BOLD, 42)
+            font_rate = ImageFont.truetype(_FONT_BOLD, 46)
         except OSError:
             font_quote = font_rate = ImageFont.load_default()
         
@@ -109,7 +120,7 @@ class TelegramImageGenerator:
         # Footer con branding
         footer_y = self.height - 100
         try:
-            font_footer = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 36)
+            font_footer = ImageFont.truetype(_FONT_REGULAR, 36)
         except OSError:
             font_footer = ImageFont.load_default()
             
