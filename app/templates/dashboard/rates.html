@@ -64,7 +64,7 @@
     .rate-card {
         border:1px solid #DEE2E6; border-radius:0.65rem;
         padding:1rem 1.1rem; margin-bottom:0.75rem;
-        display:flex; align-items:center; gap:1rem;
+        display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
         transition: border-color 0.15s, box-shadow 0.15s;
         background:#fff;
     }
@@ -79,7 +79,7 @@
     .rate-label i { color:var(--brand-yellow); }
 
     .rate-input {
-        width:16rem; padding:0.45rem 0.85rem;
+        width:100%; max-width:16rem; padding:0.45rem 0.85rem;
         border:1px solid #DEE2E6; border-radius:0.5rem; font-size:0.9rem;
         transition:border-color 0.15s, box-shadow 0.15s;
         outline:none;

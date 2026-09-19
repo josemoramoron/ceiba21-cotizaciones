@@ -4,6 +4,16 @@
 
 {% block extra_css %}
 <style>
+    :root {
+        --c-primary:      var(--color-primary);
+        --c-primary-dark: var(--color-primary-dark);
+        --c-surface:      var(--color-surface);
+        --c-border:       var(--color-border);
+        --c-text:         var(--color-text);
+        --c-text-2:       var(--color-text-secondary);
+        --c-text-3:       var(--color-text-subtle);
+    }
+
     .conv-head { margin-bottom:1.5rem; }
     .conv-title { font-size:1.4rem; font-weight:700; color:var(--c-text); }
     .conv-sub   { font-size:0.85rem; color:var(--c-text-2); margin-top:0.25rem; }

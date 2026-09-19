@@ -576,7 +576,17 @@ def inicializar_scheduler_unificado(app) -> None:
             replace_existing=True
         )
         scheduler.start()
-        logger.info("Scheduler de ingesta unificada iniciado (cada 5 minutos)")
+
+        # Arranca pausado por defecto: en dev no queremos que intente
+        # parsear correos (IMAP) apenas se levanta el server. Se reanuda
+        # manualmente desde el boton de /dashboard/pagos cuando se necesite
+        # probar la ingesta real.
+        scheduler.pause_job('ingesta_unificada')
+
+        logger.info(
+            "Scheduler de ingesta unificada iniciado y pausado por defecto "
+            "(cada 5 minutos si se reanuda desde /dashboard/pagos)"
+        )
         app.scheduler = scheduler
 
     except ImportError:

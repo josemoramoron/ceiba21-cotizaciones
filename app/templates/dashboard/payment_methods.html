@@ -25,6 +25,11 @@
 
     /* ── Table ── */
     .pm-table-wrap { border-radius:0.75rem; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; border:1px solid #DEE2E6; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
+
+    /* ── Acciones: en tablet/movil solo icono, para que la fila no se apile tan alto ── */
+    @media (max-width: 1023px) {
+        .btn-label { display: none; }
+    }
     .pm-table thead tr { background: linear-gradient(135deg, var(--brand-black) 0%, var(--brand-black-light) 100%); }
     .pm-table thead th { padding:0.85rem 1.1rem; font-size:0.78rem; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:0.04em; text-align:left; }
     .pm-table thead th.th-center { text-align:center; }
@@ -135,7 +140,7 @@
                                     data-value-type="{{ fq.value_type if fq else 'manual' }}"
                                     data-usd-value="{{ fq.usd_value if fq and fq.usd_value else '' }}"
                                     data-usd-formula="{{ fq.usd_formula if fq and fq.usd_formula else '' }}">
-                                <i class="fas fa-calculator"></i> Fórmula
+                                <i class="fas fa-calculator"></i> <span class="btn-label">Fórmula</span>
                             </button>
                             <button type="button" class="btn-edit-row btn-edit"
                                     data-pm-id="{{ pm.id }}"

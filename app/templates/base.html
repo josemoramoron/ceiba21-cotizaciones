@@ -158,6 +158,11 @@
                    {% if request.endpoint == 'dashboard.manage_rates' %}active{% endif %}">
                     <i class="fas fa-exchange-alt w-4"></i><span>Tasas de Cambio</span>
                 </a>
+                <a href="{{ url_for('dashboard.telegram_publisher') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint == 'dashboard.telegram_publisher' %}active{% endif %}">
+                    <i class="fab fa-telegram w-4"></i><span>Publicar Telegram</span>
+                </a>
                 <a href="{{ url_for('dashboard.converter') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint == 'dashboard.converter' %}active{% endif %}">
@@ -173,21 +178,6 @@
                    {% if request.endpoint == 'dashboard.manage_payment_methods' %}active{% endif %}">
                     <i class="fas fa-credit-card w-4"></i><span>Métodos de Pago</span>
                 </a>
-                <a href="{{ url_for('blacklist.dashboard') }}"
-                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
-                   {% if request.endpoint and 'blacklist' in request.endpoint %}active{% endif %}">
-                    <i class="fas fa-ban w-4 text-red-500"></i><span>Blacklist</span>
-                </a>
-                <a href="{{ url_for('dashboard.operators') }}"
-                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
-                   {% if request.endpoint == 'dashboard.operators' %}active{% endif %}">
-                    <i class="fas fa-users-cog w-4"></i><span>Operadores</span>
-                </a>
-                <a href="{{ url_for('sms.index') }}"
-                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
-                   {% if request.endpoint and request.endpoint.startswith('sms.') %}active{% endif %}">
-                    <i class="fas fa-comment-sms w-4" style="color:var(--color-primary);"></i><span>SMS</span>
-                </a>
                 <a href="{{ url_for('chat_admin.index') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
                    {% if request.endpoint and request.endpoint.startswith('chat_admin.') %}active{% endif %}">
@@ -202,13 +192,21 @@
                     <span>Pagos</span>
                 </a>   
 
-                <div class="pt-2 pb-1"><hr class="border-gray-200"></div>
-
                 {% if current_user.is_authenticated and current_user.role.value == 'admin' %}
-                <a href="{{ url_for('dashboard.telegram_publisher') }}"
+                <a href="{{ url_for('sms.index') }}"
                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
-                   {% if request.endpoint == 'dashboard.telegram_publisher' %}active{% endif %}">
-                    <i class="fab fa-telegram w-4"></i><span>Publicar Telegram</span>
+                   {% if request.endpoint and request.endpoint.startswith('sms.') %}active{% endif %}">
+                    <i class="fas fa-comment-sms w-4" style="color:var(--color-primary);"></i><span>SMS</span>
+                </a>
+                <a href="{{ url_for('dashboard.operators') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint == 'dashboard.operators' %}active{% endif %}">
+                    <i class="fas fa-users-cog w-4"></i><span>Operadores</span>
+                </a>
+                <a href="{{ url_for('blacklist.dashboard') }}"
+                   class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg
+                   {% if request.endpoint and 'blacklist' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-ban w-4 text-red-500"></i><span>Blacklist</span>
                 </a>
 
                 <div class="pt-2 pb-1"><hr class="border-gray-200"></div>

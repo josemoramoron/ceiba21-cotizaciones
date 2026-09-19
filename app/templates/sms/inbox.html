@@ -9,7 +9,7 @@
     <i class="fas fa-inbox mr-2 text-green-600"></i>Bandeja de entrada
 </h1>
 
-<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+<div class="bg-white rounded-xl shadow-sm overflow-x-auto">
     {% if messages.items %}
     <table class="w-full">
         <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
@@ -24,7 +24,7 @@
             {% for m in messages.items %}
             <tr class="{% if not m.is_read %}bg-yellow-50{% endif %}">
                 <td class="px-5 py-3 font-mono text-sm font-semibold text-gray-800">{{ m.phone }}</td>
-                <td class="px-5 py-3 text-sm text-gray-600">{{ m.text }}</td>
+                <td class="px-5 py-3 text-sm text-gray-600 max-w-xs truncate">{{ m.text }}</td>
                 <td class="px-5 py-3 text-sm">
                     {% if m.sim_slot and slots.get(m.sim_slot) %}
                     <span class="text-xs px-2 py-1 rounded-full text-gray-800"
