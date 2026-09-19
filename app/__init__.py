@@ -21,7 +21,21 @@ def create_app(config_class=Config):
     """Factory para crear la aplicación"""
     app = Flask(__name__)
     app.config.from_object(config_class)
-    
+
+    # Se calcula una sola vez y se reutiliza (cookies de sesión, fail-fast de
+    # abajo, y cualquier otro lugar que necesite saber si esto es producción).
+    _is_production = os.environ.get('FLASK_ENV', '').lower() == 'production'
+
+    # Fail-fast: en producción, un SECRET_KEY ausente o en su valor de
+    # desarrollo comprometería la firma de las cookies de sesión. Mejor que
+    # el proceso no arranque a que arranque firmando sesiones con un secreto
+    # público (visible en este mismo archivo/repo).
+    if _is_production and app.config['SECRET_KEY'] in (None, '', 'dev-secret-key-change-me'):
+        raise RuntimeError(
+            "SECRET_KEY no está configurado (o sigue en el valor de desarrollo) "
+            "con FLASK_ENV=production. Define SECRET_KEY en el .env antes de arrancar."
+        )
+
     # Secret key para sesiones
     app.secret_key = app.config['SECRET_KEY']
     
@@ -43,15 +57,14 @@ def create_app(config_class=Config):
     #     Cloudflare); en desarrollo (localhost sin TLS) debe ir en False o la
     #     sesión no se enviaría.
     #   - SAMESITE 'Lax': mitiga CSRF en navegación entre sitios.
-    _is_production = os.environ.get('FLASK_ENV', '').lower() == 'production'
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SECURE'] = _is_production
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
     # ✨ Configuración de Connection Pooling PostgreSQL
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': 10,
-        'max_overflow': 20,
+        'pool_size': 5,
+        'max_overflow': 10,
         'pool_timeout': 30,
         'pool_recycle': 1800,
         'pool_pre_ping': True

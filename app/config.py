@@ -22,10 +22,14 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     TELEGRAM_CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
-    ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
-    ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'ceiba21admin')
     GMAIL_IMAP_USER = os.getenv('GMAIL_IMAP_USER')
     GMAIL_IMAP_PASSWORD = os.getenv('GMAIL_IMAP_PASSWORD')
+
+    # Token compartido para los webhooks del gateway SMS (?token=... en la URL
+    # registrada en el telefono). Si queda vacio, el webhook sigue abierto como
+    # hoy (no rompe nada hasta que se configure en .env Y se re-registre la URL
+    # en la app SMS Gateway con el token incluido).
+    SMS_WEBHOOK_TOKEN = os.getenv('SMS_WEBHOOK_TOKEN')
     DEFAULT_LOCAL_CURRENCY = os.getenv('DEFAULT_LOCAL_CURRENCY', 'VES')
 
     # Cookies / consentimiento (banner + categorías)

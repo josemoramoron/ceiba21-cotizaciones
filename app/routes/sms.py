@@ -7,7 +7,7 @@ Toda la lógica de negocio vive en app/services/sms_service.py.
 Acceso restringido a ADMIN (igual que el resto de /dashboard) vía before_request.
 """
 from flask import (
-    Blueprint, render_template, request, jsonify, flash, redirect, url_for
+    Blueprint, current_app, render_template, request, jsonify, flash, redirect, url_for
 )
 
 from app.routes.auth import login_required
@@ -179,9 +179,28 @@ def api_health():
 # NOTA: estos NO llevan login — el gateway no tiene sesión. Van fuera del
 # guard de admin porque el before_request redirige; ver registro en __init__.
 
+def _webhook_token_valido() -> bool:
+    """Valida ?token=... contra SMS_WEBHOOK_TOKEN.
+
+    Si SMS_WEBHOOK_TOKEN no esta configurado, se deja pasar (mismo
+    comportamiento que antes) pero se registra una advertencia — asi el
+    despliegue de este cambio no rompe la recepcion de SMS hasta que se
+    configure el token en .env y se re-registre la URL en el gateway.
+    """
+    token_esperado = current_app.config.get('SMS_WEBHOOK_TOKEN')
+    if not token_esperado:
+        SmsService.log_warning(
+            "SMS_WEBHOOK_TOKEN no configurado: webhook SMS sin autenticar"
+        )
+        return True
+    return request.args.get('token') == token_esperado
+
+
 @sms_bp.route('/webhook/incoming', methods=['POST'])
 def webhook_incoming():
     """Recibe SMS entrantes desde el gateway Android."""
+    if not _webhook_token_valido():
+        return jsonify({'error': 'token invalido'}), 403
     payload = request.get_json(silent=True)
     if not payload:
         return jsonify({'error': 'sin datos'}), 400
@@ -192,6 +211,8 @@ def webhook_incoming():
 @sms_bp.route('/webhook/status', methods=['POST'])
 def webhook_status():
     """Recibe actualizaciones de estado de entrega desde el gateway."""
+    if not _webhook_token_valido():
+        return jsonify({'error': 'token invalido'}), 403
     payload = request.get_json(silent=True) or {}
     SmsService.update_delivery_status(
         payload.get('id'), payload.get('state')

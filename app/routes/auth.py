@@ -4,8 +4,13 @@ Autenticación de operadores con Flask-Login.
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.auth_service import AuthService
+from app.services.rate_limit_service import RateLimitService
 from app.models.operator import Operator
 from app.decorators import home_endpoint_for_role
+
+# Intentos de login permitidos por IP antes de frenar (ventana deslizante).
+_LOGIN_RATE_LIMIT = 10
+_LOGIN_RATE_WINDOW = 900  # 15 minutos
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -26,6 +31,18 @@ def login():
         return redirect(url_for(home_endpoint_for_role(current_user.role)))
     
     if request.method == 'POST':
+        # Freno de fuerza bruta por IP real (detrás del Cloudflare Tunnel).
+        # Cuenta el intento ANTES de validar credenciales, para que también
+        # limite peticiones con campos vacíos o basura.
+        ip = RateLimitService.client_ip(request)
+        permitido, reintentar = RateLimitService.hit(
+            f"rl:login:i:{ip}", _LOGIN_RATE_LIMIT, _LOGIN_RATE_WINDOW
+        )
+        if not permitido:
+            minutos = max(reintentar // 60, 1)
+            flash(f'⏱️ Demasiados intentos de acceso. Intenta de nuevo en {minutos} min.', 'error')
+            return render_template('auth/login.html')
+
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         remember = request.form.get('remember', False)
