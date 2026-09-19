@@ -82,3 +82,24 @@ Capas en orden estricto: Routes → Services → Models
 - Antes de mover código a un hilo o a un script, verificar qué dependencias de
   contexto arrastra. Este patrón ya causó tres fallos: el Service Worker,
   la pausa global del bot y el envío de correos.
+## Reglas de seguridad
+1. Secretos críticos en producción (SECRET_KEY, tokens de firma, etc.):
+   fail-fast con RuntimeError al arrancar si faltan o siguen en su valor de
+   desarrollo — nunca arrancar de forma insegura en silencio.
+2. Endpoints de autenticación o públicos sensibles a fuerza bruta: usar el
+   RateLimitService existente (Redis INCR+EXPIRE por IP vía CF-Connecting-IP),
+   no reinventar el mecanismo.
+3. Webhooks de proveedores externos (gateways, terceros): proteger con un
+   token compartido en query param, con rollout fail-open (log de advertencia)
+   hasta que la variable esté configurada Y la URL registrada en el proveedor
+   se actualice — el despliegue del cambio nunca debe romper la integración
+   en producción.
+4. Antes de calificar una variable de config como riesgo de seguridad vivo,
+   rastrear su uso real en el código (grep + lectura de los servicios que la
+   consumirían) — puede ser código muerto, no un riesgo activo.
+
+## Reglas de capacidad (pool de conexiones)
+- pool_size + max_overflow (por worker) × workers de Gunicorn debe dejar
+  margen frente a max_connections de Postgres (verificar con
+  `SHOW max_connections;` en el Pi). Apuntar a dejar al menos 30-40% libre
+  para el cron de ingesta, psql manual y backups.
