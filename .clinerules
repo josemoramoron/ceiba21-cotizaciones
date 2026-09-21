@@ -104,3 +104,36 @@ Capas en orden estricto: Routes → Services → Models
   margen frente a max_connections de Postgres (verificar con
   `SHOW max_connections;` en el Pi). Apuntar a dejar al menos 30-40% libre
   para el cron de ingesta, psql manual y backups.
+
+## Reglas de inputs públicos con fetch() + CSRF
+- Todo endpoint público que recibe POST vía fetch() (JSON, sin formulario
+  que recargue la página) está protegido por `CSRFProtect`, y el token viaja
+  en `<meta name="csrf-token">`, agregado automáticamente a cada fetch()
+  por el interceptor `app/static/js/csrf.js`. Ese token se genera UNA SOLA
+  VEZ al renderizar la página y **expira solo por tiempo**
+  (`WTF_CSRF_TIME_LIMIT`, default de Flask-WTF = 3600s / 1 hora; este
+  proyecto no lo sobreescribe) — nunca se refresca mientras la pestaña
+  sigue abierta sin recargar.
+- No hay un `errorhandler` propio para `CSRFError` en este proyecto:
+  cuando el token vence, Flask-WTF responde una página HTML de error 400,
+  no JSON. Un fetch() que asuma `.then(r => r.json())` sin chequear antes
+  `r.ok` va a tronar al intentar parsear HTML como JSON, y ese fallo cae en
+  el `.catch()` genérico con un mensaje que no dice nada de lo que
+  realmente pasó (visto en vivo: el usuario solo ve "no se pudo calcular
+  en este momento" después de dejar la pestaña abierta un rato).
+- Patrón obligatorio para cualquier fetch() público nuevo (calculadoras,
+  formularios, cualquier input que no recargue la página):
+  1. Chequear `response.ok` ANTES de `response.json()`. Si no es `ok`,
+     asumir que puede ser el token CSRF vencido (no hay forma barata de
+     distinguirlo de otro 4xx/5xx del servidor sin parsear la página HTML
+     de error) y mostrar un mensaje específico que invite a recargar,
+     nunca el mensaje genérico de "error de red".
+  2. Mantener aparte el caso de fallo de red real (la promesa del propio
+     `fetch()` se rechaza, sin llegar a haber respuesta) — ahí sí aplica
+     el mensaje genérico, porque no hay más información disponible.
+  3. Ofrecer una salida clara (botón/enlace "Recargar página"), no solo
+     un mensaje de error mudo — el usuario no tiene forma de adivinar que
+     el arreglo es recargar.
+- Implementación de referencia ya resuelta:
+  `app/templates/public/calculadora.html` (endpoint `/api/calcular`),
+  funciones `_doCalcConv()` / `_showConvError()`, commit `67cef5f`.
