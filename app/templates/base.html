@@ -45,8 +45,11 @@
         }
         .sidebar-drawer.open { transform: translateX(0); }
 
-        /* Desktop: sidebar estático */
-        @media (min-width: 768px) {
+        /* Desktop: sidebar estático. Umbral en 1024px (no 768px) a propósito:
+           en tablet/iPad (768-1023px) el sidebar se comporta igual que en móvil
+           (drawer oculto + hamburguesa), porque a ese ancho el sidebar estático
+           (16rem fijos) deja muy poco espacio real para las tablas del dashboard. */
+        @media (min-width: 1024px) {
             .sidebar-drawer {
                 position: sticky;
                 top: 4rem;
