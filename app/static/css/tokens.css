@@ -33,4 +33,46 @@
     --neutral-500:    #9CA3AF;
     --neutral-700:    #374151;
     --neutral-900:    #0D1117;
+
+    /* Tipografia */
+    --font-sans: 'DejaVu Sans', ui-sans-serif, system-ui, -apple-system,
+                 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── Tipografia: DejaVu Sans auto-hospedada ──────────────────────────────
+   Antes de esto no habia ningun font-family propio: cada visitante veia la
+   fuente por defecto de SU sistema (Segoe UI en Windows, San Francisco en
+   Mac, Roboto en Android...). Se auto-hospeda en vez de usar Google Fonts
+   por el mismo motivo que Tailwind dejo de cargarse por CDN (ver nota en
+   Stack): fonts.googleapis.com/fonts.gstatic.com no son alcanzables desde
+   algunas redes. Los mismos archivos que ya se usan para las imagenes de
+   Telegram (app/static/fonts/DejaVuSans*.ttf), ahora tambien como .woff2
+   (mas liviano) con el .ttf como fallback. Excepcion deliberada a la regla
+   de "solo variables" de este archivo: el @font-face tiene que vivir en
+   algun lado que cargue tanto el panel admin como el sitio publico, y este
+   es el unico CSS que ambos comparten. */
+@font-face {
+    font-family: 'DejaVu Sans';
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    src: url('../fonts/DejaVuSans.woff2') format('woff2'),
+         url('../fonts/DejaVuSans.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'DejaVu Sans';
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+    src: url('../fonts/DejaVuSans-Bold.woff2') format('woff2'),
+         url('../fonts/DejaVuSans-Bold.ttf') format('truetype');
+}
+
+/* body.font-sans (asi esta el <body> en base.html, panel admin) tiene mas
+   especificidad que el .font-sans de Tailwind (clase vs. elemento), asi que
+   le gana en cascada sin necesitar !important. body a secas cubre
+   public_base.html, que no usa esa clase. */
+body,
+body.font-sans {
+    font-family: var(--font-sans);
 }

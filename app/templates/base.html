@@ -48,8 +48,14 @@
         /* Desktop: sidebar estático. Umbral en 1024px (no 768px) a propósito:
            en tablet/iPad (768-1023px) el sidebar se comporta igual que en móvil
            (drawer oculto + hamburguesa), porque a ese ancho el sidebar estático
-           (16rem fijos) deja muy poco espacio real para las tablas del dashboard. */
-        @media (min-width: 1024px) {
+           (16rem fijos) deja muy poco espacio real para las tablas del dashboard.
+           Ademas de min-width, exige (hover: hover) y (pointer: fine): el ancho CSS
+           de una tablet en landscape (Xiaomi Pad 6 Pro: 1440px, iPad Pro 12.9":
+           1366px) es indistinguible por si solo del de una laptop real, asi que el
+           criterio real es "hay un mouse/trackpad fino como input primario" (laptop/
+           desktop), no solo el ancho -- asi toda tablet (portrait o landscape, sin
+           importar cuan ancha sea) sigue tratandose como drawer+hamburguesa. */
+        @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
             .sidebar-drawer {
                 position: sticky;
                 top: 4rem;
