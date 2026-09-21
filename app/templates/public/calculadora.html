@@ -567,6 +567,11 @@
                 <div id="convErrorBox" class="hidden p-3 rounded-lg"
                      style="background-color: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);">
                     <p class="text-sm" style="color: var(--color-error);" id="convErrorMsg">—</p>
+                    <button type="button" id="convErrorReload" onclick="window.location.reload()"
+                            class="hidden text-sm font-semibold mt-1"
+                            style="color: var(--color-error); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">
+                        Recargar página
+                    </button>
                 </div>
 
                 <!-- WhatsApp -->
@@ -812,9 +817,28 @@ function _doCalcConv() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tengo: tengo, quiero: quiero, monto: monto, tipo: tipo }),
     })
-    .then(function (r) { return r.json(); })
+    .then(function (r) {
+        if (!r.ok) {
+            /* Respuesta no-OK sin JSON valido: lo mas probable es el token
+               CSRF vencido (pestana abierta > 1h, ver WTF_CSRF_TIME_LIMIT),
+               que Flask-WTF responde como pagina HTML de error 400, no JSON.
+               No hay forma de distinguirlo de otro 4xx/5xx del servidor sin
+               parsear esa pagina, pero en ambos casos la salida es la misma:
+               pedir que se recargue. */
+            var err = new Error('http_' + r.status);
+            err.necesitaRecarga = true;
+            throw err;
+        }
+        return r.json();
+    })
     .then(function (d) { d.error ? _showConvError(d.error) : _showConvResult(d); })
-    .catch(function () { _showConvError('No se pudo calcular en este momento.'); });
+    .catch(function (err) {
+        if (err && err.necesitaRecarga) {
+            _showConvError('Esta pestaña llevaba un rato abierta y venció por seguridad. Recargá la página para seguir calculando.', true);
+        } else {
+            _showConvError('No se pudo calcular en este momento.');
+        }
+    });
 }
 
 function _showConvResult(d) {
@@ -832,11 +856,12 @@ function _showConvResult(d) {
     document.getElementById('waWrapperConv').classList.add('visible');
 }
 
-function _showConvError(msg) {
+function _showConvError(msg, showReload) {
     _lastConvRes = null;
     document.getElementById('convResultBox').classList.add('hidden');
     document.getElementById('convErrorBox').classList.remove('hidden');
     document.getElementById('convErrorMsg').textContent = msg;
+    document.getElementById('convErrorReload').classList.toggle('hidden', !showReload);
     document.getElementById('waWrapperConv').classList.remove('visible');
 }
 
@@ -844,6 +869,7 @@ function _hideConvResult() {
     _lastConvRes = null;
     document.getElementById('convResultBox').classList.add('hidden');
     document.getElementById('convErrorBox').classList.add('hidden');
+    document.getElementById('convErrorReload').classList.add('hidden');
     document.getElementById('waWrapperConv').classList.remove('visible');
 }
 
