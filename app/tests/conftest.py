@@ -18,10 +18,14 @@ def app():
         # en el contenedor equivocado en vez de fallar limpio.
         'SQLALCHEMY_DATABASE_URI': 'postgresql://webmaster:postgres123@localhost:5433/ceiba21_dev',
         'WTF_CSRF_ENABLED': False,
-        'REDIS_URL': 'redis://localhost:6379/1'  # BD 1 separada para tests
     })
-    # Limpia la BD 1 de Redis al inicio de cada corrida de pytest (Flask-
-    # Session vive ahí — ver SESSION_REDIS en app/__init__.py).
+    # Limpia la BD 1 de Redis al inicio de cada corrida de pytest — ahí
+    # vive Flask-Session (SESSION_REDIS en app/__init__.py, hardcodeado a
+    # db=1 para cualquier entorno, no solo tests). No hay 'REDIS_URL' que
+    # configurar aquí: ni SESSION_REDIS ni redis_client (el que usa
+    # RateLimitService/CacheService) leen esa clave de app.config — los
+    # dos están hardcodeados en app/__init__.py (db=1 y db=0
+    # respectivamente). Un 'REDIS_URL' en este fixture no haría nada.
     _redis.Redis(host='localhost', port=6379, db=1).flushdb()
     yield app
 
@@ -46,12 +50,15 @@ def _limpiar_rate_limits():
     """
     cliente = _redis.Redis(host='localhost', port=6379, db=0)
     try:
+        borradas = 0
         for key in cliente.scan_iter('rl:*'):
             cliente.delete(key)
-    except Exception:
+            borradas += 1
+        print(f"[conftest] rate-limit: {borradas} clave(s) rl:* borradas en db=0")
+    except Exception as e:
         # Fail-open: si Redis no está disponible, que los tests avancen
         # igual (RateLimitService también es fail-open en ese caso).
-        pass
+        print(f"[conftest] rate-limit: no se pudo limpiar db=0 ({e})")
 
 
 @pytest.fixture(scope='function')
