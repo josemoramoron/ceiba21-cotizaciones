@@ -5,22 +5,22 @@ from app.models import db, Currency, ExchangeRate
 
 class CurrencyService:
     """Servicio para gestionar monedas"""
-    
+
     @staticmethod
     def get_all():
         """Obtener todas las monedas"""
         return Currency.query.order_by(Currency.code).all()
-    
+
     @staticmethod
     def get_by_id(currency_id):
         """Obtener moneda por ID"""
-        return Currency.query.get(currency_id)
-    
+        return db.session.get(Currency, currency_id)
+
     @staticmethod
     def get_by_code(code):
         """Obtener moneda por código"""
         return Currency.query.filter_by(code=code.upper()).first()
-    
+
     @staticmethod
     def create(code, name, symbol, initial_rate=None):
         """
@@ -30,12 +30,18 @@ class CurrencyService:
         try:
             from app.models import Currency
             from datetime import datetime
-            
+
+            # Normalizar a mayúsculas: el resto del sistema (get_by_code(),
+            # los códigos ISO como VES/COP/CLP) asume códigos en mayúsculas.
+            # Sin esto, una moneda creada con código en minúsculas quedaba
+            # guardada tal cual pero inencontrable por get_by_code().
+            code = code.upper()
+
             # Validar que no exista
             existing = Currency.query.filter_by(code=code).first()
             if existing:
                 return None, f"Ya existe una moneda con código {code}"
-            
+
             # Determinar tasa por defecto
             if initial_rate is None:
                 initial_rate = Currency.get_default_rate_for_currency(code)
@@ -44,7 +50,7 @@ class CurrencyService:
                     initial_rate = float(initial_rate)
                 except (ValueError, TypeError):
                     initial_rate = Currency.get_default_rate_for_currency(code)
-            
+
             # Crear la moneda
             currency = Currency(
                 code=code,
@@ -53,35 +59,35 @@ class CurrencyService:
                 active=True,
                 display_order=0
             )
-            
+
             db.session.add(currency)
             db.session.flush()  # Para obtener el ID sin hacer commit completo
-            
+
             # Crear tasa de cambio y cotizaciones para todos los métodos de pago.
             # initialize_for_trading() es el método real del modelo Currency; hace
             # el commit internamente y retorna (success, message, details).
             success, message, _detalles = currency.initialize_for_trading(initial_rate)
-            
+
             if not success:
                 # Si falla la creación de tasas, revertir todo
                 db.session.rollback()
                 return None, f"Error al crear tasas: {message}"
-            
+
             db.session.commit()
-            
+
             return currency, None  # Sin error
-            
+
         except Exception as e:
             db.session.rollback()
             return None, str(e)
-    
+
     @staticmethod
     def update(currency_id, code=None, name=None, symbol=None, active=None):
         """Actualizar moneda"""
         currency = CurrencyService.get_by_id(currency_id)
         if not currency:
             return None, "Moneda no encontrada"
-        
+
         if code:
             currency.code = code.upper()
         if name:
@@ -90,36 +96,36 @@ class CurrencyService:
             currency.symbol = symbol
         if active is not None:
             currency.active = active
-        
+
         db.session.commit()
         return currency, None
-    
+
     @staticmethod
     def toggle_active(currency_id):
         """Alternar estado activo/inactivo"""
         currency = CurrencyService.get_by_id(currency_id)
         if not currency:
             return None, "Moneda no encontrada"
-        
+
         currency.active = not currency.active
         db.session.commit()
         return currency, None
-    
+
     @staticmethod
     def delete(currency_id):
         """Eliminar moneda"""
         currency = CurrencyService.get_by_id(currency_id)
         if not currency:
             return False, "Moneda no encontrada"
-        
+
         # Verificar que no tenga cotizaciones asociadas
         if currency.quotes:
             return False, "No se puede eliminar: tiene cotizaciones asociadas. Desactívala en su lugar."
-        
+
         db.session.delete(currency)
         db.session.commit()
         return True, None
-    
+
     @staticmethod
     def reorder(order_list):
         """
@@ -130,6 +136,6 @@ class CurrencyService:
             currency = CurrencyService.get_by_id(currency_id)
             if currency:
                 currency.display_order = index
-        
+
         db.session.commit()
         return True

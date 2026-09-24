@@ -4,6 +4,7 @@ Calcula montos, comisiones y tasas aplicando las fórmulas del sistema.
 """
 from decimal import Decimal
 from typing import Dict, Any, Tuple
+from app.models import db
 from app.models.currency import Currency
 from app.models.payment_method import PaymentMethod
 from app.models.exchange_rate import ExchangeRate
@@ -60,8 +61,8 @@ class CalculatorService:
             Dict con todos los valores calculados
         """
         # Obtener modelos
-        currency = Currency.query.get(currency_id)
-        payment_method = PaymentMethod.query.get(payment_method_id)
+        currency = db.session.get(Currency, currency_id)
+        payment_method = db.session.get(PaymentMethod, payment_method_id)
 
         if not currency or not payment_method:
             raise ValueError("Currency o PaymentMethod no encontrado")
@@ -142,7 +143,7 @@ class CalculatorService:
         usd_needed = (amount_local / rate).quantize(Decimal('0.01'))
 
         # Ajustar por comisión PayPal si aplica
-        payment_method = PaymentMethod.query.get(payment_method_id)
+        payment_method = db.session.get(PaymentMethod, payment_method_id)
         if payment_method and payment_method.name == 'PayPal':
             # amount_to_send = (usd_needed + 0.30) / 0.946
             amount_to_send = (
@@ -153,7 +154,7 @@ class CalculatorService:
             amount_to_send = usd_needed
             fee = Decimal('0.00')
 
-        currency = Currency.query.get(currency_id)
+        currency = db.session.get(Currency, currency_id)
 
         return {
             'amount_local': amount_local,

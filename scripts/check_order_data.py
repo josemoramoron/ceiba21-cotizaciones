@@ -2,7 +2,8 @@
 Script para verificar datos de una orden
 """
 import sys
-sys.path.insert(0, '/var/www/cotizaciones')
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app, db
 from app.models.order import Order

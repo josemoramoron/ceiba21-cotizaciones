@@ -4,6 +4,7 @@ Permite iniciar, detener y monitorear el proceso del bot.
 """
 from app.services.base_service import BaseService
 from typing import Dict, Any, Optional
+import os
 import subprocess
 import psutil
 from datetime import datetime, timedelta
@@ -22,6 +23,7 @@ class BotService(BaseService):
     
     BOT_COMMAND = ['python', '-m', 'app.telegram.bot']
     BOT_PROCESS_NAME = 'app.telegram.bot'
+    _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     # ==========================================
     # CONTROL DEL PROCESO

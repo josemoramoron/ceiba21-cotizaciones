@@ -40,7 +40,8 @@ def add_fields():
             print("   - reporter_name (Quien reporta)")
             
             # Crear carpeta para uploads si no existe
-            upload_dir = '/var/www/cotizaciones/app/static/uploads/blacklist'
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            upload_dir = os.path.join(repo_root, 'app', 'static', 'uploads', 'blacklist')
             os.makedirs(upload_dir, exist_ok=True)
             print(f"\n📁 Carpeta de uploads creada: {upload_dir}")
             

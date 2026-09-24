@@ -23,7 +23,8 @@ class ImageService(BaseService):
     """
     
     # Configuración
-    UPLOAD_FOLDER = '/var/www/cotizaciones/app/static/uploads/blacklist'
+    _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    UPLOAD_FOLDER = os.path.join(_APP_DIR, 'static', 'uploads', 'blacklist')
     MAX_SIZE = (800, 800)  # Tamaño máximo en píxeles
     QUALITY = 85  # Calidad de compresión (1-100)
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -124,9 +125,9 @@ class ImageService(BaseService):
             
             # Construir path absoluto
             # URL es tipo: /static/uploads/blacklist/foto.webp
-            # Path debe ser: /var/www/cotizaciones/app/static/uploads/blacklist/foto.webp
+            # Path debe ser: <raíz del repo>/app/static/uploads/blacklist/foto.webp
             relative_path = url.replace('/static/', '')
-            full_path = os.path.join('/var/www/cotizaciones/app/static', relative_path)
+            full_path = os.path.join(cls._APP_DIR, 'static', relative_path)
             
             if os.path.exists(full_path):
                 os.remove(full_path)

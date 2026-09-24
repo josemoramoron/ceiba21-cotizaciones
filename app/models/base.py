@@ -193,7 +193,7 @@ class BaseModel(db.Model):
         Example:
             >>> user = User.find_by_id(1)
         """
-        return cls.query.get(id)
+        return db.session.get(cls, id)
     
     @classmethod
     def find_all(cls, limit: Optional[int] = None, 
