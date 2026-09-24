@@ -12,7 +12,7 @@ def client():
     app = create_app()
     app.config.update({
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'postgresql://webmaster:postgres123@localhost/ceiba21_dev',
+        'SQLALCHEMY_DATABASE_URI': 'postgresql://webmaster:postgres123@localhost:5433/ceiba21_dev',
         'WTF_CSRF_ENABLED': False,
     })
     with app.test_client() as client:

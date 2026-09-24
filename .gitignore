@@ -27,6 +27,11 @@ instance/
 logs/
 *.log
 
+# Tests
+.coverage
+htmlcov/
+.pytest_cache/
+
 # Sistema
 .DS_Store
 Thumbs.db

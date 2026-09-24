@@ -3,7 +3,8 @@ Script para poblar la base de datos Ceiba21
 Sistema basado en USD como moneda base
 """
 import sys
-sys.path.insert(0, '/var/www/cotizaciones')
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
 from app.models import db, Currency, PaymentMethod, Quote, ExchangeRate
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 def seed_currencies():
     """Crear las 4 monedas principales"""
     currencies = [
-        {'code': 'BS', 'name': 'Bolívares', 'symbol': 'Bs'},
+        {'code': 'VES', 'name': 'Bolívares', 'symbol': 'Bs'},
         {'code': 'COP', 'name': 'Peso Colombiano', 'symbol': '$'},
         {'code': 'CLP', 'name': 'Peso Chileno', 'symbol': '$'},
         {'code': 'ARS', 'name': 'Peso Argentino', 'symbol': '$'},
@@ -36,7 +37,7 @@ def seed_currencies():
 def seed_exchange_rates():
     """Crear tasas de cambio USD → Monedas (basado en tu Google Sheets)"""
     rates_data = [
-        {'code': 'BS', 'rate': 308.17},
+        {'code': 'VES', 'rate': 308.17},
         {'code': 'COP', 'rate': 3721.03},
         {'code': 'CLP', 'rate': 911.34},
         {'code': 'ARS', 'rate': 735.00},
