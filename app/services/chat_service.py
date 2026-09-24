@@ -144,7 +144,7 @@ class ChatService(BaseService):
     @classmethod
     def mark_read_by_operator(cls, conversation_id: int) -> None:
         """Poner a cero los no leídos de una conversación."""
-        conv = ChatConversation.query.get(conversation_id)
+        conv = db.session.get(ChatConversation, conversation_id)
         if conv is not None:
             conv.unread_for_operator = 0
             conv.save()
@@ -168,7 +168,7 @@ class ChatService(BaseService):
             return None
         text = text[:MAX_MESSAGE_LEN]
 
-        conv = ChatConversation.query.get(conversation_id)
+        conv = db.session.get(ChatConversation, conversation_id)
         if conv is None:
             return None
 
@@ -205,7 +205,7 @@ class ChatService(BaseService):
     @classmethod
     def set_bot_paused(cls, conversation_id: int, paused: bool) -> bool:
         """Pausar o reanudar el bot en una conversación concreta."""
-        conv = ChatConversation.query.get(conversation_id)
+        conv = db.session.get(ChatConversation, conversation_id)
         if conv is None:
             return False
         conv.bot_paused = bool(paused)
@@ -306,7 +306,7 @@ class ChatService(BaseService):
             from app.bot.conversation_handler import ConversationHandler
             from app.models.user import User
 
-            user = User.query.get(conv.user_id) if conv.user_id else None
+            user = db.session.get(User, conv.user_id) if conv.user_id else None
             if user is None:
                 return None
 
@@ -378,7 +378,7 @@ class ChatService(BaseService):
         """Referencia de la orden en curso del visitante (o un id de respaldo)."""
         try:
             from app.bot.conversation_handler import ConversationHandler
-            user = User.query.get(conv.user_id) if conv.user_id else None
+            user = db.session.get(User, conv.user_id) if conv.user_id else None
             if user is not None:
                 data = ConversationHandler().get_data(user)
                 referencia = data.get('order_reference')
@@ -434,7 +434,7 @@ class ChatService(BaseService):
         try:
             from app.bot.conversation_handler import ConversationHandler
 
-            user = User.query.get(conv.user_id) if conv.user_id else None
+            user = db.session.get(User, conv.user_id) if conv.user_id else None
             if user is None:
                 return None
 
@@ -629,7 +629,7 @@ class ChatService(BaseService):
         """Reiniciar la conversación del bot para permitir una nueva orden."""
         try:
             from app.bot.conversation_handler import ConversationHandler
-            user = User.query.get(conv.user_id) if conv.user_id else None
+            user = db.session.get(User, conv.user_id) if conv.user_id else None
             if user is not None:
                 ConversationHandler().clear_conversation(user)
         except Exception as exc:

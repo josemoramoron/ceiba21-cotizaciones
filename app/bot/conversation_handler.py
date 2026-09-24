@@ -7,6 +7,7 @@ ANTES de salir del contexto de Flask.
 """
 from app.bot.states import ConversationState
 from app.bot.message_parser import MessageParser
+from app.models import db
 from app.services.calculator_service import CalculatorService
 from app.services.order_service import OrderService
 from app.services.user_service import UserService
@@ -335,7 +336,7 @@ class ConversationHandler:
         # Selección de moneda
         if callback['action'] == 'currency':
             currency_id = int(callback['value'])
-            currency = Currency.query.get(currency_id)
+            currency = db.session.get(Currency, currency_id)
             
             if currency and currency.active:
                 # ✅ SERIALIZAR currency inmediatamente
@@ -430,7 +431,7 @@ class ConversationHandler:
         # Selección de método
         if callback['action'] == 'method':
             method_id = int(callback['value'])
-            method = PaymentMethod.query.get(method_id)
+            method = db.session.get(PaymentMethod, method_id)
             
             if method and method.active:
                 # ✅ SERIALIZAR method
@@ -791,7 +792,7 @@ class ConversationHandler:
         """Datos de cobro del método (correo, wallet, cuenta) desde la BD."""
         if not payment_method_id:
             return ''
-        method = PaymentMethod.query.get(payment_method_id)
+        method = db.session.get(PaymentMethod, payment_method_id)
         return (method.datos_receptor or '') if method else ''
     
     def _handle_await_proof(self, user: User, message: str) -> Dict[str, Any]:
@@ -844,7 +845,7 @@ class ConversationHandler:
         
         # Actualizar orden
         try:
-            order = Order.query.get(order_id)
+            order = db.session.get(Order, order_id)
             if order:
                 # Guardar comprobante
                 order.payment_proof_url = proof_url

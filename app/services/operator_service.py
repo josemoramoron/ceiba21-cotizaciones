@@ -5,6 +5,7 @@ Capa de negocio entre routes/dashboard.py y el modelo Operator.
 import logging
 from typing import Optional, List, Tuple
 
+from app.models import db
 from app.models.operator import Operator, OperatorRole
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class OperatorService:
         Returns:
             Operator si existe, None si no
         """
-        return Operator.query.get(operator_id)
+        return db.session.get(Operator, operator_id)
 
     @staticmethod
     def get_by_username(username: str) -> Optional[Operator]:
@@ -111,7 +112,7 @@ class OperatorService:
             Tuple (Operator actualizado, None) si éxito
             Tuple (None, mensaje_error) si no se encontró
         """
-        operator = Operator.query.get(operator_id)
+        operator = db.session.get(Operator, operator_id)
         if not operator:
             return None, "Operador no encontrado"
 
@@ -139,7 +140,7 @@ class OperatorService:
             Tuple (Operator actualizado, None) si éxito
             Tuple (None, mensaje_error) si falla
         """
-        operator = Operator.query.get(operator_id)
+        operator = db.session.get(Operator, operator_id)
         if not operator:
             return None, "Operador no encontrado"
 

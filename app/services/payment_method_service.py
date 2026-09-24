@@ -55,7 +55,7 @@ class PaymentMethodService:
     @staticmethod
     def get_by_id(pm_id):
         """Obtener método de pago por ID"""
-        return PaymentMethod.query.get(pm_id)
+        return db.session.get(PaymentMethod, pm_id)
     
     @staticmethod
     def get_by_code(code):

@@ -138,7 +138,7 @@ class QuoteService:
     @staticmethod
     def update_quote(quote_id, value_type=None, usd_value=None, usd_formula=None):
         """Actualizar una cotización"""
-        quote = Quote.query.get(quote_id)
+        quote = db.session.get(Quote, quote_id)
         if not quote:
             return None
 

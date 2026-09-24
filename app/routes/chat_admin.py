@@ -9,6 +9,7 @@ from flask import Blueprint, render_template, jsonify, request
 from flask_login import current_user
 
 from app.decorators import require_roles
+from app.models import db
 from app.models.operator import OperatorRole
 from app.models.chat import ChatMessage, ChatConversation
 from app.services.chat_service import ChatService
@@ -106,7 +107,7 @@ def api_pausa_global():
 
 def _get_conversation(conversation_id: int):
     """Conversación por id, o None."""
-    return ChatConversation.query.get(conversation_id)
+    return db.session.get(ChatConversation, conversation_id)
 
 
 @chat_admin_bp.route('/api/<int:conversation_id>/orden')
