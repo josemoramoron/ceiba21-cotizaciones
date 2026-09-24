@@ -25,6 +25,16 @@ class Config:
     GMAIL_IMAP_USER = os.getenv('GMAIL_IMAP_USER')
     GMAIL_IMAP_PASSWORD = os.getenv('GMAIL_IMAP_PASSWORD')
 
+    # ── Redis (cache, rate-limit y sesiones) ────────────────────────────
+    # Antes estaban hardcodeados en app/__init__.py (localhost:6379, db=0
+    # para cache/rate-limit, db=1 para sesiones). Estos defaults reproducen
+    # exactamente ese comportamiento — no cambia nada en producción a menos
+    # que definas estas variables en el .env.
+    REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+    REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
+    REDIS_DB = int(os.getenv('REDIS_DB', '0'))                  # cache + rate-limit
+    REDIS_SESSION_DB = int(os.getenv('REDIS_SESSION_DB', '1'))  # Flask-Session
+
     # Token compartido para los webhooks del gateway SMS (?token=... en la URL
     # registrada en el telefono). Si queda vacio, el webhook sigue abierto como
     # hoy (no rompe nada hasta que se configure en .env Y se re-registre la URL

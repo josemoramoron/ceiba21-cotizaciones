@@ -19,13 +19,12 @@ def app():
         'SQLALCHEMY_DATABASE_URI': 'postgresql://webmaster:postgres123@localhost:5433/ceiba21_dev',
         'WTF_CSRF_ENABLED': False,
     })
-    # Limpia la BD 1 de Redis al inicio de cada corrida de pytest — ahí
-    # vive Flask-Session (SESSION_REDIS en app/__init__.py, hardcodeado a
-    # db=1 para cualquier entorno, no solo tests). No hay 'REDIS_URL' que
-    # configurar aquí: ni SESSION_REDIS ni redis_client (el que usa
-    # RateLimitService/CacheService) leen esa clave de app.config — los
-    # dos están hardcodeados en app/__init__.py (db=1 y db=0
-    # respectivamente). Un 'REDIS_URL' en este fixture no haría nada.
+    # Limpia la BD 1 de Redis (REDIS_SESSION_DB) al inicio de cada corrida
+    # de pytest — ahí vive Flask-Session. Desde que Config expone
+    # REDIS_HOST/PORT/DB/SESSION_DB (ver app/config.py) esto ya es
+    # configurable por entorno, pero no hay ninguna de esas variables en
+    # el .env de dev, así que en la práctica sigue siendo localhost:6379
+    # db=1, igual que antes.
     _redis.Redis(host='localhost', port=6379, db=1).flushdb()
     yield app
 
@@ -36,10 +35,12 @@ def _limpiar_rate_limits():
     Limpia los contadores de rate limit (login, chat público, etc.) antes
     de correr la suite.
 
-    OJO: RateLimitService usa app.redis_client, que en app/__init__.py está
-    hardcodeado a db=0 (no lee REDIS_URL de la config) — es un Redis
-    distinto al db=1 que se flushea en el fixture `app` de arriba (ese es
-    solo para Flask-Session). Sin este flush, cada corrida de pytest suma
+    OJO: RateLimitService usa app.redis_client, que en app/__init__.py lee
+    REDIS_DB de Config (default 0 — ver app/config.py), distinto del
+    REDIS_SESSION_DB (default 1) que se flushea en el fixture `app` de
+    arriba (ese es solo para Flask-Session). Sin variables REDIS_* en el
+    .env, dev y tests siguen compartiendo el mismo Redis local, así que
+    sin este flush cada corrida de pytest suma
     intentos de /auth/login contra el límite real de 10 cada 15 min, y
     tarde o temprano un test con credenciales correctas empieza a fallar
     como si fueran inválidas (se ve como un 302 a /auth/login inesperado

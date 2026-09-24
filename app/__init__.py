@@ -36,15 +36,23 @@ def _check_secret_key_or_fail(app, is_production):
 def _configure_redis_and_cache(app, is_production):
     """Cache, sesiones en Redis, pool de Postgres y cookies de remember-me."""
     # ✨ Configuración de Redis y Cache
+    # Host/puerto/db vienen de Config (REDIS_HOST/PORT/DB en .env, ver
+    # app/config.py) — mismos defaults de siempre (localhost:6379 db=0).
     app.config['CACHE_TYPE'] = 'RedisCache'
-    app.config['CACHE_REDIS_HOST'] = 'localhost'
-    app.config['CACHE_REDIS_PORT'] = 6379
-    app.config['CACHE_REDIS_DB'] = 0
+    app.config['CACHE_REDIS_HOST'] = app.config['REDIS_HOST']
+    app.config['CACHE_REDIS_PORT'] = app.config['REDIS_PORT']
+    app.config['CACHE_REDIS_DB'] = app.config['REDIS_DB']
     app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 minutos
 
     # ✨ Configuración de sesiones en Redis
+    # db separada (REDIS_SESSION_DB, default 1) para no mezclar sesiones
+    # con cache/rate-limit.
     app.config['SESSION_TYPE'] = 'redis'
-    app.config['SESSION_REDIS'] = Redis(host='localhost', port=6379, db=1)
+    app.config['SESSION_REDIS'] = Redis(
+        host=app.config['REDIS_HOST'],
+        port=app.config['REDIS_PORT'],
+        db=app.config['REDIS_SESSION_DB'],
+    )
     app.config['SESSION_PERMANENT'] = True  # Sesión persistente
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 horas
     # Seguridad de cookies de sesión:
@@ -192,12 +200,14 @@ def create_app(config_class=Config):
 
     _configure_redis_and_cache(app, _is_production)
 
-    # Inicializar Redis client global
+    # Inicializar Redis client global (mismo host/db que cache — ver
+    # REDIS_HOST/PORT/DB en app/config.py). Usado por CacheService y
+    # RateLimitService.
     global redis_client
     redis_client = Redis(
-        host='localhost',
-        port=6379,
-        db=0,
+        host=app.config['REDIS_HOST'],
+        port=app.config['REDIS_PORT'],
+        db=app.config['REDIS_DB'],
         decode_responses=True  # Retorna strings en vez de bytes
     )
 
